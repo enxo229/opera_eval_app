@@ -1,0 +1,124 @@
+Perfiles Profesionales: Equipo de Observability Delivery (MSP)
+Estos perfiles definen la estructura de talento para la ejecución de estrategias de observabilidad en entornos de clientes, alineados con el framework del Centro de Excelencia (CoE).
+PERFIL 1: Analista de Observability Junior (Entry Level)
+Resumen del Rol
+El Analista de Observability Junior es un perfil en etapa de formación técnica intensiva. Su misión es ejecutar tareas operativas y de implementación técnica siguiendo estrictamente los playbooks y estándares definidos por el CoE. Aporta valor al MSP mediante la liberación de carga operativa de los niveles superiores y asegurando que las configuraciones base en los clientes sean consistentes y libres de errores manuales mediante el uso de automatización.
+Responsabilidades Clave
+1.	Despliegue de Agentes: Instalar y configurar agentes de observabilidad (Dynatrace OneAgent, Alloy, OTel-SETI Stack) en hosts y clusters siguiendo guías técnicas.
+2.	Configuración de Dashboards Base: Clonar y adaptar tableros estándar del CoE para nuevos servicios del cliente.
+3.	Mantenimiento de Tags/Labels: Aplicar estrategias de etiquetado (tagging) manual y automático según el estándar de nomenclatura definido y alineado con las convenciones semánticas.
+4.	Validación de Telemetría: Verificar la correcta recepción de métricas, logs, eventos y trazas en la plataforma tras una nueva instrumentación.
+5.	Documentación Técnica: Registrar cambios y configuraciones realizadas en la base de conocimientos del cliente (Wiki/Confluence).
+6.	Atención de Alertas Nivel 1: Realizar el primer triaje de alertas de la plataforma de observabilidad (ej. agente caído, falta de permisos).
+7.	Ejecución de Scripts IaC: Ejecutar planes de Terraform o comandos Helm previamente validados para despliegues de infraestructura de monitoreo.
+8.	Limpieza de Ruido: Identificar y reportar alertas redundantes o "flapping" para su ajuste.
+9.	Uso de IA para Productividad: Utilizar asistentes de código (GitHub Copilot/Cursor/Claude Code/Antigravity) para la generación de consultas PromQL o LogQL básicas bajo supervisión.
+10.	Reporte de Avance: Informar constantemente sobre el estado de las tareas asignadas en las herramientas de gestión (Azure DevOps).
+Competencias Técnicas por Dominio
+Dominio	Nivel	Descripción en Contexto
+Observabilidad & Telemetría	Básico	Entiende la diferencia entre logs, métricas y trazas. Conoce el concepto de OTel.
+Instrumentación	Básico	Capaz de instalar agentes en Linux/Windows y habilitar instrumentación automática.
+Herramientas (Dynatrace/Grafana)	Básico	Navegación fluida, creación de filtros simples y visualización de datos.
+FinOps	Básico	Identifica servicios con alta ingesta de datos que podrían impactar el costo.
+Dashboards & Alertas	Intermedio	Capaz de crear visualizaciones básicas y configurar umbrales estáticos.
+SRE e Incidentes	Básico	Sigue runbooks de remediación simple y escala correctamente.
+IA & Eficiencia	Intermedio	Uso proactivo de LLMs para explicar errores de logs o sintaxis de consultas.
+Stack Tecnológico
+●	Observabilidad: Dynatrace (Nivel Usuario), Grafana Cloud (Básico).
+●	Infraestructura: Linux CLI (Intermedio), Docker (Básico), Kubernetes (Conceptos).
+●	Automatización: Git (Básico), Terraform (Ejecución).
+●	Lenguajes: Bash o Python (Scripting básico para automatizar tareas repetitivas).
+Conocimientos Previos & Certificaciones
+●	Requerido: Bases sólidas de administración de sistemas Linux, redes (Modelo OSI) y fundamentos de Cloud (AWS/Azure).
+●	Certificaciones Sugeridas: Dynatrace Associate, Grafana Observability Fundamentals, AWS Cloud Practitioner.
+PERFIL 2: Analista de Observability Mid-Senior
+Resumen del Rol
+El Analista Mid-Senior es el motor de autonomía en el delivery. Su propósito es liderar técnicamente las implementaciones en clientes asignados, asegurando que el framework del CoE se adapte a la realidad tecnológica del cliente sin perder el estándar. Es el interlocutor técnico principal con los equipos de desarrollo y operaciones del cliente, actuando como un consultor táctico que transforma necesidades de negocio en configuraciones de observabilidad.
+Responsabilidades Clave
+1.	Instrumentación de Aplicaciones: Liderar la instrumentación manual de microservicios (Java, Python, Go) utilizando SDKs de OpenTelemetry, así como las capas medias.
+2.	Gestión de OpenTelemetry Collectors: Diseñar y configurar pipelines de telemetría (recepción, transformación, exportación) mediante OTel Collectors (OTel SETI Stack).
+3.	Configuración de SLOs: Implementar Service Level Objectives y Error Budgets basados en los indicadores críticos definidos con el cliente.
+4.	Tuning de Alertas: Reducir el MTTR mediante la configuración de alertas inteligentes, basadas en anomalías y reducción de ruido (Alert Fatigue).
+5.	Optimización FinOps: Aplicar políticas de sampling y filtrado en el Collector para optimizar el consumo de licencias y almacenamiento.
+6.	Mentoría Técnica: Supervisar y validar el trabajo de los analistas Junior, asegurando la calidad del delivery.
+7.	Integración CI/CD: Configurar "Quality Gates" de observabilidad en los pipelines de despliegue del cliente.
+8.	Análisis de Causa Raíz (RCA): Participar en sesiones de post-mortem utilizando evidencia técnica de trazas distribuidas para identificar cuellos de botella y correlacionando Telemetría, SLIs y KPIs de negocio.
+9.	Automatización con IaC: Desarrollar y mantener OaC para el despliegue de componentes de observabilidad.
+10.	AIOps Implementation: Configurar las capacidades de IA de Dynatrace (Davis) y Grafana para la detección proactiva de incidentes.
+
+
+
+Competencias Técnicas por Dominio
+Dominio	Nivel	Descripción en Contexto
+Observabilidad & Telemetría	Avanzado	Domina el ciclo de vida de una traza y la gestión de cardinalidad en métricas.
+Instrumentación	Avanzado	Experto en OTel SDKs y configuración de instrumentación en K8s (Sidecars/Operators).
+Herramientas (Dynatrace/Grafana)	Avanzado	Configuración avanzada de extensiones, dashboards complejos (variables/mixed sources).
+FinOps	Intermedio	Realiza ejercicios de showback y propone estrategias de reducción de costos.
+Dashboards & Alertas	Avanzado	Implementa lógica de alertas multinivel y dashboards ejecutivos/técnicos.
+Integraciones & Cloud	Avanzado	Observabilidad profunda en EKS/AKS/GKE e integración con Service Meshes.
+Stack Tecnológico
+●	Observabilidad: Dynatrace (Professional), Grafana Cloud (PromQL/LogQL experto), OpenTelemetry (Experto).
+●	Infraestructura: Kubernetes (Intermedio-Avanzado), Helm, Terraform, Ansible.
+●	Desarrollo: Capacidad de leer y debuggear código en Java, Node.js o Python.
+●	IA: Prompt Engineering avanzado para depuración de arquitecturas y optimización de consultas complejas.
+
+KPIs del Rol
+●	Observability Coverage: % de servicios de negocios críticos del cliente con telemetría completa.
+●	MTTD (Mean Time to Detect): Reducción de tiempos de detección mediante alertas efectivas.
+●	FinOps Efficiency: % de ahorro conseguido mediante optimización de señales.
+
+PERFIL 3: Platform Engineer de Observabilidad (Senior)
+Resumen del Rol
+El Platform Engineer de Observabilidad es la máxima autoridad técnica en el equipo de delivery. Su misión es resolver los desafíos de arquitectura más complejos, diseñar soluciones "custom" cuando el estándar no es suficiente (siempre bajo el paraguas del CoE) y actuar como el puente de retroalimentación hacia el CoE para la evolución del framework. Asegura que la observabilidad sea una plataforma escalable, resiliente y segura para los clientes más estratégicos del MSP.
+Responsabilidades Clave
+1.	Arquitectura de Solución en Cliente: Diseñar el despliegue de observabilidad para arquitecturas complejas (Multi-cloud, On-premise híbrido, Service Mesh).
+2.	Gobernanza de Datos y Privacidad: Configurar reglas avanzadas de enmascaramiento de PII/PCI y RBAC granular en entornos regulados.
+3.	Extensibilidad de Plataforma: Desarrollar plugins personalizados o exportadores de OTel cuando no existan soluciones out-of-the-box.
+4.	Field Feedback al CoE: Identificar gaps en el framework global basándose en la experiencia en clientes y proponer mejoras documentadas.
+5.	Liderazgo en Crisis: Actuar como nivel de escalamiento para incidentes críticos de infraestructura de observabilidad o problemas de performance de difícil diagnóstico.
+6.	Estrategia FinOps Senior: Definir políticas de retención y tiered-storage para optimizar costos a gran escala (Petabytes de logs).
+7.	Evangelización Técnica: Dictar workshops a los equipos del cliente sobre cómo consumir la observabilidad para mejorar el desarrollo.
+8.	Automatización de Plataforma (OaC): Implementar "Observability as Code" a gran escala, asegurando que ningún recurso nazca sin monitoreo.
+9.	Validación de Nuevas Tecnologías: Probar y validar nuevas versiones de agentes o herramientas antes de su despliegue masivo en clientes.
+10.	Optimización con IA: Diseñar flujos de remediación automática (Self-healing) integrando alertas con herramientas de automatización.
+Competencias Técnicas por Dominio
+Dominio	Nivel	Descripción en Contexto
+Observabilidad & Telemetría	Experto	Autoridad en OTel, muestreo dinámico y correlación semántica de datos.
+Configuración de Herramientas	Experto	Capaz de administrar el backend de las herramientas si fuera necesario (SaaS y Managed).
+FinOps	Avanzado	Diseña modelos de costos y presupuestos de telemetría para contratos multi-año.
+SRE e Incidentes	Experto	Diseña arquitecturas de alta disponibilidad para los pipelines de telemetría.
+Seguridad & Compliance	Avanzado	Implementa auditoría, cifrado y cumplimiento normativo en el stack.
+Relacionamiento MSP	Avanzado	Capacidad de negociar con arquitectos del cliente y defender decisiones técnicas.
+Stack Tecnológico
+●	Core: Dynatrace (Master/Architect), Grafana Enterprise, OpenTelemetry (Contributor level).
+●	Ecosystem: Service Mesh (Istio/Linkerd), eBPF (Beyla/Alloy), Serverless (AWS Lambda).
+●	IaC: Diseño de arquitecturas en Terraform, Go (para extender herramientas).
+●	IA: Implementación de modelos locales o integraciones API para análisis predictivo de logs.
+Tabla Comparativa de Niveles
+Característica	Junior	Mid-Senior	Platform Engineer (Senior)
+Autonomía	Bajo (Requiere supervisión)	Alta (Autónomo en delivery)	Total (Define el "cómo" técnico)
+Scope	Tareas técnicas puntuales	Implementación end-to-end	Arquitectura y estrategia técnica
+Interacción Cliente	Soporte técnico básico	Interlocutor técnico principal	Consultor senior / Arquitecto
+Impacto	Eficiencia operativa	Éxito del proyecto en cliente	Valor estratégico y escalabilidad
+Gestión de IA	Consumidor de asistencia	Optimizador de procesos	Diseñador de soluciones con IA
+Plan de Formación Sugerido para el Junior (3 Meses)
+Este plan asume que el candidato tiene bases de infraestructura pero cero experiencia en observabilidad.
+●	Mes 1: Inmersión en Delivery Real
+○	Actividad: Acompañamiento a un Mid-Senior en un proyecto de cliente.
+○	Entrega: Responsabilidad sobre la documentación y los dashboards base de un cliente real bajo supervisión.
+●	Mes 1: Fundamentos y Herramientas Base
+○	Teoría: Los 3 pilares, ciclo de vida de la telemetría, introducción a Dynatrace y Grafana.
+○	Práctica: Instalación de agentes en VMs Linux y Windows. Navegación por la consola.
+●	Mes 1: El Estandar del CoE y Nomenclatura
+○	Teoría: Framework de Tags, Naming Conventions, estándares de dashboards.
+○	Práctica: Aplicación de tags a recursos existentes, creación de dashboards siguiendo el manual de marca técnica.
+●	Mes 2: Introducción a OpenTelemetry
+○	Teoría: ¿Qué es OTel?, Collector vs Agent, Semantic Conventions.
+○	Práctica: Configuración de un OTel Collector básico para recibir logs y enviarlos a Grafana Loki.
+●	Mes 2: Alertas y Troubleshooting Básico
+○	Teoría: Tipos de alertas (Umbral, Anomalía, Outlier). Gestión de incidentes.
+○	Práctica: Configuración de alertas de disponibilidad y performance. Triaje de incidentes de plataforma.
+●	Mes 3: Observabilidad en Kubernetes y Capa Media
+○	Teoría: Arquitectura de K8s, métricas del plano de control vs aplicaciones.
+○	Práctica: Despliegue de Dynatrace Operator y Grafana Agent en un cluster de laboratorio.
+

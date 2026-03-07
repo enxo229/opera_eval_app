@@ -1,0 +1,122 @@
+[SYS_ROLE]
+
+Actúa como un Arquitecto de Software Principal y Senior Full-Stack Engineer. Tu objetivo es desarrollar desde cero una aplicación web de grado productivo llamada "OTP: Observability Talent Pivot". Esta plataforma gestiona y automatiza la evaluación de técnicos de infraestructura (Equipo Ópera) para determinar su aptitud hacia el rol de "Analista de Observabilidad Junior".
+
+[TECH_STACK]
+
+Cíñete estrictamente al siguiente stack tecnológico:
+
+Framework: Next.js 14+ (App Router).
+
+Lenguaje: TypeScript.
+
+Estilos: Tailwind CSS.
+
+Componentes UI: Shadcn UI, Lucide React (iconos).
+
+Animaciones: Framer Motion.
+
+Gráficos: Recharts (específicamente Radar Charts).
+
+Backend & Base de Datos: Supabase (PostgreSQL, Auth, RLS).
+
+Inteligencia Artificial: Google AI SDK (@google/generative-ai) usando el modelo gemini-1.5-flash.
+
+[DATABASE_SCHEMA] (Supabase)
+
+Genera el código SQL y la integración en cliente/servidor para las siguientes tablas, aplicando políticas RLS para que los candidatos no puedan ver datos de otros candidatos ni evaluaciones en curso:
+
+profiles: id (uuid, PK, ref: auth.users), full_name (text), role (text, check in 'evaluator', 'candidate'), created_at (timestamptz).
+
+evaluations: id (uuid, PK), candidate_id (uuid, FK), evaluator_id (uuid, FK), status (text, default 'draft'), score_a (decimal), score_b (decimal), score_c (decimal), score_ia (decimal), final_score (decimal), classification (text), ai_insights (jsonb).
+
+dimension_scores: id (uuid, PK), evaluation_id (uuid, FK), dimension (text: 'A', 'B', 'C', 'IA'), category (text: 'A1', 'A2', 'B1', etc.), raw_score (int), comments (text).
+
+dynamic_tests: id (uuid, PK), evaluation_id (uuid, FK), test_type (text: 'A4_CASE', 'B1_TICKET', 'IA_CHAT'), prompt_context (text), ai_generated_content (text), candidate_response (text).
+
+[BUSINESS_LOGIC] & [EVALUATION_STRUCTURE]
+
+Implementa las siguientes reglas matemáticas en Server Actions (nunca en el cliente) para calcular el resultado de la evaluación.
+
+Estructura de Dimensiones:
+
+Dimensión A (Técnica): Subcategorías A1 (15 pts), A2 (15 pts), A3 (12 pts reales), A4 (10 pts).
+
+Regla de Normalización A3: El puntaje obtenido en A3 debe calcularse como (suma_puntos_a3 / 12) * 10.
+
+Subtotal A: Suma de A1, A2, A3_normalizado y A4 (Máximo 50).
+
+Dimensión B (Blandas): B1 (7 pts), B2 (7 pts), B3 (4 pts), B4 (4 pts), B5 (4 pts), B6 (4 pts).
+
+Subtotal B: Suma directa (Máximo 30).
+
+Dimensión C (Actitudinal): C1, C2, C3, C4 (5 pts cada una).
+
+Subtotal C: Suma directa (Máximo 20).
+
+Dimensión IA (Complementaria - Desempate): IA-1 (5 pts), IA-2 (5 pts). (Máximo 10, no suma al total de 100, se muestra aparte).
+
+Ponderación Final:
+Score Final = Subtotal A + Subtotal B + Subtotal C (Escala 0-100).
+
+Semáforo de Clasificación Automática:
+
+>= 80: "Listo para pivotar" (Verde #10B981)
+
+60 - 79: "Pivote con nivelación" (Amarillo #F59E0B)
+
+40 - 59: "En preparación" (Naranja #F97316)
+
+< 40: "Continúa en Ópera" (Rojo #EF4444)
+
+[AI_INTEGRATION_FREE_TIER]
+
+Implementa el uso de Gemini 1.5 Flash respetando las limitaciones de la capa gratuita (Free Tier).
+
+Rate Limiting: Crea un wrapper para las llamadas al SDK que implemente Exponential Backoff al recibir un error 429 (límite de 15 RPM).
+
+Privacidad: Filtra cualquier PII (Identificadores personales) antes de enviar el prompt a la API.
+
+Funciones Requeridas (Route Handlers / Server Actions):
+
+generateDynamicCaseA4(): Crea un escenario de caída de servidor o alto CPU enfocado en un stack de Dynatrace/Grafana para que el candidato lo resuelva oralmente.
+
+evaluateTicketB1(): Analiza el texto redactado por el candidato y le asigna una pre-calificación basada en precisión técnica, impacto y estructura.
+
+generateFinalInsights(): Lee todos los comments y puntajes de la evaluación, y retorna un JSON con 3 fortalezas, 2 brechas críticas y una recomendación final de plan de carrera.
+
+[UI_UX_SPEC]
+
+Tema Visual: "Dark Observability". Inspirado en consolas SRE/DevOps. Fondos #0B0E14, bordes #1F2937, texto principal #E5E7EB. Color primario de acento #00A3FF.
+
+Vista del Evaluador:
+
+Lista de candidatos (Data Table con ordenamiento por final_score).
+
+Interfaz de evaluación en vivo: Componente Stepper (Paso a paso) para navegar entre Dimensión A, B y C.
+
+Visualización de datos: Un RadarChart de Recharts que actualice en tiempo real la forma del polígono al ingresar los puntajes (Técnica, Blandas, Actitud).
+
+Vista del Evaluado ("Focus Mode"):
+
+Layout minimalista sin menú lateral.
+
+Módulo B1: Editor de texto enriquecido simulando la caja de descripción de "GLPI", con un cronómetro regresivo de 20 minutos.
+
+Módulo IA-1: Interfaz de chat simple para que el candidato resuelva el reto práctico pidiendo ayuda a la IA. El log completo del chat se guarda en la base de datos para revisión del evaluador.
+
+[EXECUTION_STEPS] (Instrucciones de Generación)
+
+Genera los tipos/interfaces en TypeScript (/types/database.ts).
+
+Genera las utilidades de conexión a Supabase (/lib/supabase/server.ts y client.ts).
+
+Crea las Server Actions para los cálculos de normalización y ponderación (/app/actions/evaluation.ts).
+
+Configura la integración de IA con reintentos (/lib/ai/gemini.ts).
+
+Desarrolla las pantallas responsivas en la carpeta /app, separando /evaluator y /candidate.
+
+Incluye en un bloque final las sentencias SQL completas necesarias para crear las tablas y políticas en el dashboard de Supabase.
+
+Genera la documentación de como ejecutar el proyecto para usuarios no técnicos.
