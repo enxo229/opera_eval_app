@@ -38,36 +38,36 @@ export function TicketEditor({ onComplete }: { onComplete?: () => void }) {
     }
 
     return (
-        <Card className="bg-[#11151F] border-[#1F2937]">
+        <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
-                    <CardTitle className="text-[#00A3FF] text-xl">Módulo B1: Documentación de Incidente</CardTitle>
-                    <CardDescription className="text-gray-400 mt-2 max-w-2xl">
+                    <CardTitle className="text-primary text-xl drop-shadow-sm">Módulo B1: Documentación de Incidente</CardTitle>
+                    <CardDescription className="text-muted-foreground mt-2 max-w-2xl">
                         Son las 2:47 a.m. del martes. Recibes una alerta: &quot;CRITICAL – High CPU Usage – srv-prod-payments-01&quot;.
                         El proceso java_billing_worker generaba OutOfMemoryError. A las 3:15 a.m. se hace rollback y baja el CPU.
                         Documenta en esta caja text simualda (tipo GLPI) el incidente.
                     </CardDescription>
                 </div>
-                <div className={`flex items-center gap-2 font-mono text-lg p-2 rounded ${isWarning ? 'bg-red-500/10 text-red-500 font-bold animate-pulse' : 'bg-[#1F2937] text-[#E5E7EB]'}`}>
-                    <Clock className="w-5 h-5" />
+                <div className={`flex items-center gap-2 font-mono text-lg p-2 rounded ${isWarning ? 'bg-red-500/10 text-red-500 font-bold animate-pulse' : 'bg-secondary text-secondary-foreground'}`}>
+                    <Clock className="w-5 h-5 drop-shadow-md text-primary" />
                     {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
                 {feedback ? (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-md whitespace-pre-wrap">
-                        <h4 className="font-bold mb-2 flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Feedback Generado por IA (Vista Previa Desarrollo)</h4>
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-md whitespace-pre-wrap">
+                        <h4 className="font-bold mb-2 flex items-center gap-2"><AlertCircle className="w-4 h-4 drop-shadow-md" /> Feedback Generado por IA (Vista Previa Desarrollo)</h4>
                         {feedback}
                     </div>
                 ) : (
                     <>
-                        <div className="bg-[#0B0E14] border border-[#1F2937] p-2 rounded-t-md border-b-0 flex gap-2">
-                            <Button size="sm" variant="secondary" className="h-7 text-xs bg-[#1F2937] hover:bg-gray-700">Negrita</Button>
-                            <Button size="sm" variant="secondary" className="h-7 text-xs bg-[#1F2937] hover:bg-gray-700">Código</Button>
+                        <div className="bg-background border border-border p-2 rounded-t-md border-b-0 flex gap-2">
+                            <Button size="sm" variant="secondary" className="h-7 text-xs bg-secondary text-secondary-foreground hover:bg-secondary/80">Negrita</Button>
+                            <Button size="sm" variant="secondary" className="h-7 text-xs bg-secondary text-secondary-foreground hover:bg-secondary/80">Código</Button>
                         </div>
                         <Textarea
                             placeholder="Descripción del ticket..."
-                            className="min-h-[250px] bg-[#0B0E14] border-[#1F2937] text-[#E5E7EB] font-mono rounded-t-none resize-none focus-visible:ring-[#00A3FF]"
+                            className="min-h-[250px] bg-background border-border text-foreground font-mono rounded-t-none resize-none focus-visible:ring-primary"
                             value={ticket}
                             onChange={(e) => setTicket(e.target.value)}
                             disabled={isSubmitting || timeLeft === 0}
@@ -75,7 +75,7 @@ export function TicketEditor({ onComplete }: { onComplete?: () => void }) {
                         <div className="flex justify-end">
                             <Button
                                 onClick={handleSubmit}
-                                className="bg-[#00A3FF] hover:bg-[#00A3FF]/80 text-white"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground drop-shadow-md"
                                 disabled={!ticket.trim() || isSubmitting || timeLeft === 0}
                             >
                                 {isSubmitting ? 'Enviando...' : 'Guardar Ticket'}

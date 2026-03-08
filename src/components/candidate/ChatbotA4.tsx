@@ -37,22 +37,22 @@ export function ChatbotA4() {
     }
 
     return (
-        <Card className="bg-[#11151F] border-[#1F2937] flex flex-col h-[500px]">
-            <CardHeader className="border-b border-[#1F2937] py-4">
-                <CardTitle className="text-xl flex items-center gap-2 text-[#00A3FF]">
-                    <Bot className="w-5 h-5" /> Consola de Ayuda IA
+        <Card className="bg-card border-border shadow-sm flex flex-col h-[500px]">
+            <CardHeader className="border-b border-border py-4">
+                <CardTitle className="text-xl flex items-center gap-2 text-primary drop-shadow-sm">
+                    <Bot className="w-5 h-5 drop-shadow-md" /> Consola de Ayuda IA
                 </CardTitle>
             </CardHeader>
 
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-lg p-3 ${msg.role === 'user'
-                                ? 'bg-[#00A3FF]/20 border border-[#00A3FF]/30 text-[#E5E7EB]'
-                                : 'bg-[#1F2937] border border-gray-700 text-gray-300'
+                        <div className={`max-w-[80%] rounded-lg p-3 shadow-sm border ${msg.role === 'user'
+                            ? 'bg-primary/10 border-primary/20 text-foreground'
+                            : 'bg-secondary border-secondary/50 text-secondary-foreground'
                             }`}>
                             <div className="flex items-center gap-2 mb-1 opacity-70 text-xs font-mono uppercase">
-                                {msg.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
+                                {msg.role === 'user' ? <User className="w-3 h-3 drop-shadow-sm text-primary" /> : <Bot className="w-3 h-3 drop-shadow-sm text-primary" />}
                                 {msg.role}
                             </div>
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
@@ -61,24 +61,24 @@ export function ChatbotA4() {
                 ))}
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="bg-[#1F2937] rounded-lg p-3 text-sm text-gray-400 animate-pulse border border-gray-700">
+                        <div className="bg-secondary rounded-lg p-3 text-sm text-secondary-foreground animate-pulse border border-border">
                             Generando telemetría simulada...
                         </div>
                     </div>
                 )}
             </CardContent>
 
-            <div className="p-4 border-t border-[#1F2937] bg-black/20">
+            <div className="p-4 border-t border-border bg-muted/30">
                 <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ej: Mostrar logs de errores de las últimas 2 horas de java_billing_worker"
-                        className="bg-[#0B0E14] border-[#1F2937] focus-visible:ring-[#00A3FF] text-[#E5E7EB]"
+                        className="bg-background border-input focus-visible:ring-primary text-foreground"
                         disabled={isLoading}
                     />
-                    <Button type="submit" disabled={isLoading || !input.trim()} className="bg-[#00A3FF] hover:bg-[#00A3FF]/80 text-white shrink-0">
-                        <Send className="w-4 h-4 ml-1" />
+                    <Button type="submit" disabled={isLoading || !input.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 drop-shadow-md">
+                        <Send className="w-4 h-4 ml-1 drop-shadow-md" />
                     </Button>
                 </form>
             </div>

@@ -53,10 +53,10 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center p-4">
-            <Card className="w-full max-w-md bg-[#11151F] border-[#1F2937]">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <Card className="w-full max-w-md bg-card border-border shadow-md">
                 <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-[#00A3FF]">OTP Login</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight text-primary drop-shadow-sm">OTP Login</CardTitle>
                     <CardDescription className="text-muted-foreground">
                         Ingresa tus credenciales para acceder a la plataforma.
                     </CardDescription>
@@ -70,31 +70,31 @@ export default function LoginPage() {
                             </div>
                         )}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-[#E5E7EB]">Correo electrónico</label>
+                            <label className="text-sm font-medium leading-none text-foreground">Correo electrónico</label>
                             <Input
                                 type="email"
                                 placeholder="ejemplo@seti.com.co"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="bg-[#0B0E14] border-[#1F2937] text-white"
+                                className="bg-background border-input text-foreground"
                                 disabled={isLoading}
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-[#E5E7EB]">Contraseña</label>
+                            <label className="text-sm font-medium leading-none text-foreground">Contraseña</label>
                             <Input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="bg-[#0B0E14] border-[#1F2937] text-white"
+                                className="bg-background border-input text-foreground"
                                 disabled={isLoading}
                             />
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full bg-[#00A3FF] hover:bg-[#00A3FF]/80 text-white" type="submit" disabled={isLoading}>
+                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground drop-shadow-sm" type="submit" disabled={isLoading}>
                             {isLoading ? 'Autenticando...' : 'Iniciar Sesión'}
                         </Button>
                     </CardFooter>

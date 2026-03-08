@@ -50,10 +50,10 @@ export default async function EvaluatorDashboard() {
     }
 
     return (
-        <div className="p-8 max-w-6xl mx-auto space-y-6">
+        <div className="p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-[#00A3FF]">Dashboard de Evaluador</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-primary drop-shadow-sm">Dashboard de Evaluador</h1>
                     <p className="text-muted-foreground mt-2">
                         Supervisa y evalúa a los candidatos del programa Observability Talent Pivot.
                     </p>
@@ -65,16 +65,16 @@ export default async function EvaluatorDashboard() {
                 </form>
             </div>
 
-            <div className="rounded-md border border-[#1F2937] bg-[#11151F]">
+            <div className="rounded-md border border-border bg-card shadow-sm">
                 <Table>
                     <TableHeader>
-                        <TableRow className="border-[#1F2937] hover:bg-transparent">
-                            <TableHead className="text-[#E5E7EB]">Candidato</TableHead>
-                            <TableHead className="text-[#E5E7EB]">Rol Actual</TableHead>
-                            <TableHead className="text-[#E5E7EB]">Estado</TableHead>
-                            <TableHead className="text-[#E5E7EB]">Score Final</TableHead>
-                            <TableHead className="text-[#E5E7EB]">Clasificación</TableHead>
-                            <TableHead className="text-right text-[#E5E7EB]">Acciones</TableHead>
+                        <TableRow className="border-border hover:bg-transparent">
+                            <TableHead className="text-foreground">Candidato</TableHead>
+                            <TableHead className="text-foreground">Rol Actual</TableHead>
+                            <TableHead className="text-foreground">Estado</TableHead>
+                            <TableHead className="text-foreground">Score Final</TableHead>
+                            <TableHead className="text-foreground">Clasificación</TableHead>
+                            <TableHead className="text-right text-foreground">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -91,23 +91,23 @@ export default async function EvaluatorDashboard() {
                             const status = evalData?.status === 'completed' ? 'Completado' : evalData?.status === 'draft' ? 'En progreso' : 'No iniciada'
 
                             return (
-                                <TableRow key={c.id} className="border-[#1F2937] hover:bg-[#1F2937]/50">
-                                    <TableCell className="font-medium text-[#E5E7EB]">{c.full_name || 'Candidato Sin Nombre'}</TableCell>
+                                <TableRow key={c.id} className="border-border hover:bg-muted/50">
+                                    <TableCell className="font-medium text-foreground">{c.full_name || 'Candidato Sin Nombre'}</TableCell>
                                     <TableCell className="text-muted-foreground">{c.role}</TableCell>
                                     <TableCell>
                                         {status === 'Completado' ? (
-                                            <span className="text-emerald-400">Completado</span>
+                                            <span className="text-emerald-600 font-semibold">Completado</span>
                                         ) : (
-                                            <span className="text-amber-400">{status}</span>
+                                            <span className="text-amber-500 font-semibold">{status}</span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="font-mono text-lg text-[#E5E7EB]">
+                                    <TableCell className="font-mono text-lg text-foreground font-semibold">
                                         {evalData?.final_score !== null && evalData?.final_score !== undefined ? evalData.final_score : '-'}
                                     </TableCell>
                                     <TableCell>{getClassBadge(evalData?.classification)}</TableCell>
                                     <TableCell className="text-right">
                                         <Link href={`/evaluator/evaluate/${c.id}`}>
-                                            <Button variant={status === 'Completado' ? 'secondary' : 'default'} size="sm" className={status === 'Completado' ? 'bg-[#1F2937] text-white hover:bg-gray-700' : 'bg-[#00A3FF] hover:bg-[#00A3FF]/80 text-white'}>
+                                            <Button variant={status === 'Completado' ? 'secondary' : 'default'} size="sm" className={status === 'Completado' ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-primary hover:bg-primary/90 text-primary-foreground drop-shadow-sm'}>
                                                 {status === 'Completado' ? 'Ver Resultado' : 'Evaluar'}
                                             </Button>
                                         </Link>
