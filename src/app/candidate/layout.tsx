@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { LogOut } from 'lucide-react'
+
 export default function CandidateLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -9,12 +12,20 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
                     </div>
                     <span className="font-semibold tracking-wide text-foreground">OTP / Focus Mode</span>
                 </div>
-                <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    Evaluación en curso
+                <div className="text-sm text-muted-foreground flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        Evaluación en curso
+                    </div>
+                    <form action="/auth/signout" method="post">
+                        <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground hover:text-red-500 hover:bg-red-50 px-2">
+                            <LogOut className="w-4 h-4 mr-1" />
+                            Salir
+                        </Button>
+                    </form>
                 </div>
             </header>
 
