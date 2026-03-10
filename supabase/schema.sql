@@ -1,11 +1,22 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- Helper: Retrieve email from auth.users (exposed as RPC via PostgREST)
+create or replace function public.get_user_email(user_id uuid)
+returns text
+language sql
+security definer
+set search_path = ''
+as $$
+  select email from auth.users where id = user_id;
+$$;
+
 -- 1. PROFILES
 create table public.profiles (
   id uuid primary key references auth.users on delete cascade,
   full_name text,
   role text check (role in ('evaluator', 'candidate')),
+  education_level text,
   created_at timestamptz default now()
 );
 
@@ -53,11 +64,11 @@ create policy "Evaluators can view all evaluations"
     )
   );
 
--- Candidates can only see their own COMPLETED evaluations
-create policy "Candidates can view their own completed evaluations"
+-- Candidates can see their own evaluations (any status, needed for the Q&A flow)
+create policy "Candidates can view their own evaluations"
   on evaluations for select
   using (
-    auth.uid() = candidate_id and status = 'completed'
+    auth.uid() = candidate_id
   );
 
 -- Only evaluators can insert/update evaluations
@@ -136,10 +147,13 @@ create policy "Evaluators can update dimension scores"
 create table public.dynamic_tests (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  test_type text check (test_type in ('A4_CASE', 'B1_TICKET', 'IA_CHAT')),
+  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'PROMPT_IA2')),
+  subcategory text,          -- e.g. 'A1.1', 'A1.2', 'A2.3' for per-subcategory questions
   prompt_context text,
   ai_generated_content text,
-  candidate_response text
+  candidate_response text,
+  ai_score integer,          -- AI-suggested score (0-3 for dim A, etc)
+  ai_justification text      -- AI explanation for the score
 );
 
 alter table public.dynamic_tests enable row level security;
@@ -183,6 +197,17 @@ create policy "Evaluators can update dynamic tests"
     )
   );
 
+-- Candidates can insert dynamic tests (answers to questions)
+create policy "Candidates can insert their own dynamic tests"
+  on dynamic_tests for insert
+  with check (
+    exists (
+      select 1 from evaluations
+      where evaluations.id = dynamic_tests.evaluation_id
+        and evaluations.candidate_id = auth.uid()
+    )
+  );
+
 -- Candidates can update dynamic tests to save their answers
 create policy "Candidates can update their own dynamic tests answers"
   on dynamic_tests for update
@@ -191,5 +216,15 @@ create policy "Candidates can update their own dynamic tests answers"
       select 1 from evaluations
       where evaluations.id = dynamic_tests.evaluation_id
         and evaluations.candidate_id = auth.uid()
+    )
+  );
+
+-- Evaluators can delete dynamic tests (for reset functionality)
+create policy "Evaluators can delete dynamic tests"
+  on dynamic_tests for delete
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid() and profiles.role = 'evaluator'
     )
   );

@@ -1,15 +1,19 @@
 import Link from 'next/link'
+import { CompanyLogo } from '@/components/CompanyLogo'
 import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-8 space-y-8 text-center">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-8 space-y-8 text-center relative">
+      <div className="absolute top-8 left-8">
+        <CompanyLogo width={140} height={50} />
+      </div>
       <div className="space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl text-primary drop-shadow-md">
-          OTP: Observability Talent Pivot
+          O11y SkillFlow
         </h1>
         <p className="text-lg text-muted-foreground flex items-center justify-center gap-2 max-w-xl mx-auto">
-          Plataforma de evaluación para el equipo Ópera. Identifica a las próximas estrellas del talento SRE.
+          Plataforma integral de simulación y calibración de talento Prime Ops
         </p>
       </div>
 

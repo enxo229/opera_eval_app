@@ -31,12 +31,42 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Proteger rutas /evaluator y /candidate
-    // Si no hay usuario y no está en login o raiz, redirige a login
-    if (!user && (request.nextUrl.pathname.startsWith('/evaluator') || request.nextUrl.pathname.startsWith('/candidate'))) {
+    // Proteger rutas /evaluator, /candidate y /admin
+    // Si no hay usuario y está en ruta protegida, redirige a login
+    if (!user && (
+        request.nextUrl.pathname.startsWith('/evaluator') ||
+        request.nextUrl.pathname.startsWith('/candidate') ||
+        request.nextUrl.pathname.startsWith('/admin')
+    )) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
+    }
+
+    // Proteger /admin — solo evaluadores pueden acceder
+    if (user && request.nextUrl.pathname.startsWith('/admin')) {
+        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        const profile = profileData as { role: string } | null
+        if (profile?.role !== 'evaluator') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/candidate'
+            return NextResponse.redirect(url)
+        }
+    }
+
+    // Candidatos deben completar eligibility antes de acceder a /candidate
+    if (user && request.nextUrl.pathname === '/candidate') {
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role, education_level')
+            .eq('id', user.id)
+            .single()
+        const profile = profileData as { role: string; education_level: string | null } | null
+        if (profile?.role === 'candidate' && !profile.education_level) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/candidate/eligibility'
+            return NextResponse.redirect(url)
+        }
     }
 
     // Si hay usuario y está intentando ir a /login, redirigir a dashboard

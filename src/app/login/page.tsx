@@ -56,9 +56,9 @@ export default function LoginPage() {
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-md bg-card border-border shadow-md">
                 <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-primary drop-shadow-sm">OTP Login</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight text-primary drop-shadow-sm">O11y SkillFlow Login</CardTitle>
                     <CardDescription className="text-muted-foreground">
-                        Ingresa tus credenciales para acceder a la plataforma.
+                        Ingresa tus credenciales para acceder a la evaluación.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLogin}>

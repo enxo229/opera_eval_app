@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CompanyLogo } from '@/components/CompanyLogo'
 import { createClient } from '@/lib/supabase/server'
 import {
     Table,
@@ -36,7 +37,7 @@ export default async function EvaluatorDashboard() {
       id, 
       full_name, 
       role,
-      evaluations (
+      evaluations!evaluations_candidate_id_fkey (
         id,
         status,
         final_score,
@@ -52,17 +53,28 @@ export default async function EvaluatorDashboard() {
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-primary drop-shadow-sm">Dashboard de Evaluador</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Supervisa y evalúa a los candidatos del programa Observability Talent Pivot.
-                    </p>
+                <div className="flex items-center gap-6">
+                    <CompanyLogo width={100} height={35} />
+                    <div className="h-10 w-px bg-border shadow-sm" />
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-primary drop-shadow-sm">Dashboard de Evaluador</h1>
+                        <p className="text-muted-foreground mt-2">
+                            Supervisa y evalúa a los candidatos del programa O11y SkillFlow.
+                        </p>
+                    </div>
                 </div>
-                <form action="/auth/signout" method="post">
-                    <Button variant="outline" type="submit" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/10">
-                        Cerrar Sesión
-                    </Button>
-                </form>
+                <div className="flex items-center gap-3">
+                    <Link href="/admin">
+                        <Button variant="outline" className="border-border text-muted-foreground hover:text-primary hover:border-primary">
+                            ⚙️ Admin
+                        </Button>
+                    </Link>
+                    <form action="/auth/signout" method="post">
+                        <Button variant="outline" type="submit" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/10">
+                            Cerrar Sesión
+                        </Button>
+                    </form>
+                </div>
             </div>
 
             <div className="rounded-md border border-border bg-card shadow-sm">
@@ -86,8 +98,9 @@ export default async function EvaluatorDashboard() {
                             </TableRow>
                         )}
                         {candidates?.map((c: any) => {
-                            // Extract first evaluation if exists (assuming 1 per candidate for MVP)
-                            const evalData = c.evaluations && c.evaluations.length > 0 ? c.evaluations[0] : null
+                            // Cast evaluations explicitly
+                            const evaluations = c.evaluations as any[]
+                            const evalData = evaluations && evaluations.length > 0 ? evaluations[0] : null
                             const status = evalData?.status === 'completed' ? 'Completado' : evalData?.status === 'draft' ? 'En progreso' : 'No iniciada'
 
                             return (
@@ -101,7 +114,7 @@ export default async function EvaluatorDashboard() {
                                             <span className="text-amber-500 font-semibold">{status}</span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="font-mono text-lg text-foreground font-semibold">
+                                    <TableCell className="font-mono text-lg font-semibold" style={{ color: evalData?.final_score >= 80 ? '#10B981' : evalData?.final_score >= 60 ? '#F59E0B' : evalData?.final_score >= 40 ? '#F97316' : evalData?.final_score != null ? '#EF4444' : undefined }}>
                                         {evalData?.final_score !== null && evalData?.final_score !== undefined ? evalData.final_score : '-'}
                                     </TableCell>
                                     <TableCell>{getClassBadge(evalData?.classification)}</TableCell>

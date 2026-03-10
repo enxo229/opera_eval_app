@@ -14,8 +14,8 @@ const syncopate = Syncopate({
 });
 
 export const metadata: Metadata = {
-  title: "OTP: Observability Talent Pivot",
-  description: "Plataforma de evaluación SRE/DevOps",
+  title: "O11y SkillFlow",
+  description: "Plataforma integral de simulación y calibración de talento Prime Ops",
 };
 
 export default function RootLayout({
