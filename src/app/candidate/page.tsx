@@ -8,6 +8,9 @@ import { QuestionPanel } from '@/components/candidate/QuestionPanel'
 import { ChatbotA4 } from '@/components/candidate/ChatbotA4'
 import { TicketEditor } from '@/components/candidate/TicketEditor'
 import { PromptEditorIA2 } from '@/components/candidate/PromptEditorIA2'
+import { A1Tab } from '@/components/candidate/tabs/A1Tab'
+import { A2Tab } from '@/components/candidate/tabs/A2Tab'
+import { A3Tab } from '@/components/candidate/tabs/A3Tab'
 import { Button } from '@/components/ui/button'
 import {
     generateQuestionsA1,
@@ -383,240 +386,54 @@ export default function CandidateEvaluationFlow() {
 
                 {/* ===== A1: Linux Terminal + 5 Per-Subcategory Questions ===== */}
                 <TabsContent value="a1" className="space-y-6">
-                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
-                            <Terminal className="h-5 w-5 text-primary" />
-                            A1. Fundamentos de Infraestructura y Sistemas
-                        </h2>
-                        <p className="text-muted-foreground text-sm mb-4">
-                            Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
-                            Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
-                        </p>
-                        <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
-                    </div>
-
-                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        {!a1QuestionsGenerated ? (
-                            <div className="text-center py-4">
-                                <p className="text-muted-foreground mb-4">Cuando termines con la terminal, genera las preguntas para completar la sección A1.</p>
-                                <Button onClick={handleGenerateA1Questions} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                                    Generar Preguntas A1
-                                </Button>
-                            </div>
-                        ) : a1QuestionsLoading ? (
-                            <div className="flex items-center justify-center p-8 gap-3 text-muted-foreground">
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                                <span className="font-medium">Generando preguntas adaptadas a tu perfil...</span>
-                            </div>
-                        ) : (
-                            <div className="space-y-5">
-                                <h3 className="font-bold text-foreground flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-primary" /> Preguntas — Infraestructura y Sistemas
-                                    {a1Submitted && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                                </h3>
-
-                                {a1Questions.map((q, i) => (
-                                    <div key={q.subcategory} className="bg-secondary/30 border border-border rounded-lg p-4 space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                                {q.subcategory}
-                                            </span>
-                                            <span className="text-xs font-semibold text-muted-foreground">{q.label}</span>
-                                        </div>
-                                        <p className="text-sm text-foreground">{q.question}</p>
-                                        <textarea
-                                            value={a1Answers[q.subcategory] || ''}
-                                            onChange={(e) => setA1Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                            disabled={a1Submitted}
-                                            placeholder="Escribe tu respuesta aquí..."
-                                            className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                                        />
-                                    </div>
-                                ))}
-
-                                {!a1Submitted ? (
-                                    <Button
-                                        onClick={handleSubmitA1}
-                                        disabled={!allA1Answered || a1Submitting || !evaluationId}
-                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11"
-                                    >
-                                        {a1Submitting ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                        ) : !evaluationId ? (
-                                            'No hay evaluación activa — contacta al evaluador'
-                                        ) : (
-                                            'Guardar Respuestas A1'
-                                        )}
-                                    </Button>
-                                ) : (
-                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
-                                        <p className="font-bold text-lg">✅ Respuestas A1 guardadas correctamente</p>
-                                        <p className="text-sm mt-1">Tu evaluador ya puede ver tus respuestas.</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <A1Tab
+                        a1QuestionsGenerated={a1QuestionsGenerated}
+                        a1QuestionsLoading={a1QuestionsLoading}
+                        a1Questions={a1Questions}
+                        a1Answers={a1Answers}
+                        setA1Answers={setA1Answers}
+                        a1Submitted={a1Submitted}
+                        a1Submitting={a1Submitting}
+                        evaluationId={evaluationId}
+                        allA1Answered={allA1Answered}
+                        setA1Commands={setA1Commands}
+                        handleGenerateA1Questions={handleGenerateA1Questions}
+                        handleSubmitA1={handleSubmitA1}
+                    />
                 </TabsContent>
 
                 {/* ===== A2: Observability Questions ===== */}
                 <TabsContent value="a2" className="space-y-6">
-                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
-                            <HelpCircle className="h-5 w-5 text-primary" />
-                            A2. Observabilidad y Monitoreo
-                        </h2>
-                        <p className="text-muted-foreground text-sm mb-6">
-                            Selecciona la herramienta de observabilidad que mejor conozcas. Las preguntas se adaptarán a tu experiencia.
-                        </p>
-
-                        {!a2SelectedTool ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {TOOL_OPTIONS.map(tool => (
-                                    <button
-                                        key={tool.value}
-                                        onClick={() => handleSelectTool(tool.value)}
-                                        disabled={a2Submitted}
-                                        className="p-4 rounded-xl border-2 border-border bg-card hover:border-primary/50 hover:shadow-md transition-all text-center font-medium text-foreground disabled:opacity-50"
-                                    >
-                                        {tool.label}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold mb-4">
-                                    🔧 Herramienta seleccionada: {a2SelectedTool}
-                                </div>
-
-                                {a2QuestionsLoading ? (
-                                    <div className="flex items-center justify-center p-8 gap-3 text-muted-foreground">
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        <span className="font-medium">Generando preguntas personalizadas para {a2SelectedTool}...</span>
-                                    </div>
-                                ) : a2QuestionsGenerated && a2Questions.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {a2Questions.map(q => (
-                                            <div key={q.subcategory} className="space-y-2 bg-secondary/30 border border-border rounded-lg p-4">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
-                                                    <span className="text-sm font-semibold text-foreground">{q.label}</span>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground">{q.question}</p>
-                                                <textarea
-                                                    value={a2Answers[q.subcategory] || ''}
-                                                    onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                                    disabled={a2Submitted}
-                                                    placeholder="Escribe tu respuesta aquí..."
-                                                    className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                                                />
-                                            </div>
-                                        ))}
-
-                                        {!a2Submitted ? (
-                                            <Button
-                                                onClick={handleSubmitA2}
-                                                disabled={a2Submitting || !evaluationId || a2Questions.some(q => !(a2Answers[q.subcategory] || '').trim())}
-                                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                                            >
-                                                {a2Submitting ? (
-                                                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                                ) : (
-                                                    'Guardar Respuestas A2'
-                                                )}
-                                            </Button>
-                                        ) : (
-                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
-                                                <p className="font-bold text-lg">✅ Respuestas A2 guardadas correctamente</p>
-                                                <p className="text-sm mt-1">Tu evaluador ya puede ver tus respuestas.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </>
-                        )}
-                    </div>
+                    <A2Tab
+                        a2SelectedTool={a2SelectedTool}
+                        a2Submitted={a2Submitted}
+                        a2QuestionsLoading={a2QuestionsLoading}
+                        a2QuestionsGenerated={a2QuestionsGenerated}
+                        a2Questions={a2Questions}
+                        a2Answers={a2Answers}
+                        setA2Answers={setA2Answers}
+                        a2Submitting={a2Submitting}
+                        evaluationId={evaluationId}
+                        handleSelectTool={handleSelectTool}
+                        handleSubmitA2={handleSubmitA2}
+                    />
                 </TabsContent>
 
                 {/* ===== A3: Herramientas y Automatización ===== */}
                 <TabsContent value="a3" className="space-y-6">
-                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
-                            <GitBranch className="h-5 w-5 text-primary" />
-                            A3. Herramientas y Automatización Básica
-                        </h2>
-                        <p className="text-muted-foreground text-sm mb-6">
-                            Responde las preguntas sobre Git, scripting, gestión de tickets y documentación.
-                        </p>
-
-                        {!a3QuestionsGenerated ? (
-                            <div className="text-center py-4">
-                                <p className="text-muted-foreground mb-4">Genera las preguntas para la sección A3.</p>
-                                <Button onClick={handleGenerateA3Questions} disabled={a3QuestionsLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                                    {a3QuestionsLoading ? (
-                                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generando preguntas...</>
-                                    ) : (
-                                        <><Sparkles className="h-4 w-4 mr-2" /> Generar Preguntas A3</>
-                                    )}
-                                </Button>
-                            </div>
-                        ) : a3QuestionsLoading ? (
-                            <div className="flex items-center justify-center p-8 gap-3 text-muted-foreground">
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                                <span className="font-medium">Generando preguntas...</span>
-                            </div>
-                        ) : a3Questions.length > 0 ? (
-                            <div className="space-y-6">
-                                <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
-                                    <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                                        <Terminal className="h-4 w-4" /> Live Demo: Sandbox Git & CLI
-                                    </h3>
-                                    <TerminalSandbox mode="A3" onCommandsChange={setA3Commands} />
-                                    <p className="text-[10px] text-muted-foreground mt-2 italic">
-                                        * Usa esta terminal si tu evaluador solicita una demostración práctica de comandos.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {a3Questions.map(q => (
-                                        <div key={q.subcategory} className="space-y-2 bg-secondary/30 border border-border rounded-lg p-4">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
-                                                <span className="text-sm font-semibold text-foreground">{q.label}</span>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">{q.question}</p>
-                                            <textarea
-                                                value={a3Answers[q.subcategory] || ''}
-                                                onChange={(e) => setA3Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                                disabled={a3Submitted}
-                                                placeholder="Escribe tu respuesta aquí..."
-                                                className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                                            />
-                                        </div>
-                                    ))}
-
-                                    {!a3Submitted ? (
-                                        <Button
-                                            onClick={handleSubmitA3}
-                                            disabled={a3Submitting || !evaluationId || a3Questions.some(q => !(a3Answers[q.subcategory] || '').trim())}
-                                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                                        >
-                                            {a3Submitting ? (
-                                                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                            ) : (
-                                                'Guardar Respuestas A3'
-                                            )}
-                                        </Button>
-                                    ) : (
-                                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
-                                            <p className="font-bold text-lg">✅ Respuestas A3 guardadas correctamente</p>
-                                            <p className="text-sm mt-1">Tu evaluador ya puede ver tus respuestas.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
+                    <A3Tab
+                        a3QuestionsGenerated={a3QuestionsGenerated}
+                        a3QuestionsLoading={a3QuestionsLoading}
+                        a3Questions={a3Questions}
+                        a3Answers={a3Answers}
+                        setA3Answers={setA3Answers}
+                        a3Submitted={a3Submitted}
+                        a3Submitting={a3Submitting}
+                        evaluationId={evaluationId}
+                        setA3Commands={setA3Commands}
+                        handleGenerateA3Questions={handleGenerateA3Questions}
+                        handleSubmitA3={handleSubmitA3}
+                    />
                 </TabsContent>
 
                 {/* ===== A4: Chatbot Case ===== */}
