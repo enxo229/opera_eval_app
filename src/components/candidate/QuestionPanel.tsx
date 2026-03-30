@@ -56,6 +56,9 @@ export function QuestionPanel({ questions, loading, onSubmit, submitted, title }
                     <textarea
                         value={answers[i] || ''}
                         onChange={e => handleAnswerChange(i, e.target.value)}
+                        onPaste={(e) => e.preventDefault()}
+                        onCopy={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
                         disabled={submitted}
                         placeholder="Escribe tu respuesta aquí..."
                         className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"

@@ -147,6 +147,9 @@ export function TerminalSandbox({ mode, onCommandsChange }: TerminalSandboxProps
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        onPaste={(e) => e.preventDefault()}
+                        onCopy={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
                         className="flex-1 bg-transparent text-[#c0caf5] outline-none border-none caret-[#7aa2f7]"
                         autoFocus
                         spellCheck={false}

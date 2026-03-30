@@ -155,6 +155,9 @@ Atención de alerta a las 02:47h..."
                             className="min-h-[300px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
                             value={ticket}
                             onChange={(e) => setTicket(e.target.value)}
+                            onPaste={(e) => e.preventDefault()}
+                            onCopy={(e) => e.preventDefault()}
+                            onContextMenu={(e) => e.preventDefault()}
                             disabled={isSubmitting || (timeLeft <= 0 && false) /* El usuario dijo que si llega a cero no pasa nada */}
                         />
 
