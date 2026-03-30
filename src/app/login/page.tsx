@@ -77,6 +77,8 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                name="email"
+                                autoComplete="email"
                                 className="bg-background border-input text-foreground"
                                 disabled={isLoading}
                             />
@@ -88,6 +90,8 @@ export default function LoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                name="password"
+                                autoComplete="current-password"
                                 className="bg-background border-input text-foreground"
                                 disabled={isLoading}
                             />

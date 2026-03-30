@@ -223,6 +223,8 @@ export function ChatbotA4({ evaluationId }: { evaluationId: string | null }) {
                                 placeholder={!evaluationId ? "No hay evaluación iniciada..." : "Ej: Mostrar logs de errores del proceso afectado..."}
                                 className="bg-background border-input focus-visible:ring-primary text-foreground"
                                 disabled={isLoading || isFinishing || !evaluationId}
+                                name="chatbot-input"
+                                autoComplete="off"
                             />
                             <Button type="submit" disabled={isLoading || isFinishing || !input.trim() || !evaluationId} className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0">
                                 <Send className="w-4 h-4" />

@@ -86,6 +86,7 @@ export function A2Tab({
                                         onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
                                         disabled={a2Submitted}
                                         placeholder="Escribe tu respuesta aquí..."
+                                        name={`answer-${q.subcategory}`}
                                         className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                                     />
                                 </div>

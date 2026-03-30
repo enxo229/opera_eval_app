@@ -153,7 +153,8 @@ export function TerminalSandbox({ mode, onCommandsChange }: TerminalSandboxProps
                         className="flex-1 bg-transparent text-[#c0caf5] outline-none border-none caret-[#7aa2f7]"
                         autoFocus
                         spellCheck={false}
-                        autoComplete="off"
+                        name="terminal-input"
+                        autoComplete="one-time-code"
                     />
                 </form>
             </div>
