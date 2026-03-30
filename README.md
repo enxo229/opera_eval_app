@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OTP — Observability Talent Pivot
 
-## Getting Started
+Plataforma de evaluación de talento técnico para equipos de infraestructura y operaciones (NOC/SRE). Permite evaluar candidatos en cuatro dimensiones — Técnica, Blandas, Cultural e IA — y generar un dictamen automatizado con asistencia de IA.
 
-First, run the development server:
+## Stack
+
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **UI**: React 19, Tailwind CSS v4, Shadcn UI v4
+- **Backend**: Supabase (PostgreSQL, Auth, RLS)
+- **IA**: Google Gemini (Gemma 3 + Gemini 2.5 Flash Lite)
+- **Despliegue**: Vercel (auto-deploy desde `main`)
+
+## Setup
 
 ```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con las credenciales de Supabase y Gemini
+
+# 3. Ejecutar en desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Variables de Entorno Requeridas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Descripción |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima de Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (gestión de usuarios) |
+| `APP_GEMINI_API_KEY` | API Key de Google Gemini (**NO** `GEMINI_API_KEY`) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Base de Datos
 
-## Learn More
+El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). Incluye tablas, RLS policies y funciones.
 
-To learn more about Next.js, take a look at the following resources:
+## Documentación Técnica
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+La especificación completa del proyecto (arquitectura, modelos IA, modelo de evaluación, convenciones) se encuentra en [`docs/specs/AGENTS.md`](docs/specs/AGENTS.md).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev       # Servidor de desarrollo
+npm run build     # Build de producción con verificación TypeScript
+npm run start     # Servir build de producción
+npm run lint      # ESLint
+```

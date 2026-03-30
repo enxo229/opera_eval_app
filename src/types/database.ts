@@ -6,6 +6,21 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type DynamicTestType =
+  | 'A4_CASE'
+  | 'B1_CASE'
+  | 'B1_TICKET'
+  | 'IA_CHAT'
+  | 'TERMINAL_A1'
+  | 'TERMINAL_A3'
+  | 'TERMINAL_A4'
+  | 'QUESTIONS_A1'
+  | 'QUESTIONS_A2'
+  | 'QUESTIONS_A3'
+  | 'QUESTIONS_A4'
+  | 'QUESTIONS_B1'
+  | 'PROMPT_IA2'
+
 export interface Database {
   public: {
     Tables: {
@@ -14,18 +29,21 @@ export interface Database {
           id: string
           full_name: string | null
           role: 'evaluator' | 'candidate'
+          education_level: string | null
           created_at: string
         }
         Insert: {
           id: string
           full_name?: string | null
           role?: 'evaluator' | 'candidate'
+          education_level?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           full_name?: string | null
           role?: 'evaluator' | 'candidate'
+          education_level?: string | null
           created_at?: string
         }
       }
@@ -100,26 +118,35 @@ export interface Database {
         Row: {
           id: string
           evaluation_id: string
-          test_type: 'A4_CASE' | 'B1_TICKET' | 'IA_CHAT'
+          test_type: DynamicTestType
+          subcategory: string | null
           prompt_context: string | null
           ai_generated_content: string | null
           candidate_response: string | null
+          ai_score: number | null
+          ai_justification: string | null
         }
         Insert: {
           id?: string
           evaluation_id: string
-          test_type: 'A4_CASE' | 'B1_TICKET' | 'IA_CHAT'
+          test_type: DynamicTestType
+          subcategory?: string | null
           prompt_context?: string | null
           ai_generated_content?: string | null
           candidate_response?: string | null
+          ai_score?: number | null
+          ai_justification?: string | null
         }
         Update: {
           id?: string
           evaluation_id?: string
-          test_type?: 'A4_CASE' | 'B1_TICKET' | 'IA_CHAT'
+          test_type?: DynamicTestType
+          subcategory?: string | null
           prompt_context?: string | null
           ai_generated_content?: string | null
           candidate_response?: string | null
+          ai_score?: number | null
+          ai_justification?: string | null
         }
       }
     }

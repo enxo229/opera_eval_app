@@ -29,7 +29,7 @@ Configuración en `src/lib/ai/gemini.ts`.
 | Tipo de Tarea | Modelo Principal (Intento 1) | Fallback 1 (Intento 2) | Fallback 2 (Intento 3) |
 |---|---|---|---|
 | **Generación** | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
-| **Evaluación** (JSON) | `gemma-3-27b-it` | `gemini-2.5-flash-lite` | `gemini-2.5-flash-lite` |
+| **Evaluación** (JSON) | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
 
 - **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
 - **PII Filter**: `sanitizePII()` está **DESHABILITADO** para evitar falsos positivos con timestamps y datos técnicos.
@@ -45,6 +45,8 @@ opera_eval_app/
 ├── supabase/
 │   └── schema.sql                  # DDL completo: tablas, RLS, functions
 ├── src/
+│   ├── types/
+│   │   └── database.ts            # Tipos TypeScript de Supabase (manual)
 │   ├── lib/
 │   │   ├── ai/
 │   │   │   └── gemini.ts           # Wrapper Gemini: fallback chain y retries
@@ -57,6 +59,7 @@ opera_eval_app/
 │   ├── components/
 │   │   ├── candidate/
 │   │   │   ├── tabs/               # Fragmentos de UI para A1, A2, A3
+│   │   │   ├── QuestionPanel.tsx   # Componente genérico reutilizable de Q&A
 │   │   │   ├── TerminalSandbox.tsx  # Terminal Linux/Git simulada
 │   │   │   ├── ChatbotA4.tsx        # Chat interactivo de investigación
 │   │   │   ├── TicketEditor.tsx     # Editor de ticket B1
@@ -64,19 +67,22 @@ opera_eval_app/
 │   │   └── evaluator/
 │   │       ├── DimensionAEvaluation.tsx / DimensionBEvaluation.tsx ...
 │   │       ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
-│   │       └── RadarChartComponent.tsx
+│   │       ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
+│   │       ├── RadarChartComponent.tsx
+│   │       └── ScrollToTopButton.tsx # Botón flotante de navegación
 │   └── app/
-│       ├── actions/                 # Server Actions (IA, CRUD, Evals, Admin, Diagnostics)
-│       └── candidate/ / evaluator/ / admin/  # Rutas y layouts
+│       ├── actions/                 # Server Actions (ai.ts, candidate.ts, evaluation.ts, admin.ts, diagnostics.ts)
+│       └── candidate/ / evaluator/ / admin/ / login/  # Rutas y layouts
 ```
 
 ---
 
 ## 5. Rutas y Seguridad
 
-- **Middleware**: Protege `/evaluator`, `/candidate` y `/admin`. Los candidatos sin `education_level` son forzados a `/candidate/eligibility`.
+- **Middleware** (`src/proxy.ts` → `src/lib/supabase/middleware.ts`): Protege `/evaluator`, `/candidate` y `/admin`. Los candidatos sin `education_level` son forzados a `/candidate/eligibility`.
 - **RBAC**: El rol `evaluator` es necesario para acceder a `/admin` y realizar evaluaciones.
 - **RLS**: Protege datos sensibles. Los candidatos solo ven sus propias evaluaciones y pruebas dinámicas.
+- **Restricciones Anti-Copia**: Los inputs del candidato (ChatbotA4, QuestionPanel, TerminalSandbox, TicketEditor) bloquean `onPaste`, `onCopy` y `onContextMenu` para evitar trampas. El editor de prompt IA-2 (`PromptEditorIA2`) está exento de estas restricciones.
 
 ---
 
@@ -102,7 +108,7 @@ opera_eval_app/
 ## 7. Flujos Especiales
 
 - **A4 (Caso Práctico)**: Generación persistente de incidente en DB (`A4_CASE`). Chat interactivo (`IA_CHAT`) que se bloquea al finalizar. Evaluación IA en 3 subcategorías.
-- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto).
+- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto). También evalúa B6 (Colaboración Asíncrona) en 3 criterios adicionales (Handoff, Bloqueos, Seguimiento).
 - **IA-2 (Prompting)**: El candidato ingresa el prompt que usó fuera de la plataforma. Gemini analiza el contexto, claridad y sugiere un score al evaluador en `DimensionDEvaluation`.
 
 ---
@@ -111,5 +117,6 @@ opera_eval_app/
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
-3. **test_type (dynamic_tests)**: `QUESTIONS_A1..A4`, `TERMINAL_A1..A4`, `IA_CHAT`, `A4_CASE`, `B1_CASE`, `B1_TICKET`, `PROMPT_IA2`.
+3. **test_type (dynamic_tests)**: Valores permitidos en el constraint SQL: `A4_CASE`, `B1_CASE`, `B1_TICKET`, `IA_CHAT`, `TERMINAL_A1`, `TERMINAL_A3`, `TERMINAL_A4`, `QUESTIONS_A1`, `QUESTIONS_A2`, `QUESTIONS_A3`, `QUESTIONS_A4`, `QUESTIONS_B1`, `PROMPT_IA2`.
 4. **Environment**: Usar estrictamente `APP_GEMINI_API_KEY`.
+5. **Supabase Generics**: Clientes con `<any, 'public'>` (sin `supabase gen types`). Los tipos manuales están en `src/types/database.ts`.

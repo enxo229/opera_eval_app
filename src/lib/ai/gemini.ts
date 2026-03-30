@@ -4,7 +4,7 @@ import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai'
 // Initialize the Gemini API client
 const apiKey = process.env.APP_GEMINI_API_KEY || ''
 if (!apiKey) {
-    console.error('[Gemini] ERROR: GEMINI_API_KEY no encontrada en el entorno.')
+    console.error('[Gemini] ERROR: APP_GEMINI_API_KEY no encontrada en el entorno.')
 } else {
     console.log(`[Gemini] API Key cargada (Primeros 10 caracteres: ${apiKey.substring(0, 10)}...)`)
 }
@@ -28,7 +28,8 @@ const GENERATION_MODEL_CHAIN = [
 // Cadena de prioridad para evaluación (scoring estricto en JSON)
 const EVALUATION_MODEL_CHAIN = [
     'gemma-3-27b-it',        // 1. Principal: Altísima capacidad analítica, gratuito.
-    'gemini-2.5-flash-lite'  // 2. Fallback: Económico y resistente.
+    'gemma-3-12b-it',        // 2. Fallback: Gratuito, rápido, buen análisis.
+    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente.
 ]
 
 /**
@@ -87,7 +88,7 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
 
 /**
  * Genera contenido (preguntas, casos, chat)
- * Usa la cadena de modelos de generación (Gemma 3 -> Gemini 2.0 Flash Lite)
+ * Usa la cadena de modelos de generación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
  */
 export async function generateContentWithRetry(prompt: string, maxRetries = 3): Promise<string> {
     return callWithRetry(GENERATION_MODEL_CHAIN, prompt, maxRetries)
@@ -95,7 +96,7 @@ export async function generateContentWithRetry(prompt: string, maxRetries = 3): 
 
 /**
  * Evalúa/analiza contenido (scoring, rúbricas, JSON estricto)
- * Usa la cadena de modelos de evaluación (Gemini 3.1 FL -> Gemini 2.0 FL)
+ * Usa la cadena de modelos de evaluación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
  */
 export async function evaluateContentWithRetry(prompt: string, maxRetries = 3): Promise<string> {
     return callWithRetry(EVALUATION_MODEL_CHAIN, prompt, maxRetries)
