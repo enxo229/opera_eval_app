@@ -217,6 +217,9 @@ export function ChatbotA4({ evaluationId }: { evaluationId: string | null }) {
                             <Input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
+                                onPaste={(e) => e.preventDefault()}
+                                onCopy={(e) => e.preventDefault()}
+                                onContextMenu={(e) => e.preventDefault()}
                                 placeholder={!evaluationId ? "No hay evaluación iniciada..." : "Ej: Mostrar logs de errores del proceso afectado..."}
                                 className="bg-background border-input focus-visible:ring-primary text-foreground"
                                 disabled={isLoading || isFinishing || !evaluationId}
