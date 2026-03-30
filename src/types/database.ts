@@ -92,7 +92,7 @@ export interface Database {
         Row: {
           id: string
           evaluation_id: string
-          dimension: 'A' | 'B' | 'C' | 'IA'
+          dimension: 'A' | 'B' | 'C' | 'IA' | null
           category: string
           raw_score: number
           comments: string | null
@@ -100,7 +100,7 @@ export interface Database {
         Insert: {
           id?: string
           evaluation_id: string
-          dimension: 'A' | 'B' | 'C' | 'IA'
+          dimension?: 'A' | 'B' | 'C' | 'IA' | null
           category: string
           raw_score: number
           comments?: string | null
@@ -108,7 +108,7 @@ export interface Database {
         Update: {
           id?: string
           evaluation_id?: string
-          dimension?: 'A' | 'B' | 'C' | 'IA'
+          dimension?: 'A' | 'B' | 'C' | 'IA' | null
           category?: string
           raw_score?: number
           comments?: string | null
@@ -118,7 +118,7 @@ export interface Database {
         Row: {
           id: string
           evaluation_id: string
-          test_type: DynamicTestType
+          test_type: DynamicTestType | null
           subcategory: string | null
           prompt_context: string | null
           ai_generated_content: string | null
