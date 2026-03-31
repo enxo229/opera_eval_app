@@ -43,10 +43,16 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 
 ## Arquitectura de la Aplicación
 
+### Flujo del Candidato (Workflow)
+1.  **Autenticación**: Login vía Supabase Auth.
+2.  **Onboarding Legal**: Consentimiento expreso e informado (Ley 1581 Habeas Data).
+3.  **Información Académica**: Registro de nivel de formación.
+4.  **Evaluación Técnica**: Acceso a los 5 módulos (Linux, Observabilidad, Git, IA, Tickets).
+
 ```
 src/
 ├── app/
-│   ├── actions/          # Server Actions (ai.ts, candidate.ts, evaluation.ts, admin.ts)
+│   ├── actions/          # Server Actions (ai.ts, legal.ts, a1..a4.ts, admin.ts)
 │   ├── admin/            # Panel de administración de usuarios
 │   ├── candidate/        # Interfaz del candidato (examen interactivo)
 │   ├── evaluator/        # Dashboard del evaluador + evaluación por candidato
