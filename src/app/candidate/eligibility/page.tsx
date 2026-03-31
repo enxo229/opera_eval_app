@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { GraduationCap, ChevronRight } from 'lucide-react'
+import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, User, Mail, GraduationCap, Loader2, ChevronRight } from 'lucide-react'
+import { useCandidateContext } from '@/hooks/useCandidateContext'
 
 const EDUCATION_LEVELS = [
     { value: 'bachiller', label: 'Bachiller (sin formación TI)', icon: '🎓' },
@@ -14,9 +15,25 @@ const EDUCATION_LEVELS = [
 ]
 
 export default function EligibilityPage() {
+    const { evaluationId, contextLoaded, legalAccepted } = useCandidateContext()
     const [selected, setSelected] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const router = useRouter()
+
+    // Legal Guard
+    useEffect(() => {
+        if (contextLoaded && !legalAccepted) {
+            router.push('/candidate/onboarding')
+        }
+    }, [contextLoaded, legalAccepted, router])
+
+    if (!contextLoaded || !legalAccepted) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
 
     const handleContinue = async () => {
         if (!selected) return
