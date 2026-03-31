@@ -7,7 +7,7 @@ import NextImage from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { MessageCircleQuestion, ArrowUp, Sparkles, RefreshCw, Trash2, Bot } from 'lucide-react'
-import { getIA2State, resetIAResponses } from '@/app/actions/candidate'
+import { getIA2State, resetIAResponses } from '@/app/actions/candidate/ia'
 
 interface Props {
     evaluationId: string

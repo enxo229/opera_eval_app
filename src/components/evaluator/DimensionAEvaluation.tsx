@@ -7,7 +7,10 @@ import NextImage from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronUp, Terminal, Eye, Bot, Sparkles, RefreshCw, RotateCcw, Loader2, Wrench, BookOpen, ArrowUp } from 'lucide-react'
-import { getA1Results, resetA1Responses, getA2Results, resetA2Responses, getA3Results, resetA3Responses, getA4Results, resetA4Responses } from '@/app/actions/candidate'
+import { getA1Results, resetA1Responses } from '@/app/actions/candidate/a1'
+import { getA2Results, resetA2Responses } from '@/app/actions/candidate/a2'
+import { getA3Results, resetA3Responses } from '@/app/actions/candidate/a3'
+import { getA4Results, resetA4Responses } from '@/app/actions/candidate/a4'
 import { A3_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
 
 interface Props {

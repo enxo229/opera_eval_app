@@ -7,7 +7,7 @@ import NextImage from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Bot, MailCheck, ChevronDown, ChevronUp, MessageCircleQuestion, Eye, RotateCcw, Info, AlertTriangle, CheckCircle2, TrendingUp, Sparkles, Loader2, ArrowUp } from 'lucide-react'
-import { resetBResponses, triggerB1Evaluation } from '@/app/actions/candidate'
+import { resetBResponses, triggerB1Evaluation } from '@/app/actions/candidate/b1'
 
 interface Props {
     evaluationId: string

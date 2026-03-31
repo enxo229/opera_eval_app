@@ -20,7 +20,9 @@ import {
     A2Question,
     A3Question,
 } from '@/app/actions/ai'
-import { saveA1QuestionsOnly, saveA1Responses, getA1Results, saveA2QuestionsOnly, saveA2Responses, getA2Results, saveA3QuestionsOnly, saveA3Responses, getA3Results } from '@/app/actions/candidate'
+import { saveA1QuestionsOnly, saveA1Responses, getA1Results } from '@/app/actions/candidate/a1'
+import { saveA2QuestionsOnly, saveA2Responses, getA2Results } from '@/app/actions/candidate/a2'
+import { saveA3QuestionsOnly, saveA3Responses, getA3Results } from '@/app/actions/candidate/a3'
 import { createClient } from '@/lib/supabase/client'
 import { EDUCATION_LABELS } from '@/lib/constants'
 import { Terminal, HelpCircle, GitBranch, Bot, FileText, Loader2, CheckCircle2, Sparkles, User, Mail, GraduationCap } from 'lucide-react'

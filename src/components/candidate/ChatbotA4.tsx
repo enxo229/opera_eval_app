@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import NextImage from 'next/image'
 import { Bot, User, Send, ChevronDown, ChevronUp, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { handleCandidateChat, generateDynamicCaseA4 } from '@/app/actions/ai'
-import { saveA4ChatSession, getA4State, saveA4Case } from '@/app/actions/candidate'
+import { saveA4ChatSession, getA4State, saveA4Case } from '@/app/actions/candidate/a4'
 
 export function ChatbotA4({ evaluationId }: { evaluationId: string | null }) {
     const [caseText, setCaseText] = useState<string | null>(null)

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import NextImage from 'next/image'
-import { getIA2State, saveIA2Prompt } from '@/app/actions/candidate'
+import { getIA2State, saveIA2Prompt } from '@/app/actions/candidate/ia'
 import { AlertCircle, Bot, Save, CheckCircle2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 

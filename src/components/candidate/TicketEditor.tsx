@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
-import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate'
+import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
 import { AlertCircle, Clock, Loader2, FileText, CheckCircle2 } from 'lucide-react'
 
 interface TicketEditorProps {
