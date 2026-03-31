@@ -23,6 +23,9 @@ export async function saveLegalConsent(evaluationId: string) {
         return { success: false, error: error.message }
     }
 
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath('/candidate', 'layout')
+
     return { success: true }
 }
 

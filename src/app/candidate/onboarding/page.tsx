@@ -54,6 +54,8 @@ export default function LegalOnboardingPage() {
         try {
             const result = await saveLegalConsent(evaluationId)
             if (result.success) {
+                // Refresh to sync context
+                router.refresh()
                 // Proceder a escolaridad
                 router.push('/candidate/eligibility')
             } else {

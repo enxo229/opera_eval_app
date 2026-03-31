@@ -102,6 +102,9 @@ export function useCandidateContext() {
                 
                 if (evalData?.legal_consent_tc && evalData?.legal_consent_data) {
                     setLegalAccepted(true)
+                    console.log(' Legal accepted for evaluation:', evaluation.id)
+                } else {
+                    console.warn(' Legal NOT accepted for evaluation:', evaluation.id, evalData)
                 }
 
                 // Load saved A1 responses if they exist
