@@ -32,21 +32,53 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
     const { data: emailData } = await supabase.rpc('get_user_email', { user_id: id })
     const candidateEmail = emailData || candidate.id
 
-    // 2. Fetch or Create Draft Evaluation for this candidate
-    let { data: evaluation } = await supabase
-        .from('evaluations')
-        .select('*')
-        .eq('candidate_id', candidate.id)
-        .single<any>()
+    // 2. Fetch Active Evaluation for this candidate
+    let evaluation: any = null
+
+    // Try finding via active process first
+    const { data: activeProcess } = await supabase
+        .from('selection_processes')
+        .select('id, evaluations(*)')
+        .eq('candidate_email', candidateEmail)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle()
+
+    if (activeProcess?.evaluations && activeProcess.evaluations.length > 0) {
+        evaluation = activeProcess.evaluations[0]
+    } else {
+        // Fallback: look up by candidate_id in case it's a legacy record without process
+        const { data: legacyEval } = await supabase
+            .from('evaluations')
+            .select('*')
+            .eq('candidate_id', candidate.id)
+            .order('id', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        evaluation = legacyEval
+    }
 
     if (!evaluation) {
         const { data: authCtx, error: authErr } = await supabase.auth.getUser()
         if (!authErr && authCtx.user) {
+            // Automatically start an active process for them
+            const { data: newProc } = await supabase
+                .from('selection_processes')
+                .insert({
+                    candidate_email: candidateEmail,
+                    candidate_national_id: candidate.national_id,
+                    evaluator_id: authCtx.user.id,
+                    status: 'active'
+                })
+                .select('id')
+                .single()
+
             const { data: newEval } = await supabase
                 .from('evaluations')
                 .insert({
                     candidate_id: candidate.id,
                     evaluator_id: authCtx.user.id,
+                    selection_process_id: newProc?.id,
                     status: 'draft'
                 })
                 .select('*')
@@ -56,7 +88,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
     }
 
     if (!evaluation) {
-        return <div className="p-8 text-center text-red-500 font-bold">Error inicializando la evaluación.</div>
+        return <div className="p-8 text-center text-red-500 font-bold">Error inicializando la evaluación. Asegúrate de tener procesos activos para el candidato.</div>
     }
 
     // 3. Fetch candidate's dynamic tests (A4 chat, B1 ticket)

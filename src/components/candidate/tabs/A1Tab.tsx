@@ -1,6 +1,6 @@
 import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
-import { Terminal, Sparkles, CheckCircle2, Loader2 } from 'lucide-react'
+import { Terminal, Sparkles, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
 import { A1Question } from '@/app/actions/ai'
 
 interface A1TabProps {
@@ -83,19 +83,27 @@ export function A1Tab({
                         ))}
 
                         {!a1Submitted ? (
-                            <Button
-                                onClick={handleSubmitA1}
-                                disabled={!allA1Answered || a1Submitting || !evaluationId}
-                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11"
-                            >
-                                {a1Submitting ? (
-                                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                ) : !evaluationId ? (
-                                    'No hay evaluación activa — contacta al evaluador'
-                                ) : (
-                                    'Guardar Respuestas A1'
+                            <div className="space-y-3">
+                                <Button
+                                    onClick={handleSubmitA1}
+                                    disabled={!allA1Answered || a1Submitting || !evaluationId}
+                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11 transition-all"
+                                >
+                                    {a1Submitting ? (
+                                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
+                                    ) : !evaluationId ? (
+                                        'No hay evaluación activa — contacta al evaluador'
+                                    ) : (
+                                        'Guardar Respuestas A1'
+                                    )}
+                                </Button>
+                                {!allA1Answered && !a1Submitting && evaluationId && (
+                                    <p className="text-sm text-amber-600 text-center flex items-center justify-center gap-1.5 font-medium bg-amber-50/50 p-2 rounded-lg border border-amber-200/50 animate-in fade-in slide-in-from-top-1">
+                                        <AlertTriangle className="h-4 w-4" /> 
+                                        Faltan preguntas por responder para poder guardar esta sección.
+                                    </p>
                                 )}
-                            </Button>
+                            </div>
                         ) : (
                             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
                                 <p className="font-bold text-lg">✅ Respuestas A1 guardadas correctamente</p>

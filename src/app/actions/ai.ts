@@ -1,6 +1,6 @@
 'use server'
 
-import { generateContentWithRetry, evaluateContentWithRetry, sanitizePII } from '@/lib/ai/gemini'
+import { generateContentWithRetry, evaluateContentWithRetry } from '@/lib/ai/gemini'
 
 export async function generateDynamicCaseA4(): Promise<string> {
     const prompt = `Actúa como un líder técnico de observabilidad. Genera un escenario de incidente técnico de Nivel 2 (caída de servidor o alto CPU) que el candidato debe investigar en un entorno Dynatrace/Grafana. Retorna solo el caso en 2 párrafos concisos sin la solución.`
@@ -172,7 +172,7 @@ export async function evaluateAnswersA1(
     questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
 ): Promise<A1EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
-        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${sanitizePII(qa.answer)}`
+        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
     const prompt = `Eres un evaluador técnico senior de infraestructura TI. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior.
@@ -278,7 +278,7 @@ export async function evaluateAnswersA2(
     questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
 ): Promise<A2EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
-        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${sanitizePII(qa.answer)}`
+        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
     const prompt = `Eres un evaluador técnico senior de observabilidad. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior.
@@ -378,7 +378,7 @@ export async function evaluateAnswersA3(
     questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
 ): Promise<A3EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
-        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${sanitizePII(qa.answer)}`
+        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
     const prompt = `Eres un evaluador técnico senior. Evalúa las respuestas de un candidato entry-level para el rol de Analista de Observabilidad Junior.
@@ -600,20 +600,4 @@ Donde puntaje_normalizado = (puntaje_total / 12) * 4, redondeado a 1 decimal.`
     }
 }
 
-// ============================
-// UTILIDADES
-// ============================
 
-function parseJsonArray(raw: string): string[] {
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
-    try {
-        const parsed = JSON.parse(cleaned)
-        if (Array.isArray(parsed)) return parsed.map(String)
-        return ['Error generando preguntas']
-    } catch {
-        // Intento de extraer preguntas del texto libre
-        const lines = cleaned.split('\n').filter(l => l.trim().startsWith('"') || l.trim().match(/^\d/))
-        if (lines.length >= 3) return lines.slice(0, 3).map(l => l.replace(/^[\d.)\-\s"]+/, '').replace(/"[,\]]?$/, '').trim())
-        return ['Error generando preguntas. Intente nuevamente.']
-    }
-}

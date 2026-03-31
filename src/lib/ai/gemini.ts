@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Initialize the Gemini API client
 // Initialize the Gemini API client
 const apiKey = process.env.APP_GEMINI_API_KEY || ''
 if (!apiKey) {
     console.error('[Gemini] ERROR: APP_GEMINI_API_KEY no encontrada en el entorno.')
-} else {
-    console.log(`[Gemini] API Key cargada (Primeros 10 caracteres: ${apiKey.substring(0, 10)}...)`)
+} else if (process.env.NODE_ENV === 'development') {
+    console.log(`[Gemini] API Key cargada (${apiKey.length} caracteres)`)
 }
 
 const genAI = new GoogleGenerativeAI(apiKey)
@@ -32,13 +31,6 @@ const EVALUATION_MODEL_CHAIN = [
     'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente.
 ]
 
-/**
- * Filtra la PII (Personally Identifiable Information) básica de los prompts
- * DESHABILITADO por solicitud del usuario para evitar falsos positivos con fechas/logs.
- */
-export function sanitizePII(text: string): string {
-    return text // No sanitization
-}
 
 /**
  * Espera un número determinado de milisegundos
@@ -49,9 +41,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * Wrapper genérico para llamar a Gemini con Exponential Backoff y Model Fallback
  */
 async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 3): Promise<string> {
-    const finalPrompt = prompt
     let attempt = 0
-    let baseDelayMs = 2000
+    const baseDelayMs = 2000
 
     while (attempt < maxRetries) {
         // Seleccionamos el modelo según el intento.
@@ -60,7 +51,7 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
         const model = genAI.getGenerativeModel({ model: modelId })
 
         try {
-            const result = await model.generateContent(finalPrompt)
+            const result = await model.generateContent(prompt)
             return result.response.text()
         } catch (error: any) {
             // Manejar errores de Límites o Indisponibilidad de Servicio
@@ -118,7 +109,7 @@ Debes analizarlo rigurosamente observando:
 
 Prompt enviado por el candidato:
 """
-\${prompt}
+${prompt}
 """
 
 Responde estricta y ÚNICAMENTE con un objeto JSON (sin delimitadores markdown \\\`\\\`\\\`json) con el siguiente formato:

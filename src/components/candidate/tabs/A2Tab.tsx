@@ -1,15 +1,7 @@
 import { Button } from '@/components/ui/button'
-import { HelpCircle, Loader2 } from 'lucide-react'
+import { HelpCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { A2Question } from '@/app/actions/ai'
-
-const TOOL_OPTIONS = [
-    { value: 'Grafana', label: 'Grafana' },
-    { value: 'Elasticsearch/Kibana', label: 'Elasticsearch / Kibana' },
-    { value: 'Zabbix', label: 'Zabbix' },
-    { value: 'Dynatrace', label: 'Dynatrace' },
-    { value: 'Datadog', label: 'Datadog' },
-    { value: 'Otra herramienta de monitoreo', label: 'Otra' },
-]
+import { TOOL_OPTIONS } from '@/lib/constants'
 
 interface A2TabProps {
     a2SelectedTool: string | null
@@ -38,6 +30,8 @@ export function A2Tab({
     handleSelectTool,
     handleSubmitA2
 }: A2TabProps) {
+    const allA2Answered = a2Questions.length > 0 && a2Questions.every(q => (a2Answers[q.subcategory] || '').trim().length > 0)
+
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
@@ -93,17 +87,27 @@ export function A2Tab({
                             ))}
 
                             {!a2Submitted ? (
-                                <Button
-                                    onClick={handleSubmitA2}
-                                    disabled={a2Submitting || !evaluationId || a2Questions.some(q => !(a2Answers[q.subcategory] || '').trim())}
-                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                                >
-                                    {a2Submitting ? (
-                                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                    ) : (
-                                        'Guardar Respuestas A2'
+                                <div className="space-y-3">
+                                    <Button
+                                        onClick={handleSubmitA2}
+                                        disabled={!allA2Answered || a2Submitting || !evaluationId}
+                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11 transition-all"
+                                    >
+                                        {a2Submitting ? (
+                                            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
+                                        ) : !evaluationId ? (
+                                            'No hay evaluación activa — contacta al evaluador'
+                                        ) : (
+                                            'Guardar Respuestas A2'
+                                        )}
+                                    </Button>
+                                    {!allA2Answered && !a2Submitting && evaluationId && (
+                                        <p className="text-sm text-amber-600 text-center flex items-center justify-center gap-1.5 font-medium bg-amber-50/50 p-2 rounded-lg border border-amber-200/50 animate-in fade-in slide-in-from-top-1">
+                                            <AlertTriangle className="h-4 w-4" /> 
+                                            Faltan preguntas por responder para poder guardar esta sección.
+                                        </p>
                                     )}
-                                </Button>
+                                </div>
                             ) : (
                                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
                                     <p className="font-bold text-lg">✅ Respuestas A2 guardadas correctamente</p>

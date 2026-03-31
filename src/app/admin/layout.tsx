@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { LogOut, Shield } from 'lucide-react'
+import { LogOut, Shield, History } from 'lucide-react'
 import Link from 'next/link'
 import { CompanyLogo } from '@/components/CompanyLogo'
 
@@ -14,6 +14,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Shield className="w-4 h-4 text-amber-500" />
                 </div>
                 <div className="flex items-center gap-4 text-sm">
+                    <Link href="/evaluator/history" className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-all font-medium">
+                        <History className="w-4 h-4" /> Búsqueda Global
+                    </Link>
                     <Link href="/evaluator" className="text-muted-foreground hover:text-primary transition-colors">
                         ← Volver al Evaluador
                     </Link>

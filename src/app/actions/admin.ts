@@ -8,6 +8,18 @@ export type UserWithProfile = {
     full_name: string | null
     role: string | null
     education_level: string | null
+    national_id_type: string | null
+    national_id: string | null
+    created_at: string
+}
+
+export type SelectionProcessWithStatus = {
+    id: string
+    candidate_email: string
+    candidate_national_id: string | null
+    team: string | null
+    observations: string | null
+    status: string
     created_at: string
 }
 
@@ -34,16 +46,54 @@ export async function listUsers(): Promise<UserWithProfile[]> {
             full_name: profile?.full_name || null,
             role: profile?.role || null,
             education_level: profile?.education_level || null,
+            national_id_type: profile?.national_id_type || null,
+            national_id: profile?.national_id || null,
             created_at: u.created_at,
         }
     })
 }
 
-/**
- * Create a new user with profile
- */
-export async function createUser(email: string, password: string, fullName: string, role: 'candidate' | 'evaluator'): Promise<{ success: boolean; error?: string }> {
+export async function createUser(
+    email: string, 
+    password: string, 
+    fullName: string, 
+    role: 'candidate' | 'evaluator',
+    nationalIdType?: string,
+    nationalId?: string,
+    team?: string,
+    observations?: string,
+    confirmPreviousProcesses?: boolean
+): Promise<{ success: boolean; error?: string; warning?: string }> {
     const admin = createAdminClient()
+
+    if (role === 'candidate') {
+        // Validate active processes
+        const { data: activeProcess } = await admin
+            .from('selection_processes')
+            .select('id')
+            .eq('candidate_email', email)
+            .eq('status', 'active')
+            .limit(1)
+            .single()
+
+        if (activeProcess) {
+            return { success: false, error: 'Ya existe un proceso activo para este correo. Ciérralo antes de crear uno nuevo.' }
+        }
+
+        if (!confirmPreviousProcesses) {
+            // Check for previous completed/archived processes
+            const { data: pastProcesses } = await admin
+                .from('selection_processes')
+                .select('id, status')
+                .eq('candidate_email', email)
+                .in('status', ['completed', 'archived'])
+                .limit(1)
+
+            if (pastProcesses && pastProcesses.length > 0) {
+                return { success: false, warning: 'Este candidato ya tiene evaluaciones pasadas en el sistema. ¿Deseas crear un nuevo proceso de selección?' }
+            }
+        }
+    }
 
     // Create auth user
     const { data, error } = await admin.auth.admin.createUser({
@@ -59,11 +109,63 @@ export async function createUser(email: string, password: string, fullName: stri
         id: data.user.id,
         full_name: fullName,
         role,
+        national_id_type: nationalIdType || null,
+        national_id: nationalId || null,
     })
 
-    if (profileError) return { success: false, error: profileError.message }
+    if (profileError) {
+        // Rollback on fail
+        await admin.auth.admin.deleteUser(data.user.id)
+        return { success: false, error: profileError.message }
+    }
+
+    // Create selection process and draft evaluation if candidate
+    if (role === 'candidate') {
+        const { data: processData, error: processError } = await admin.from('selection_processes').insert({
+            candidate_email: email,
+            candidate_national_id: nationalId || null,
+            team: team || null,
+            observations: observations || null,
+            status: 'active'
+        }).select('id').single()
+
+        if (processError) {
+            console.error("Error al crear el proceso de selección:", processError)
+        } else if (processData) {
+            // Also create the Draft Evaluation tied to this process
+            await admin.from('evaluations').insert({
+                candidate_id: data.user.id,
+                selection_process_id: processData.id,
+                status: 'draft'
+            })
+        }
+    }
 
     return { success: true }
+}
+
+export async function getSelectionProcessHistory(email: string): Promise<SelectionProcessWithStatus[]> {
+    const admin = createAdminClient()
+    const { data: processes, error } = await admin
+        .from('selection_processes')
+        .select('*')
+        .eq('candidate_email', email)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Error fetching history:', error)
+        return []
+    }
+
+    return (processes || []).map(p => ({
+        id: p.id,
+        candidate_email: p.candidate_email,
+        candidate_national_id: p.candidate_national_id,
+        team: p.team,
+        observations: p.observations,
+        status: p.status,
+        created_at: p.created_at
+    }))
 }
 
 /**
@@ -79,4 +181,41 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
     await admin.from('profiles').delete().eq('id', userId)
 
     return { success: true }
+}
+
+export async function searchHistoricalProcesses(cc: string, email: string, team: string) {
+    const admin = createAdminClient()
+    
+    let query = admin
+        .from('selection_processes')
+        .select(`
+            id, 
+            candidate_email, 
+            candidate_national_id, 
+            team, 
+            observations, 
+            status, 
+            created_at,
+            evaluations (id, status, final_score, classification)
+        `)
+        .order('created_at', { ascending: false })
+
+    if (cc.trim()) {
+        query = query.ilike('candidate_national_id', `%${cc.trim()}%`)
+    }
+    if (email.trim()) {
+        query = query.ilike('candidate_email', `%${email.trim()}%`)
+    }
+    if (team.trim()) {
+        query = query.ilike('team', `%${team.trim()}%`)
+    }
+
+    const { data, error } = await query.limit(50)
+
+    if (error) {
+        console.error('Error in searchHistoricalProcesses:', error)
+        throw new Error(error.message)
+    }
+
+    return data || []
 }

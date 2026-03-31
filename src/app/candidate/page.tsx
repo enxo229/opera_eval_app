@@ -20,19 +20,12 @@ import {
     A2Question,
     A3Question,
 } from '@/app/actions/ai'
-import { saveA1Responses, getA1Results, saveA2Responses, getA2Results, saveA3Responses, getA3Results } from '@/app/actions/candidate'
+import { saveA1QuestionsOnly, saveA1Responses, getA1Results, saveA2QuestionsOnly, saveA2Responses, getA2Results, saveA3QuestionsOnly, saveA3Responses, getA3Results } from '@/app/actions/candidate'
 import { createClient } from '@/lib/supabase/client'
+import { EDUCATION_LABELS } from '@/lib/constants'
 import { Terminal, HelpCircle, GitBranch, Bot, FileText, Loader2, CheckCircle2, Sparkles, User, Mail, GraduationCap } from 'lucide-react'
 
-// A2 tool options
-const TOOL_OPTIONS = [
-    { value: 'Grafana', label: 'Grafana' },
-    { value: 'Elasticsearch/Kibana', label: 'Elasticsearch / Kibana' },
-    { value: 'Zabbix', label: 'Zabbix' },
-    { value: 'Dynatrace', label: 'Dynatrace' },
-    { value: 'Datadog', label: 'Datadog' },
-    { value: 'Otra herramienta de monitoreo', label: 'Otra' },
-]
+
 
 export default function CandidateEvaluationFlow() {
     // Context: education level + evaluation ID + identity
@@ -55,13 +48,44 @@ export default function CandidateEvaluationFlow() {
             if (profile?.full_name) setCandidateName(profile.full_name)
             setCandidateEmail(user.email || '')
 
-            // Get or create evaluation
-            const { data: evaluation } = await supabase
-                .from('evaluations')
+            // Get active evaluation based on active selection process
+            const { data: activeProcess } = await supabase
+                .from('selection_processes')
                 .select('id')
-                .eq('candidate_id', user.id)
+                .eq('candidate_email', user.email)
+                .eq('status', 'active')
                 .limit(1)
-                .single()
+                .maybeSingle()
+
+            let evaluation: { id: string } | undefined
+            if (activeProcess) {
+                const { data } = await supabase
+                    .from('evaluations')
+                    .select('id')
+                    .eq('selection_process_id', activeProcess.id)
+                    .limit(1)
+                    .maybeSingle()
+                if (data) evaluation = data
+            }
+
+            // Fallback for missing/legacy linkages
+            if (!evaluation) {
+                const { data: legacyData } = await supabase
+                    .from('evaluations')
+                    .select('id')
+                    .eq('candidate_id', user.id)
+                    .limit(1)
+                    .maybeSingle()
+                
+                if (legacyData) {
+                    evaluation = legacyData
+                    // Self-heal: Link this orphaned evaluation to the active process if one exists
+                    if (activeProcess) {
+                        await supabase.from('evaluations').update({ selection_process_id: activeProcess.id }).eq('id', legacyData.id)
+                    }
+                }
+            }
+
             if (evaluation) {
                 setEvaluationId(evaluation.id)
 
@@ -86,7 +110,8 @@ export default function CandidateEvaluationFlow() {
                     setA1Answers(answers)
 
                     // Mark as submitted with AI results
-                    setA1Submitted(true)
+                    const isA1Submitted = savedA1.every(r => (r.answer || '').trim().length > 0)
+                    setA1Submitted(isA1Submitted)
                     const aiResults = savedA1
                         .filter(r => r.ai_score !== null)
                         .map(r => ({
@@ -117,7 +142,10 @@ export default function CandidateEvaluationFlow() {
                     const answers: Record<string, string> = {}
                     savedA2.forEach(r => { answers[r.subcategory] = r.answer })
                     setA2Answers(answers)
-                    setA2Submitted(true)
+                    
+                    const isA2Submitted = savedA2.every(r => (r.answer || '').trim().length > 0)
+                    setA2Submitted(isA2Submitted)
+                    
                     const aiResults = savedA2
                         .filter(r => r.ai_score !== null)
                         .map(r => ({ subcategory: r.subcategory, score: r.ai_score!, justification: r.ai_justification || '' }))
@@ -139,7 +167,10 @@ export default function CandidateEvaluationFlow() {
                     const answers: Record<string, string> = {}
                     savedA3.forEach(r => { answers[r.subcategory] = r.answer })
                     setA3Answers(answers)
-                    setA3Submitted(true)
+                    
+                    const isA3Submitted = savedA3.every(r => (r.answer || '').trim().length > 0)
+                    setA3Submitted(isA3Submitted)
+                    
                     const aiResults = savedA3
                         .filter(r => r.ai_score !== null)
                         .map(r => ({ subcategory: r.subcategory, score: r.ai_score!, justification: r.ai_justification || '' }))
@@ -203,12 +234,16 @@ export default function CandidateEvaluationFlow() {
             const initialAnswers: Record<string, string> = {}
             questions.forEach(q => { initialAnswers[q.subcategory] = '' })
             setA1Answers(initialAnswers)
+
+            if (evaluationId) {
+                await saveA1QuestionsOnly(evaluationId, questions)
+            }
         } catch {
             setA1Questions([])
         } finally {
             setA1QuestionsLoading(false)
         }
-    }, [educationLevel])
+    }, [educationLevel, evaluationId])
 
     // Save A1 answers → DB → AI evaluation
     const handleSubmitA1 = useCallback(async () => {
@@ -244,12 +279,16 @@ export default function CandidateEvaluationFlow() {
             const initialAnswers: Record<string, string> = {}
             questions.forEach(q => { initialAnswers[q.subcategory] = '' })
             setA2Answers(initialAnswers)
+
+            if (evaluationId) {
+                await saveA2QuestionsOnly(evaluationId, tool, questions)
+            }
         } catch {
             setA2Questions([])
         } finally {
             setA2QuestionsLoading(false)
         }
-    }, [educationLevel])
+    }, [educationLevel, evaluationId])
 
     // Save A2 answers → DB → AI evaluation
     const handleSubmitA2 = useCallback(async () => {
@@ -290,6 +329,10 @@ export default function CandidateEvaluationFlow() {
                 }
             })
             setA3Answers(initialAnswers)
+
+            if (evaluationId) {
+                await saveA3QuestionsOnly(evaluationId, questions, initialAnswers)
+            }
         } catch (e) {
             console.error('Error generating A3 questions:', e)
             setA3Questions([])
@@ -297,7 +340,7 @@ export default function CandidateEvaluationFlow() {
         } finally {
             setA3QuestionsLoading(false)
         }
-    }, [educationLevel])
+    }, [educationLevel, evaluationId])
 
     // Save A3 answers → DB → AI evaluation
     const handleSubmitA3 = useCallback(async () => {
@@ -324,12 +367,7 @@ export default function CandidateEvaluationFlow() {
 
     const allA1Answered = a1Questions.length > 0 && a1Questions.every(q => (a1Answers[q.subcategory] || '').trim().length > 0)
 
-    const EDUCATION_LABELS: Record<string, string> = {
-        bachiller: 'Bachiller',
-        tecnico_sena: 'Técnico SENA',
-        tecnologo: 'Tecnólogo',
-        profesional: 'Profesional / Ingeniería',
-    }
+
 
     return (
         <div className="space-y-6">

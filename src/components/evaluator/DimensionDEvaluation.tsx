@@ -168,8 +168,20 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
                 return (
                     <Card key={cat.id} className="border-border">
                         <CardHeader className="bg-muted/30 border-b border-border py-4">
-                            <CardTitle className="text-xl font-bold text-primary">
-                                {cat.id}. {cat.name}
+                            <CardTitle className="text-xl font-bold flex justify-between items-center text-primary">
+                                <span>{cat.id}. {cat.name}</span>
+                                {cat.id === 'IA-2' && !readOnly && (
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="sm" onClick={loadIa2State} disabled={isLoadingIa2} className="h-8 gap-1.5 text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                            <RefreshCw className={`h-3 w-3 ${isLoadingIa2 ? 'animate-spin' : ''}`} /> Recargar
+                                        </Button>
+                                        {ia2Prompt && (
+                                            <Button variant="outline" size="sm" onClick={handleResetIa2} className="h-8 gap-1.5 text-xs text-red-700 bg-red-50 hover:bg-red-100 border-red-200 transition-colors">
+                                                <Trash2 className="h-3 w-3" /> Resetear
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
                             </CardTitle>
                         </CardHeader>
 
@@ -247,18 +259,6 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
                                         <h3 className="font-bold text-indigo-900 flex items-center gap-2 text-lg">
                                             <NextImage src="/icons/AIAgent.png" alt="IA" width={40} height={40} /> Respuesta del Candidato (Análisis de IA)
                                         </h3>
-                                        {!readOnly && (
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" onClick={loadIa2State} disabled={isLoadingIa2} className="h-8 gap-1.5 text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                                    <RefreshCw className={`h-3 w-3 ${isLoadingIa2 ? 'animate-spin' : ''}`} /> Recargar
-                                                </Button>
-                                                {ia2Prompt && (
-                                                    <Button variant="outline" size="sm" onClick={handleResetIa2} className="h-8 gap-1.5 text-xs text-red-700 bg-red-50 hover:bg-red-100 border-red-200 transition-colors">
-                                                        <Trash2 className="h-3 w-3" /> Resetear
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {!ia2Prompt ? (

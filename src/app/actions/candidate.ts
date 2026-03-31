@@ -4,6 +4,35 @@ import { createClient } from '@/lib/supabase/server'
 import { evaluateAnswersA1, A1EvaluationResult, evaluateAnswersA2, A2EvaluationResult, evaluateAnswersA3, A3EvaluationResult, evaluateA4Chat, A4EvaluationResult } from '@/app/actions/ai'
 
 /**
+ * Persists A1 questions right after generation so they survive reloads.
+ */
+export async function saveA1QuestionsOnly(
+    evaluationId: string,
+    questions: {
+        subcategory: string
+        label: string
+        question: string
+    }[]
+) {
+    const supabase = await createClient()
+
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A1')
+
+    for (const q of questions) {
+        await supabase.from('dynamic_tests').insert({
+            evaluation_id: evaluationId,
+            test_type: 'QUESTIONS_A1',
+            subcategory: q.subcategory,
+            prompt_context: q.question,
+            candidate_response: '',
+        })
+    }
+    return { success: true }
+}
+
+/**
  * Persists A1 question responses and triggers AI evaluation.
  * Each question/answer becomes a record in dynamic_tests with subcategory.
  */
@@ -18,7 +47,11 @@ export async function saveA1Responses(
 ): Promise<{ success: boolean; evaluations?: A1EvaluationResult[]; error?: string }> {
     const supabase = await createClient()
 
-    // 1. Save each Q&A to dynamic_tests
+    // 1. Clean existing records and save each Q&A to dynamic_tests
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A1')
+
     for (const qa of questionsAndAnswers) {
         const { error } = await supabase.from('dynamic_tests').insert({
             evaluation_id: evaluationId,
@@ -116,6 +149,39 @@ export async function resetA1Responses(evaluationId: string): Promise<{ success:
 // =====================
 
 /**
+ * Persists A2 questions right after generation so they survive reloads
+ * before the candidate actually submits their answers.
+ */
+export async function saveA2QuestionsOnly(
+    evaluationId: string,
+    tool: string,
+    questions: {
+        subcategory: string
+        label: string
+        question: string
+    }[]
+) {
+    const supabase = await createClient()
+
+    // Clean any existing A2 test data just in case
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A2')
+
+    for (const q of questions) {
+        await supabase.from('dynamic_tests').insert({
+            evaluation_id: evaluationId,
+            test_type: 'QUESTIONS_A2',
+            subcategory: q.subcategory,
+            prompt_context: q.question,
+            candidate_response: '', // Empty initially
+            ai_generated_content: tool,
+        })
+    }
+    return { success: true }
+}
+
+/**
  * Persists A2 question responses and triggers AI evaluation.
  * Stores the selected tool in ai_generated_content for reference.
  */
@@ -130,6 +196,11 @@ export async function saveA2Responses(
     }[]
 ): Promise<{ success: boolean; evaluations?: A2EvaluationResult[]; error?: string }> {
     const supabase = await createClient()
+
+    // Clean any existing A2 test data to avoid duplicates from saveA2QuestionsOnly
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A2')
 
     for (const qa of questionsAndAnswers) {
         const { error } = await supabase.from('dynamic_tests').insert({
@@ -229,6 +300,36 @@ export async function resetA2Responses(evaluationId: string): Promise<{ success:
 // =====================
 
 /**
+ * Persists A3 questions right after generation so they survive reloads.
+ */
+export async function saveA3QuestionsOnly(
+    evaluationId: string,
+    questions: {
+        subcategory: string
+        label: string
+        question: string
+    }[],
+    initialAnswers: Record<string, string>
+) {
+    const supabase = await createClient()
+
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A3')
+
+    for (const q of questions) {
+        await supabase.from('dynamic_tests').insert({
+            evaluation_id: evaluationId,
+            test_type: 'QUESTIONS_A3',
+            subcategory: q.subcategory,
+            prompt_context: q.question,
+            candidate_response: initialAnswers[q.subcategory] || '',
+        })
+    }
+    return { success: true }
+}
+
+/**
  * Persists A3 question responses and triggers AI evaluation.
  */
 export async function saveA3Responses(
@@ -252,6 +353,11 @@ export async function saveA3Responses(
             candidate_response: JSON.stringify(terminalCommands),
         })
     }
+
+    // Clean any existing A3 test data to avoid duplicates from saveA3QuestionsOnly
+    await supabase.from('dynamic_tests').delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_A3')
 
     for (const qa of questionsAndAnswers) {
         const { error } = await supabase.from('dynamic_tests').insert({
@@ -758,7 +864,8 @@ export async function saveIA2Prompt(evaluationId: string, promptText: string): P
         const aiResponse = await evaluateIA2Prompt(promptText)
         let parsedResult: any = {}
         try {
-            parsedResult = JSON.parse(aiResponse)
+            const cleaned = aiResponse.replace(/```json/ig, '').replace(/```/g, '').trim()
+            parsedResult = JSON.parse(cleaned)
         } catch (e) {
             console.error('Failed to parse Gemini JSON for IA-2:', aiResponse)
             return { success: false, error: 'Respuesta inválida de IA.' }

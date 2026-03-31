@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, UserWithProfile } from '@/app/actions/admin'
-import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw } from 'lucide-react'
+import { listUsers, createUser, deleteUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus } from '@/app/actions/admin'
+import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
 
 export default function AdminPage() {
     const [users, setUsers] = useState<UserWithProfile[]>([])
@@ -19,8 +22,18 @@ export default function AdminPage() {
     const [password, setPassword] = useState('')
     const [fullName, setFullName] = useState('')
     const [role, setRole] = useState<'candidate' | 'evaluator'>('candidate')
+    const [nationalIdType, setNationalIdType] = useState('CC (Cédula de Ciudadanía)')
+    const [nationalId, setNationalId] = useState('')
+    const [team, setTeam] = useState('')
+    const [observations, setObservations] = useState('')
     const [formError, setFormError] = useState<string | null>(null)
     const [formSuccess, setFormSuccess] = useState<string | null>(null)
+    const [formWarning, setFormWarning] = useState<string | null>(null)
+
+    // History Modal State
+    const [historyEmail, setHistoryEmail] = useState<string | null>(null)
+    const [historyData, setHistoryData] = useState<SelectionProcessWithStatus[]>([])
+    const [loadingHistory, setLoadingHistory] = useState(false)
 
     const loadUsers = useCallback(async () => {
         try {
@@ -37,24 +50,38 @@ export default function AdminPage() {
         loadUsers()
     }, [loadUsers])
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent, confirmPreviousProcesses = false) => {
         e.preventDefault()
         setFormError(null)
         setFormSuccess(null)
+        setFormWarning(null)
         setCreating(true)
 
-        const result = await createUser(email, password, fullName, role)
+        const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
 
         if (result.success) {
-            setFormSuccess(`✅ Usuario ${email} creado como ${role}`)
+            setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
             setEmail('')
             setPassword('')
             setFullName('')
+            setNationalId('')
+            setTeam('')
+            setObservations('')
             await loadUsers()
+        } else if (result.warning) {
+            setFormWarning(result.warning)
         } else {
             setFormError(result.error || 'Error desconocido')
         }
         setCreating(false)
+    }
+
+    const handleViewHistory = async (email: string) => {
+        setHistoryEmail(email)
+        setLoadingHistory(true)
+        const data = await getSelectionProcessHistory(email)
+        setHistoryData(data)
+        setLoadingHistory(false)
     }
 
     const handleDelete = async (userId: string, userEmail: string) => {
@@ -100,12 +127,14 @@ export default function AdminPage() {
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-foreground">Email</label>
                                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                                    placeholder="usuario@seti.com.co" className="bg-background border-input" />
+                                    placeholder="usuario@seti.com.co" className="bg-background border-input"
+                                    autoComplete="off" data-1p-ignore />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-foreground">Contraseña</label>
                                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                                    placeholder="Mínimo 6 caracteres" minLength={6} className="bg-background border-input" />
+                                    placeholder="Mínimo 6 caracteres" minLength={6} className="bg-background border-input"
+                                    autoComplete="new-password" data-1p-ignore />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-foreground">Nombre Completo</label>
@@ -125,18 +154,61 @@ export default function AdminPage() {
                                     </button>
                                 </div>
                             </div>
+                            
+                            {role === 'candidate' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-foreground">Tipo de Identificación *</label>
+                                        <select value={nationalIdType} onChange={e => setNationalIdType(e.target.value)} required
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                                            <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
+                                            <option value="CE (Cédula de Extranjería)">Cédula de Extranjería (CE)</option>
+                                            <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
+                                            <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
+                                            <option value="PA (Pasaporte)">Pasaporte (PA)</option>
+                                            <option value="Otro">Otro / Internacional</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-foreground">Número de Identificación *</label>
+                                        <Input type="text" value={nationalId} onChange={e => setNationalId(e.target.value)} required
+                                            placeholder="1014..." className="bg-background border-input" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-foreground">Equipo (Opcional)</label>
+                                        <Input type="text" value={team} onChange={e => setTeam(e.target.value)}
+                                            placeholder="ej. Squad Alpha, SRE" className="bg-background border-input" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-foreground">Observaciones del Proceso</label>
+                                        <Input type="text" value={observations} onChange={e => setObservations(e.target.value)}
+                                            placeholder="Notas para el evaluador" className="bg-background border-input" />
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {formError && (
-                            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">❌ {formError}</div>
+                            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex gap-2 items-center"><AlertTriangle className="h-4 w-4" /> {formError}</div>
                         )}
                         {formSuccess && (
                             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg">{formSuccess}</div>
                         )}
+                        {formWarning && (
+                            <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg space-y-3">
+                                <div className="flex gap-2 items-center"><AlertTriangle className="h-4 w-4" /> {formWarning}</div>
+                                <div className="flex justify-end gap-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setFormWarning(null)}>Cancelar</Button>
+                                    <Button type="button" size="sm" onClick={(e) => handleCreate(e, true)} className="bg-amber-600 hover:bg-amber-700 text-white">Sí, crear nuevo proceso</Button>
+                                </div>
+                            </div>
+                        )}
 
-                        <Button type="submit" disabled={creating} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11">
-                            {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creando...</> : <><UserPlus className="h-4 w-4 mr-2" /> Crear Usuario</>}
-                        </Button>
+                        {!formWarning && (
+                            <Button type="submit" disabled={creating} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11">
+                                {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creando...</> : <><UserPlus className="h-4 w-4 mr-2" /> Crear Usuario y Proceso</>}
+                            </Button>
+                        )}
                     </form>
                 </CardContent>
             </Card>
@@ -167,6 +239,7 @@ export default function AdminPage() {
                                 <TableRow className="bg-muted/20">
                                     <TableHead className="font-bold">Nombre</TableHead>
                                     <TableHead className="font-bold">Email</TableHead>
+                                    <TableHead className="font-bold">Identificación</TableHead>
                                     <TableHead className="font-bold">Rol</TableHead>
                                     <TableHead className="font-bold">Escolaridad</TableHead>
                                     <TableHead className="font-bold">Creado</TableHead>
@@ -187,6 +260,9 @@ export default function AdminPage() {
                                             {user.full_name || <span className="text-muted-foreground italic">Sin nombre</span>}
                                         </TableCell>
                                         <TableCell className="font-mono text-sm">{user.email}</TableCell>
+                                        <TableCell className="font-mono text-sm">
+                                            {user.national_id ? <span title={user.national_id_type || ''}>{user.national_id}</span> : <span className="text-muted-foreground">—</span>}
+                                        </TableCell>
                                         <TableCell>
                                             {user.role === 'evaluator' ? (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
@@ -213,10 +289,15 @@ export default function AdminPage() {
                                             {new Date(user.created_at).toLocaleDateString('es-CO')}
                                         </TableCell>
                                         <TableCell className="text-right">
+                                            {user.role === 'candidate' && (
+                                                <Button variant="ghost" size="sm" onClick={() => handleViewHistory(user.email)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 px-2 mr-2" title="Ver Historial de Procesos">
+                                                    <History className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                             <Button variant="ghost" size="sm"
                                                 onClick={() => handleDelete(user.id, user.email)}
                                                 disabled={deletingId === user.id}
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2">
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2" title="Eliminar Perfil (No borra el historial)">
                                                 {deletingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                             </Button>
                                         </TableCell>
@@ -227,6 +308,49 @@ export default function AdminPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* History Modal */}
+            <Dialog open={!!historyEmail} onOpenChange={(open) => !open && setHistoryEmail(null)}>
+                <DialogContent className="max-w-[95vw] sm:max-w-[95vw] w-full max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Historial de Procesos: {historyEmail}</DialogTitle>
+                    </DialogHeader>
+                    {loadingHistory ? (
+                        <div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                    ) : historyData.length === 0 ? (
+                        <p className="text-muted-foreground text-center p-8">No se encontraron procesos de selección históricos para este correo.</p>
+                    ) : (
+                        <div className="overflow-y-auto pr-2 flex-1 min-h-[50vh]">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Fecha Creación</TableHead>
+                                        <TableHead>Identificación</TableHead>
+                                        <TableHead>Equipo</TableHead>
+                                        <TableHead>Observaciones</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {historyData.map(proc => (
+                                        <TableRow key={proc.id}>
+                                            <TableCell className="whitespace-nowrap">{new Date(proc.created_at).toLocaleString()}</TableCell>
+                                            <TableCell className="font-mono text-xs">{proc.candidate_national_id || '-'}</TableCell>
+                                            <TableCell>{proc.team || '-'}</TableCell>
+                                            <TableCell className="max-w-xs truncate" title={proc.observations || ''}>{proc.observations || '-'}</TableCell>
+                                            <TableCell>
+                                                {proc.status === 'active' ? <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-default">Activo</Badge> : 
+                                                 proc.status === 'completed' ? <Badge variant="secondary" className="cursor-default">Completado</Badge> : 
+                                                 <Badge variant="outline" className="cursor-default text-muted-foreground">Archivado</Badge>}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             {/* Summary by role */}
             <div className="grid grid-cols-3 gap-4">

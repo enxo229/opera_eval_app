@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { History } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,11 @@ export default async function EvaluatorDashboard() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <Link href="/evaluator/history" title="Buscar y filtrar procesos pasados y evaluaciones antiguas usando CC, correo o equipo.">
+                        <Button variant="outline" className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 transition-all">
+                            <History className="h-4 w-4 mr-2" /> Buscar Historial
+                        </Button>
+                    </Link>
                     <Link href="/admin">
                         <Button variant="outline" className="border-border text-muted-foreground hover:text-primary hover:border-primary">
                             ⚙️ Admin

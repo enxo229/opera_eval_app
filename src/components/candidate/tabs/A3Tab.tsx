@@ -1,6 +1,6 @@
 import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
-import { GitBranch, Sparkles, Terminal, Loader2 } from 'lucide-react'
+import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle } from 'lucide-react'
 import { A3Question } from '@/app/actions/ai'
 
 interface A3TabProps {
@@ -30,6 +30,8 @@ export function A3Tab({
     handleGenerateA3Questions,
     handleSubmitA3
 }: A3TabProps) {
+    const allA3Answered = a3Questions.length > 0 && a3Questions.every(q => (a3Answers[q.subcategory] || '').trim().length > 0)
+
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
@@ -87,17 +89,27 @@ export function A3Tab({
                         ))}
 
                         {!a3Submitted ? (
-                            <Button
-                                onClick={handleSubmitA3}
-                                disabled={a3Submitting || !evaluationId || a3Questions.some(q => !(a3Answers[q.subcategory] || '').trim())}
-                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                            >
-                                {a3Submitting ? (
-                                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
-                                ) : (
-                                    'Guardar Respuestas A3'
+                            <div className="space-y-3">
+                                <Button
+                                    onClick={handleSubmitA3}
+                                    disabled={!allA3Answered || a3Submitting || !evaluationId}
+                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11 transition-all"
+                                >
+                                    {a3Submitting ? (
+                                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando...</>
+                                    ) : !evaluationId ? (
+                                        'No hay evaluación activa — contacta al evaluador'
+                                    ) : (
+                                        'Guardar Respuestas A3'
+                                    )}
+                                </Button>
+                                {!allA3Answered && !a3Submitting && evaluationId && (
+                                    <p className="text-sm text-amber-600 text-center flex items-center justify-center gap-1.5 font-medium bg-amber-50/50 p-2 rounded-lg border border-amber-200/50 animate-in fade-in slide-in-from-top-1">
+                                        <AlertTriangle className="h-4 w-4" /> 
+                                        Faltan preguntas por responder para poder guardar esta sección.
+                                    </p>
                                 )}
-                            </Button>
+                            </div>
                         ) : (
                             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-lg text-center">
                                 <p className="font-bold text-lg">✅ Respuestas A3 guardadas correctamente</p>

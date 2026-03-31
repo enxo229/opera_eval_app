@@ -30,6 +30,8 @@ export interface Database {
           full_name: string | null
           role: 'evaluator' | 'candidate'
           education_level: string | null
+          national_id_type: string | null
+          national_id: string | null
           created_at: string
         }
         Insert: {
@@ -37,6 +39,8 @@ export interface Database {
           full_name?: string | null
           role?: 'evaluator' | 'candidate'
           education_level?: string | null
+          national_id_type?: string | null
+          national_id?: string | null
           created_at?: string
         }
         Update: {
@@ -44,14 +48,49 @@ export interface Database {
           full_name?: string | null
           role?: 'evaluator' | 'candidate'
           education_level?: string | null
+          national_id_type?: string | null
+          national_id?: string | null
+          created_at?: string
+        }
+      }
+      selection_processes: {
+        Row: {
+          id: string
+          candidate_email: string
+          candidate_national_id: string | null
+          evaluator_id: string | null
+          team: string | null
+          observations: string | null
+          status: 'active' | 'completed' | 'archived'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          candidate_email: string
+          candidate_national_id?: string | null
+          evaluator_id?: string | null
+          team?: string | null
+          observations?: string | null
+          status?: 'active' | 'completed' | 'archived'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          candidate_email?: string
+          candidate_national_id?: string | null
+          evaluator_id?: string | null
+          team?: string | null
+          observations?: string | null
+          status?: 'active' | 'completed' | 'archived'
           created_at?: string
         }
       }
       evaluations: {
         Row: {
           id: string
-          candidate_id: string
-          evaluator_id: string
+          candidate_id: string | null
+          evaluator_id: string | null
+          selection_process_id: string | null
           status: string
           score_a: number | null
           score_b: number | null
@@ -63,8 +102,9 @@ export interface Database {
         }
         Insert: {
           id?: string
-          candidate_id: string
-          evaluator_id: string
+          candidate_id?: string | null
+          evaluator_id?: string | null
+          selection_process_id?: string | null
           status?: string
           score_a?: number | null
           score_b?: number | null
@@ -76,8 +116,9 @@ export interface Database {
         }
         Update: {
           id?: string
-          candidate_id?: string
-          evaluator_id?: string
+          candidate_id?: string | null
+          evaluator_id?: string | null
+          selection_process_id?: string | null
           status?: string
           score_a?: number | null
           score_b?: number | null

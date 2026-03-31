@@ -1,3 +1,8 @@
+-- ================================================
+-- OTP — Schema SQL (Synced with Production DB)
+-- Last verified: 2026-03-31
+-- ================================================
+
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
@@ -17,6 +22,8 @@ create table public.profiles (
   full_name text,
   role text check (role in ('evaluator', 'candidate')),
   education_level text,
+  national_id_type text,      -- Tipo de documento (CC, CE, TI, PPT, PEP, etc.)
+  national_id text,           -- Número de identificación nacional
   created_at timestamptz default now()
 );
 
@@ -36,11 +43,61 @@ create policy "Users can update own profile."
   using ( auth.uid() = id );
 
 
+
+-- 1.5 SELECTION PROCESSES
+create table public.selection_processes (
+  id uuid primary key default uuid_generate_v4(),
+  candidate_email text not null,
+  candidate_national_id text,  -- Denormalized for historical search
+  evaluator_id uuid references public.profiles(id) on delete set null,
+  team text,
+  observations text,
+  status text default 'active' check (status in ('active', 'completed', 'archived')),
+  created_at timestamptz default now()
+);
+
+alter table public.selection_processes enable row level security;
+
+-- Policies for selection_processes
+create policy "Evaluators can view all selection processes"
+  on selection_processes for select
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+    )
+  );
+
+create policy "Evaluators can insert selection processes"
+  on selection_processes for insert
+  with check (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+    )
+  );
+
+create policy "Evaluators can update selection processes"
+  on selection_processes for update
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+    )
+  );
+
+create policy "Candidates can view their own selection processes"
+  on selection_processes for select
+  using (
+    candidate_email = (select email from auth.users where id = auth.uid())
+  );
+
 -- 2. EVALUATIONS
 create table public.evaluations (
   id uuid primary key default uuid_generate_v4(),
-  candidate_id uuid references public.profiles(id) on delete cascade not null,
-  evaluator_id uuid references public.profiles(id) on delete cascade not null,
+  candidate_id uuid references public.profiles(id) on delete set null,
+  evaluator_id uuid references public.profiles(id) on delete set null,
+  selection_process_id uuid references public.selection_processes(id) on delete cascade,
   status text default 'draft' check (status in ('draft', 'completed')),
   score_a numeric(5,2),
   score_b numeric(5,2),
@@ -54,7 +111,6 @@ create table public.evaluations (
 alter table public.evaluations enable row level security;
 
 -- Policies for evaluations
--- Evaluators can see all evaluations
 create policy "Evaluators can view all evaluations"
   on evaluations for select
   using (
@@ -64,14 +120,12 @@ create policy "Evaluators can view all evaluations"
     )
   );
 
--- Candidates can see their own evaluations (any status, needed for the Q&A flow)
 create policy "Candidates can view their own evaluations"
   on evaluations for select
   using (
     auth.uid() = candidate_id
   );
 
--- Only evaluators can insert/update evaluations
 create policy "Evaluators can insert evaluations"
   on evaluations for insert
   with check (
@@ -103,7 +157,6 @@ create table public.dimension_scores (
 
 alter table public.dimension_scores enable row level security;
 
--- Policies for dimension_scores
 create policy "Evaluators can view all dimension scores"
   on dimension_scores for select
   using (
@@ -168,7 +221,6 @@ create policy "Evaluators can view all dynamic tests"
     )
   );
 
--- Candidates need to be able to see their own dynamic tests (even in draft to answer them)
 create policy "Candidates can view their own dynamic tests"
   on dynamic_tests for select
   using (
@@ -211,6 +263,17 @@ create policy "Candidates can insert their own dynamic tests"
 -- Candidates can update dynamic tests to save their answers
 create policy "Candidates can update their own dynamic tests answers"
   on dynamic_tests for update
+  using (
+    exists (
+      select 1 from evaluations
+      where evaluations.id = dynamic_tests.evaluation_id
+        and evaluations.candidate_id = auth.uid()
+    )
+  );
+
+-- Candidates can delete their own dynamic tests (for regeneration of questions)
+create policy "Candidates can delete their own dynamic tests"
+  on dynamic_tests for delete
   using (
     exists (
       select 1 from evaluations
