@@ -98,7 +98,7 @@ export default function HistorySearchPage() {
             <div className="bg-card border border-border shadow-sm rounded-xl p-6">
                 <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground">Identificación (CC)</label>
+                        <label className="text-sm font-semibold text-foreground">Identificación</label>
                         <Input 
                             value={searchTermCC} 
                             onChange={(e) => setSearchTermCC(e.target.value)} 
@@ -168,7 +168,7 @@ export default function HistorySearchPage() {
                                     <TableCell>
                                         <div className="font-medium">{proc.candidate_email}</div>
                                         <div className="text-xs font-mono text-muted-foreground mt-0.5">
-                                            CC: {proc.candidate_national_id || 'N/A'}
+                                            ID: {proc.candidate_national_id || 'N/A'}
                                         </div>
                                     </TableCell>
                                     <TableCell>

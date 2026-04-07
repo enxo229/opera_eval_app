@@ -52,6 +52,7 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ### Server Action
 - `src/app/actions/candidate/legal.ts`: Contiene `saveLegalConsent()` y `getLegalConsentStatus()`. Persiste el consentimiento por `evaluation_id`, no por candidato, garantizando procesos independientes.
+- **Sincronización de Estado**: Al guardar el consentimiento legal, el estado del `CandidateContext` se actualiza inmediatamente vía `setLegalAccepted(true)` para evitar redirecciones cíclicas. Lo mismo aplica para `setEducationLevel()` en la página de eligibilidad.
 
 ---
 
@@ -98,6 +99,7 @@ opera_eval_app/
 │   │   │   ├── DimensionAEvaluation.tsx / DimensionBEvaluation.tsx ...
 │   │   │   ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
 │   │   │   ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
+│   │   │   ├── TimerAdjuster.tsx     # Widget para ajustar tiempo del candidato (+5/+10/+15 min o valor exacto)
 │   │   │   ├── RadarChartComponent.tsx
 │   │   │   ├── ScrollToTopButton.tsx # Botón flotante de navegación
 │   │   │   └── dimension-a/         # Sub-evaluaciones A1, A2, A3, A4 + constantes
@@ -107,11 +109,14 @@ opera_eval_app/
 │       │   ├── ai.ts                # Lógica de IA generativa y evaluación
 │       │   ├── admin.ts             # Gestión administrativa de usuarios
 │       │   ├── evaluation.ts        # Operaciones sobre evaluaciones
-│       │   └── candidate/           # Acciones específicas del candidato
+│       │   ├── candidate/           # Acciones específicas del candidato
 │       │       ├── a1.ts … a4.ts    # Dimensión A (Técnica)
 │       │       ├── b1.ts            # Dimensión B (Blandas: Tickets)
 │       │       ├── ia.ts            # Dimensión D (IA)
+│       │       ├── evaluation.ts    # Timer: startEvaluationTimer, pauseEvaluation, resumeEvaluation
 │       │       └── legal.ts         # Consentimiento legal (saveLegalConsent, getLegalConsentStatus)
+│       │   └── evaluator/           # Acciones específicas del evaluador
+│       │       └── timer.ts         # Ajuste de temporizador (add/set minutes)
 │       ├── auth/
 │       │   └── signout/route.ts     # Ruta de cierre de sesión (Server Route)
 │       ├── candidate/               # Interfaz de examen del candidato
@@ -154,7 +159,26 @@ opera_eval_app/
 
 ---
 
-## 8. Flujos Especiales
+## 8. Temporizador y Sistema de Pausas
+
+### Configuración
+- **Duración por defecto**: 60 minutos (configurable por evaluador en tiempo real).
+- **Máximo de pausas**: 2 por evaluación.
+- **Auto-pausa**: Se activa al cambiar de pestaña del navegador o perder conexión (si quedan pausas disponibles).
+
+### Arquitectura del Timer
+- **Server Actions** (`src/app/actions/candidate/evaluation.ts`): `startEvaluationTimer()`, `pauseEvaluation()`, `resumeEvaluation()`. Las acciones actualizan la DB pero **no usan `revalidatePath`** — el estado se maneja de forma optimista en el cliente.
+- **Estado optimista**: `CandidateContext` expone `setPausedAt()`, `setPauseCount()`, `setTotalPausedMs()`, `setStartedAt()`. Los callbacks en `CandidateHeader` y `PauseOverlay` actualizan el contexto inmediatamente.
+- **Polling de duración**: El `CandidateContext` hace polling cada 30 segundos de `test_duration_minutes` para reflejar ajustes del evaluador sin recargar la página.
+- **Posición visual**: El timer se renderiza en el centro del **sticky header** (`CandidateHeader.tsx`), que permanece fijo en la parte superior de la pantalla.
+
+### Ajuste de Tiempo por el Evaluador
+- **Server Action** (`src/app/actions/evaluator/timer.ts`): `adjustEvaluationTime(evaluationId, 'add'|'set', minutes)`. Validación: 1-180 minutos.
+- **Widget UI** (`TimerAdjuster.tsx`): Botones rápidos (+5, +10, +15 min) + input para fijar un valor exacto. Ubicado en el sidebar de `/evaluator/evaluate/[id]`.
+
+---
+
+## 9. Flujos Especiales
 
 - **Persistencia de Preguntas (A1, A2, A3)**: Las preguntas generadas por IA se persisten inmediatamente en `dynamic_tests` vía `saveA*QuestionsOnly()`. Esto previene la pérdida de datos por recarga de página. Solo se regeneran si el evaluador ejecuta un _reset_.
 - **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda.
@@ -175,6 +199,16 @@ opera_eval_app/
 | `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
 | `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts |
+
+### Campos del Timer (tabla `evaluations`)
+
+| Campo | Tipo | Propósito |
+|---|---|---|
+| `started_at` | timestamptz | Marca de inicio de la evaluación |
+| `test_duration_minutes` | int (default 60) | Duración total configurable por evaluador |
+| `paused_at` | timestamptz | Marca de última pausa (null si no está pausado) |
+| `total_paused_ms` | bigint (default 0) | Milisegundos totales pausados acumulados |
+| `pause_count` | int (default 0) | Número de pausas utilizadas (máx. 2) |
 
 ### Campos de Auditoría Legal (tabla `evaluations`)
 
@@ -214,9 +248,11 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 5. **Supabase Generics**: Clientes con `<any, 'public'>` (sin `supabase gen types`). Los tipos manuales están en `src/types/database.ts`.
 6. **Constantes compartidas**: Definidas en `src/lib/constants.ts` (ej. `TOOL_OPTIONS`, `EDUCATION_LABELS`). No duplicar en componentes.
 7. **Persistencia de preguntas**: Usar `saveA*QuestionsOnly()` inmediatamente después de generar preguntas por IA. Incluir `evaluationId` en el array de dependencias de `useCallback`.
-8. **Schema sync**: El archivo `supabase/schema.sql` debe mantenerse sincronizado con la BD de producción. La última verificación fue el 2026-03-31.
+8. **Schema sync**: El archivo `supabase/schema.sql` debe mantenerse sincronizado con la BD de producción. La última verificación fue el 2026-04-07.
 9. **UI Componentes**: Shadcn UI v4 (basado en Base UI de @base-ui/react). NO usar la prop `asChild` (no existe en esta versión). Aplicar estilos directamente con `className` en `DialogTrigger`, `DialogClose`, `TooltipTrigger`, etc.
 10. **Diseño Legal**: Los textos legales oficiales deben provenir siempre de los archivos en `docs/specs/`. No alterar el texto sin aprobación explícita de la organización.
+11. **Hydration Safety**: `<html>` y `<body>` en `layout.tsx` incluyen `suppressHydrationWarning` para evitar falsos positivos causados por extensiones del navegador.
+12. **Eliminación de Candidatos (Admin)**: Al eliminar un usuario desde admin, `deleteUser()` archiva (`status: 'archived'`) todos sus procesos de selección activos antes de borrar la cuenta. Esto preserva el historial y permite recrear el mismo email.
 
 ---
 
@@ -232,3 +268,9 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Modales legales en lugar de enlaces externos | Retención del candidato en el flujo, evita placeholders rotos | 2026-04-07 |
 | Consentimiento por `evaluation_id` (no por candidato) | Permite procesos de selección independientes para un mismo usuario | 2026-03-31 |
 | `asChild` eliminado de Shadcn v4 | Base UI no soporta esta prop; estilos directos en className | 2026-04-07 |
+| `revalidatePath` eliminado del timer | Causaba delays de 5-13s y loops al pausar/reanudar; estado optimista via Context | 2026-04-07 |
+| Duración reducida de 90 a 60 minutos | Análisis de viabilidad: 22 ítems con ~2.7 min/pregunta (ver `specs/duracion-evaluacion-60min.md`) | 2026-04-07 |
+| `suppressHydrationWarning` en layout | Extensiones del navegador inyectan atributos en `<body>` causando falsos positivos | 2026-04-07 |
+| Admin delete archiva procesos | Previene procesos huérfanos y conflictos al recrear el mismo email | 2026-04-07 |
+| Setters expuestos en CandidateContext | `setLegalAccepted`, `setEducationLevel` evitan redirect loops en onboarding | 2026-04-07 |
+| Timer ajustable por evaluador | Permite dar tiempo extra (+5/+10/+15 min o valor exacto) sin interrumpir la prueba | 2026-04-07 |

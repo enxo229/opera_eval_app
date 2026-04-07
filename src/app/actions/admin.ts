@@ -169,15 +169,29 @@ export async function getSelectionProcessHistory(email: string): Promise<Selecti
 }
 
 /**
- * Delete a user and their profile
+ * Delete a user and their profile.
+ * Archives any active selection processes first to allow re-creation with the same email.
  */
 export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
     const admin = createAdminClient()
 
+    // 1. Get the user's email before deleting
+    const { data: userData } = await admin.auth.admin.getUserById(userId)
+    const userEmail = userData?.user?.email
+
+    // 2. Archive any active selection processes for this email
+    if (userEmail) {
+        await admin
+            .from('selection_processes')
+            .update({ status: 'archived' })
+            .eq('candidate_email', userEmail)
+            .eq('status', 'active')
+    }
+
+    // 3. Delete auth user (profile cascades via FK, but we clean up just in case)
     const { error } = await admin.auth.admin.deleteUser(userId)
     if (error) return { success: false, error: error.message }
 
-    // Profile cascades via FK, but just in case
     await admin.from('profiles').delete().eq('id', userId)
 
     return { success: true }

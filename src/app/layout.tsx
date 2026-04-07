@@ -24,9 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${montserrat.variable} ${syncopate.variable} antialiased font-sans`}
+        suppressHydrationWarning
       >
         {children}
       </body>

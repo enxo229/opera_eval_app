@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { A2Question, generateQuestionsA2 } from '@/app/actions/ai'
 import { saveA2QuestionsOnly, saveA2Responses } from '@/app/actions/candidate/a2'
-import { RestoredA2 } from './useCandidateContext'
+import { useCandidateContext, RestoredA2 } from '@/context/CandidateContext'
 
 export function useA2State(educationLevel: string, evaluationId: string | null, restored: RestoredA2 | null) {
     const [a2SelectedTool, setA2SelectedTool] = useState<string | null>(null)

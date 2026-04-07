@@ -16,7 +16,7 @@ import {
     DialogTrigger,
     DialogClose 
 } from '@/components/ui/dialog'
-import { useCandidateContext } from '@/hooks/useCandidateContext'
+import { useCandidateContext } from '@/context/CandidateContext'
 import { saveLegalConsent, getLegalConsentStatus } from '@/app/actions/candidate/legal'
 
 const TDC_POLICY_TEXT = `DE CONFORMIDAD CON LA LEY DE PROTECCIÓN DE DATOS PERSONALES, LEY 1581 DE 2012 Y CUALQUIERA OTRA NORMA QUE LA MODIFIQUE, REFORME Y REGLAMENTE, AUTORIZO EXPRESAMENTE A LA EMPRESA A RECOLECTAR Y UTILIZAR MIS DATOS PERSONALES QUE LE SUMINISTRE U OBTENGA DEL ESTUDIO DE SEGURIDAD ANTES Y DURANTE MI VINCULACIÓN LABORAL EN EL EVENTO DE QUE PASE EL PROCESO DE SELECCIÓN, LOS CUALES SERÁN CONSERVADOS EN LOS ARCHIVOS DE LA EMPRESA, O EN SU CARPETA U HOJA DE VIDA SI PASO EL PROCESO DE SELECCIÓN Y ME VINCULA LABORALMENTE.
@@ -43,7 +43,7 @@ Tu participación continua en esta prueba confirma que has comprendido y aceptad
 
 export default function LegalOnboardingPage() {
     const router = useRouter()
-    const { evaluationId, contextLoaded, educationLevel } = useCandidateContext()
+    const { evaluationId, contextLoaded, educationLevel, setLegalAccepted } = useCandidateContext()
     
     const [tcAccepted, setTcAccepted] = useState(false)
     const [dataAccepted, setDataAccepted] = useState(false)
@@ -83,7 +83,7 @@ export default function LegalOnboardingPage() {
         try {
             const result = await saveLegalConsent(evaluationId)
             if (result.success) {
-                router.refresh()
+                setLegalAccepted(true)
                 router.push('/candidate/eligibility')
             } else {
                 alert('Error al guardar el consentimiento. Por favor intenta de nuevo.')

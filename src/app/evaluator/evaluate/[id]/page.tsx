@@ -11,6 +11,7 @@ import { DimensionBEvaluation } from '@/components/evaluator/DimensionBEvaluatio
 import { DimensionCEvaluation } from '@/components/evaluator/DimensionCEvaluation'
 import { DimensionDEvaluation } from '@/components/evaluator/DimensionDEvaluation'
 import { FinalScoreCard } from '@/components/evaluator/FinalScoreCard'
+import { TimerAdjuster } from '@/components/evaluator/TimerAdjuster'
 import { ScrollToTopButton } from '@/components/evaluator/ScrollToTopButton'
 export default async function EvaluateCandidatePage({ params }: { params: Promise<{ id: string }> }) {
     const supabase = await createClient()
@@ -225,6 +226,11 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
                 <div className="lg:col-span-1 border-l border-border pl-8 space-y-8 sticky top-8">
                     <FinalScoreCard evaluation={evaluation} />
+                    <TimerAdjuster 
+                        evaluationId={evaluation.id} 
+                        initialDuration={evaluation.test_duration_minutes || 60}
+                        isStarted={!!evaluation.started_at}
+                    />
                 </div>
             </div>
 

@@ -1,6 +1,6 @@
 -- ================================================
 -- OTP — Schema SQL (Synced with Production DB)
--- Last verified: 2026-03-31
+-- Last verified: 2026-04-07
 -- ================================================
 
 -- Enable UUID extension
@@ -108,7 +108,12 @@ create table public.evaluations (
   ai_insights jsonb,
   legal_consent_tc boolean default false,
   legal_consent_data boolean default false,
-  legal_accepted_at timestamptz
+  legal_accepted_at timestamptz,
+  started_at timestamptz,
+  test_duration_minutes int default 60,
+  paused_at timestamptz,
+  total_paused_ms bigint default 0,
+  pause_count int default 0
 );
 
 alter table public.evaluations enable row level security;
@@ -125,6 +130,12 @@ create policy "Evaluators can view all evaluations"
 
 create policy "Candidates can view their own evaluations"
   on evaluations for select
+  using (
+    auth.uid() = candidate_id
+  );
+
+create policy "Candidates can update their own evaluations (consent and timer)"
+  on evaluations for update
   using (
     auth.uid() = candidate_id
   );
