@@ -16,7 +16,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useCandidateContext } from '@/hooks/useCandidateContext'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 const EDUCATION_LEVELS = [
     { 
@@ -46,7 +46,7 @@ const EDUCATION_LEVELS = [
 ]
 
 export default function EligibilityPage() {
-    const { evaluationId, contextLoaded, legalAccepted } = useCandidateContext()
+    const { evaluationId, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation } = useCandidateContext()
     const [selected, setSelected] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const router = useRouter()
@@ -74,6 +74,7 @@ export default function EligibilityPage() {
         if (user) {
             await supabase.from('profiles').update({ education_level: selected }).eq('id', user.id)
         }
+        ctxSetEducation(selected)
         router.push('/candidate')
     }
 

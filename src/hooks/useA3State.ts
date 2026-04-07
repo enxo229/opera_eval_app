@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { A3Question, generateQuestionsA3 } from '@/app/actions/ai'
 import { saveA3QuestionsOnly, saveA3Responses } from '@/app/actions/candidate/a3'
-import { RestoredA3 } from './useCandidateContext'
+import { useCandidateContext, RestoredA3 } from '@/context/CandidateContext'
 
 export function useA3State(educationLevel: string, evaluationId: string | null, restored: RestoredA3 | null) {
     const [a3Commands, setA3Commands] = useState<string[]>([])

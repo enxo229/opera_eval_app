@@ -40,6 +40,7 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 - 5 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`
 - RLS policies para candidatos y evaluadores
 - Campos de auditoría legal: `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` en `evaluations`
+- Campos de temporizador: `started_at`, `test_duration_minutes` (default 60), `paused_at`, `total_paused_ms`, `pause_count`
 - Función RPC `get_user_email`
 - Soporte para documentos de identificación nacional (CC, CE, TI, PPT, PEP, Pasaporte)
 
@@ -49,20 +50,24 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 1.  **Autenticación**: Login vía Supabase Auth.
 2.  **Onboarding Legal**: Consentimiento expreso e informado (Ley 1581 Habeas Data). Incluye lectura in-app de Términos y Condiciones y Política de Tratamiento de Datos mediante ventanas modales.
 3.  **Información Académica**: Selección de nivel de formación con tooltips informativos por nivel.
-4.  **Evaluación Técnica**: Acceso a los 5 módulos (Linux, Observabilidad, Git, IA, Tickets).
+4.  **Evaluación Técnica**: Acceso a los 6 módulos con temporizador de 60 minutos.
+5.  **Temporizador**: Cronómetro global en sticky header con sistema de pausas (máx. 2) y auto-pausa al cambiar de pestaña.
 
 ```
 src/
 ├── app/
 │   ├── actions/              # Server Actions
 │   │   ├── ai.ts             # Lógica de IA generativa y evaluación
-│   │   ├── admin.ts          # Gestión administrativa de usuarios
+│   │   ├── admin.ts          # Gestión administrativa de usuarios (incluye archivado al eliminar)
 │   │   ├── evaluation.ts     # Operaciones sobre evaluaciones
-│   │   └── candidate/        # Acciones específicas del candidato
-│   │       ├── a1.ts … a4.ts # Dimensión A (Técnica)
-│   │       ├── b1.ts         # Dimensión B (Blandas: Tickets)
-│   │       ├── ia.ts         # Dimensión D (IA)
-│   │       └── legal.ts      # Consentimiento legal (Ley 1581)
+│   │   ├── candidate/        # Acciones específicas del candidato
+│   │   │   ├── a1.ts … a4.ts # Dimensión A (Técnica)
+│   │   │   ├── b1.ts         # Dimensión B (Blandas: Tickets)
+│   │   │   ├── ia.ts         # Dimensión D (IA)
+│   │   │   ├── evaluation.ts # Timer: start, pause, resume
+│   │   │   └── legal.ts      # Consentimiento legal (Ley 1581)
+│   │   └── evaluator/        # Acciones específicas del evaluador
+│   │       └── timer.ts      # Ajuste de temporizador (add/set minutes)
 │   ├── admin/                # Panel de administración de usuarios
 │   ├── auth/
 │   │   └── signout/          # Ruta de cierre de sesión
@@ -77,6 +82,7 @@ src/
 │   ├── candidate/            # Componentes de examen (Terminal, Chat, Ticket, Prompt)
 │   │   └── tabs/             # Pestañas A1, A2, A3
 │   ├── evaluator/            # Componentes de calificación por dimensión
+│   │   ├── TimerAdjuster.tsx  # Widget de ajuste de tiempo (+5/+10/+15 min o valor exacto)
 │   │   └── dimension-a/      # Sub-evaluaciones A1, A2, A3, A4
 │   └── ui/                   # Primitivos de Shadcn UI (dialog, tooltip, checkbox, etc.)
 ├── hooks/
@@ -105,12 +111,19 @@ src/
 1. Dashboard → Seleccionar candidato → Evaluar por dimensión
 2. Ver respuestas del candidato + sugerencias de la IA
 3. Asignar puntajes manuales → Cálculo automático del score final
-4. Búsqueda histórica por CC, correo o equipo
+4. **Ajustar tiempo del candidato** vía TimerAdjuster (+5, +10, +15 min ó valor exacto)
+5. Búsqueda histórica por CC, correo o equipo
+
+### Admin
+1. Gestión de usuarios (crear, eliminar)
+2. Al eliminar un candidato, sus procesos activos se marcan como `archived` (no se borran)
+3. Esto permite recrear el mismo email en un nuevo proceso sin conflictos
 
 ## Documentación Técnica
 
 - Especificación completa: [`docs/specs/AGENTS.md`](docs/specs/AGENTS.md)
 - Modelo de evaluación detallado: [`docs/specs/modelo-evaluacion-noc.md`](docs/specs/modelo-evaluacion-noc.md)
+- Especificación de duración (60 min): [`specs/duracion-evaluacion-60min.md`](specs/duracion-evaluacion-60min.md)
 - Términos y Condiciones: [`docs/specs/terminosCondiciones.md`](docs/specs/terminosCondiciones.md)
 - Política de Tratamiento de Datos: [`docs/specs/tratamientoDatosPersonales.md`](docs/specs/tratamientoDatosPersonales.md)
 
