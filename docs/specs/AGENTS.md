@@ -40,9 +40,18 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ## 4. Cumplimiento Legal (Compliance)
 
-- **Ley 1581 de 2012 (Colombia)**: El sistema implementa un paso de **Onboarding Legal** obligatorio para todo candidato.
-- **Evidencia de Consentimiento**: Se almacena `legal_accepted_at` y el estado de los checkboxes en cada registro de la tabla `evaluations`.
+### Ley 1581 de 2012 (Colombia)
+- El sistema implementa un paso de **Onboarding Legal** obligatorio para todo candidato antes de acceder a la evaluación.
+- **Evidencia de Consentimiento**: Se almacena `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` y el estado de los checkboxes en cada registro de la tabla `evaluations`.
 - **Regla Crítica**: No se permite el avance al test técnico sin el consentimiento previo, expreso e informado. Los checkboxes deben estar desmarcados por defecto (*opt-in* explícito).
+
+### Documentos Legales In-App
+- **Términos y Condiciones**: Lectura completa disponible en ventana modal (Dialog). Texto fuente en `docs/specs/terminosCondiciones.md`.
+- **Política de Tratamiento de Datos Personales**: Lectura completa disponible en ventana modal (Dialog). Texto fuente en `docs/specs/tratamientoDatosPersonales.md`.
+- **Importante**: Abrir y cerrar los modales **NO** marca automáticamente los checkboxes de aceptación. El consentimiento siempre es una acción consciente del candidato.
+
+### Server Action
+- `src/app/actions/candidate/legal.ts`: Contiene `saveLegalConsent()` y `getLegalConsentStatus()`. Persiste el consentimiento por `evaluation_id`, no por candidato, garantizando procesos independientes.
 
 ---
 
@@ -50,16 +59,26 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ```
 opera_eval_app/
-├── docs/specs/                     # Documentación, rúbricas y perfiles de referencia
+├── docs/specs/                     # Documentación, rúbricas, perfiles y textos legales
+│   ├── AGENTS.md                   # Este archivo (especificación para agentes IA)
+│   ├── modelo-evaluacion-noc.md    # Modelo de evaluación detallado
+│   ├── terminosCondiciones.md      # Texto oficial de T&C
+│   └── tratamientoDatosPersonales.md # Texto oficial Habeas Data (Ley 1581)
 ├── supabase/
 │   └── schema.sql                  # DDL completo: tablas, RLS, functions (synced with prod)
 ├── src/
 │   ├── types/
 │   │   └── database.ts            # Tipos TypeScript de Supabase (manual)
+│   ├── hooks/
+│   │   ├── useA1State.ts          # Estado local de sub-dimensión A1
+│   │   ├── useA2State.ts          # Estado local de sub-dimensión A2
+│   │   ├── useA3State.ts          # Estado local de sub-dimensión A3
+│   │   └── useCandidateContext.ts # Contexto global del candidato (evaluación, legal, educación)
 │   ├── lib/
 │   │   ├── ai/
 │   │   │   └── gemini.ts           # Wrapper Gemini: fallback chain y retries
 │   │   ├── constants.ts            # Constantes compartidas (TOOL_OPTIONS, EDUCATION_LABELS)
+│   │   ├── utils.ts                # Utilidades (cn para clases CSS con clsx/twMerge)
 │   │   ├── terminal/
 │   │   │   └── commands.ts         # Motor de CLI simulada (FS virtual)
 │   │   ├── supabase/
@@ -67,6 +86,7 @@ opera_eval_app/
 │   │   │   └── admin.ts            # Cliente con service_role para gestión de usuarios
 │   │   └── evaluator-guidance.ts    # Guías estáticas para evaluadores (A3)
 │   ├── components/
+│   │   ├── CompanyLogo.tsx          # Logo corporativo reutilizable
 │   │   ├── candidate/
 │   │   │   ├── tabs/               # Fragmentos de UI para A1, A2, A3
 │   │   │   ├── QuestionPanel.tsx   # Componente genérico reutilizable de Q&A
@@ -74,15 +94,30 @@ opera_eval_app/
 │   │   │   ├── ChatbotA4.tsx        # Chat interactivo de investigación
 │   │   │   ├── TicketEditor.tsx     # Editor de ticket B1
 │   │   │   └── PromptEditorIA2.tsx  # Editor de prompt IA (Módulo D)
-│   │   └── evaluator/
-│   │       ├── DimensionAEvaluation.tsx / DimensionBEvaluation.tsx ...
-│   │       ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
-│   │       ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
-│   │       ├── RadarChartComponent.tsx
-│   │       └── ScrollToTopButton.tsx # Botón flotante de navegación
+│   │   ├── evaluator/
+│   │   │   ├── DimensionAEvaluation.tsx / DimensionBEvaluation.tsx ...
+│   │   │   ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
+│   │   │   ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
+│   │   │   ├── RadarChartComponent.tsx
+│   │   │   ├── ScrollToTopButton.tsx # Botón flotante de navegación
+│   │   │   └── dimension-a/         # Sub-evaluaciones A1, A2, A3, A4 + constantes
+│   │   └── ui/                      # Primitivos Shadcn UI (dialog, tooltip, checkbox, label, etc.)
 │   └── app/
-│       ├── actions/                 # Server Actions (ai.ts, candidate.ts, evaluation.ts, admin.ts)
+│       ├── actions/                 # Server Actions
+│       │   ├── ai.ts                # Lógica de IA generativa y evaluación
+│       │   ├── admin.ts             # Gestión administrativa de usuarios
+│       │   ├── evaluation.ts        # Operaciones sobre evaluaciones
+│       │   └── candidate/           # Acciones específicas del candidato
+│       │       ├── a1.ts … a4.ts    # Dimensión A (Técnica)
+│       │       ├── b1.ts            # Dimensión B (Blandas: Tickets)
+│       │       ├── ia.ts            # Dimensión D (IA)
+│       │       └── legal.ts         # Consentimiento legal (saveLegalConsent, getLegalConsentStatus)
+│       ├── auth/
+│       │   └── signout/route.ts     # Ruta de cierre de sesión (Server Route)
 │       ├── candidate/               # Interfaz de examen del candidato
+│       │   ├── onboarding/          # Consentimiento legal con modales (T&C + Habeas Data)
+│       │   ├── eligibility/         # Selección de nivel académico con tooltips
+│       │   └── page.tsx             # Examen principal (dimensiones A-D)
 │       ├── evaluator/               # Dashboard y evaluación
 │       │   └── history/             # Búsqueda histórica de procesos
 │       ├── admin/                   # Panel de administración de usuarios
@@ -91,16 +126,16 @@ opera_eval_app/
 
 ---
 
-## 5. Rutas y Seguridad
+## 6. Rutas y Seguridad
 
-- **Middleware** (`src/proxy.ts` → `src/lib/supabase/middleware.ts`): Protege `/evaluator`, `/candidate` y `/admin`. Los candidatos sin `education_level` son forzados a `/candidate/eligibility`.
+- **Middleware** (`src/proxy.ts` → `src/lib/supabase/middleware.ts`): Protege `/evaluator`, `/candidate` y `/admin`. Los candidatos sin consentimiento legal son redirigidos a `/candidate/onboarding`. Los candidatos sin `education_level` son redirigidos a `/candidate/eligibility`.
 - **RBAC**: El rol `evaluator` es necesario para acceder a `/admin` y realizar evaluaciones.
-- **RLS**: Protege datos sensibles. Los candidatos solo ven/modifican/borran sus propias evaluaciones y pruebas dinámicas. Los evaluadores tienen acceso completo.
+- **RLS**: Protege datos sensibles. Los candidatos solo ven/modifican/borran sus propias evaluaciones, pruebas dinámicas y campos de consentimiento legal. Los evaluadores tienen acceso completo.
 - **Restricciones Anti-Copia**: Los inputs del candidato (ChatbotA4, QuestionPanel, TerminalSandbox, TicketEditor) bloquean `onPaste`, `onCopy` y `onContextMenu` para evitar trampas. El editor de prompt IA-2 (`PromptEditorIA2`) está exento de estas restricciones.
 
 ---
 
-## 6. Modelo de Evaluación y Normalización
+## 7. Modelo de Evaluación y Normalización
 
 ### Dimensiones y Pesos
 
@@ -119,7 +154,7 @@ opera_eval_app/
 
 ---
 
-## 7. Flujos Especiales
+## 8. Flujos Especiales
 
 - **Persistencia de Preguntas (A1, A2, A3)**: Las preguntas generadas por IA se persisten inmediatamente en `dynamic_tests` vía `saveA*QuestionsOnly()`. Esto previene la pérdida de datos por recarga de página. Solo se regeneran si el evaluador ejecuta un _reset_.
 - **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda.
@@ -129,7 +164,7 @@ opera_eval_app/
 
 ---
 
-## 8. Base de Datos
+## 9. Base de Datos
 
 ### Tablas
 
@@ -137,9 +172,17 @@ opera_eval_app/
 |---|---|
 | `profiles` | Datos del usuario (nombre, rol, nivel educativo, documento de identidad) |
 | `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones) |
-| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación) |
+| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
 | `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts |
+
+### Campos de Auditoría Legal (tabla `evaluations`)
+
+| Campo | Tipo | Propósito |
+|---|---|---|
+| `legal_consent_tc` | boolean | Aceptación de Términos y Condiciones |
+| `legal_consent_data` | boolean | Autorización de Tratamiento de Datos |
+| `legal_accepted_at` | timestamptz | Estampa de tiempo del consentimiento |
 
 ### Documentos de Identificación
 
@@ -156,12 +199,13 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 ### RLS Policies
 
 - **Candidatos**: SELECT, INSERT, UPDATE, DELETE sobre `dynamic_tests` (solo sus propios registros)
+- **Candidatos**: SELECT y UPDATE sobre campos de consentimiento legal en `evaluations` (solo sus propios registros)
 - **Evaluadores**: Acceso completo a todas las tablas (`SELECT`, `INSERT`, `UPDATE`, `DELETE`)
 - **Profiles**: Visible públicamente (SELECT), editable solo por el propietario
 
 ---
 
-## 9. Convenciones Técnicas
+## 10. Convenciones Técnicas
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
@@ -171,10 +215,12 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 6. **Constantes compartidas**: Definidas en `src/lib/constants.ts` (ej. `TOOL_OPTIONS`, `EDUCATION_LABELS`). No duplicar en componentes.
 7. **Persistencia de preguntas**: Usar `saveA*QuestionsOnly()` inmediatamente después de generar preguntas por IA. Incluir `evaluationId` en el array de dependencias de `useCallback`.
 8. **Schema sync**: El archivo `supabase/schema.sql` debe mantenerse sincronizado con la BD de producción. La última verificación fue el 2026-03-31.
+9. **UI Componentes**: Shadcn UI v4 (basado en Base UI de @base-ui/react). NO usar la prop `asChild` (no existe en esta versión). Aplicar estilos directamente con `className` en `DialogTrigger`, `DialogClose`, `TooltipTrigger`, etc.
+10. **Diseño Legal**: Los textos legales oficiales deben provenir siempre de los archivos en `docs/specs/`. No alterar el texto sin aprobación explícita de la organización.
 
 ---
 
-## 10. Decisiones Arquitectónicas Documentadas
+## 11. Decisiones Arquitectónicas Documentadas
 
 | Decisión | Razón | Fecha |
 |---|---|---|
@@ -183,3 +229,6 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | `test_db.ts` eliminado | Script ad-hoc con credenciales de servicio | 2026-03-31 |
 | Candidate DELETE policy en RLS | Necesario para `saveA*QuestionsOnly` (limpiar y regenerar preguntas) | 2026-03-31 |
 | Constantes centralizadas en `constants.ts` | Evitar drift entre copias duplicadas | 2026-03-31 |
+| Modales legales en lugar de enlaces externos | Retención del candidato en el flujo, evita placeholders rotos | 2026-04-07 |
+| Consentimiento por `evaluation_id` (no por candidato) | Permite procesos de selección independientes para un mismo usuario | 2026-03-31 |
+| `asChild` eliminado de Shadcn v4 | Base UI no soporta esta prop; estilos directos en className | 2026-04-07 |
