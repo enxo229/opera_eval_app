@@ -8,7 +8,9 @@ import { PromptEditorIA2 } from '@/components/candidate/PromptEditorIA2'
 import { A1Tab } from '@/components/candidate/tabs/A1Tab'
 import { A2Tab } from '@/components/candidate/tabs/A2Tab'
 import { A3Tab } from '@/components/candidate/tabs/A3Tab'
-import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, User, Mail, GraduationCap } from 'lucide-react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, User, Mail, GraduationCap, Loader2 } from 'lucide-react'
 import { EDUCATION_LABELS } from '@/lib/constants'
 
 // Custom Hooks
@@ -19,9 +21,25 @@ import { useA3State } from '@/hooks/useA3State'
 
 export default function CandidateEvaluationFlow() {
     const ctx = useCandidateContext()
+    const router = useRouter()
     const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1)
     const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2)
     const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3)
+
+    // Legal Guard
+    useEffect(() => {
+        if (ctx.contextLoaded && !ctx.legalAccepted) {
+            router.push('/candidate/onboarding')
+        }
+    }, [ctx.contextLoaded, ctx.legalAccepted, router])
+
+    if (!ctx.contextLoaded || !ctx.legalAccepted) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">

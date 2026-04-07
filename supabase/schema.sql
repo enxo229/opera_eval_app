@@ -105,7 +105,10 @@ create table public.evaluations (
   score_ia numeric(5,2),
   final_score numeric(5,2),
   classification text,
-  ai_insights jsonb
+  ai_insights jsonb,
+  legal_consent_tc boolean default false,
+  legal_consent_data boolean default false,
+  legal_accepted_at timestamptz
 );
 
 alter table public.evaluations enable row level security;

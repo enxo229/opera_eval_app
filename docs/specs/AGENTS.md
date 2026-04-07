@@ -38,7 +38,15 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ---
 
-## 4. Arquitectura de Carpetas
+## 4. Cumplimiento Legal (Compliance)
+
+- **Ley 1581 de 2012 (Colombia)**: El sistema implementa un paso de **Onboarding Legal** obligatorio para todo candidato.
+- **Evidencia de Consentimiento**: Se almacena `legal_accepted_at` y el estado de los checkboxes en cada registro de la tabla `evaluations`.
+- **Regla Crítica**: No se permite el avance al test técnico sin el consentimiento previo, expreso e informado. Los checkboxes deben estar desmarcados por defecto (*opt-in* explícito).
+
+---
+
+## 5. Arquitectura de Carpetas
 
 ```
 opera_eval_app/

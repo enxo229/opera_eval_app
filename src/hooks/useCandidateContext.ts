@@ -34,6 +34,7 @@ export function useCandidateContext() {
     const [contextLoaded, setContextLoaded] = useState(false)
     const [candidateName, setCandidateName] = useState<string>('')
     const [candidateEmail, setCandidateEmail] = useState<string>('')
+    const [legalAccepted, setLegalAccepted] = useState(false)
 
     const [restoredA1, setRestoredA1] = useState<RestoredA1 | null>(null)
     const [restoredA2, setRestoredA2] = useState<RestoredA2 | null>(null)
@@ -91,6 +92,20 @@ export function useCandidateContext() {
 
             if (evaluation) {
                 setEvaluationId(evaluation.id)
+                
+                // Get legal consent status
+                const { data: evalData } = await supabase
+                    .from('evaluations')
+                    .select('legal_consent_tc, legal_consent_data')
+                    .eq('id', evaluation.id)
+                    .single()
+                
+                if (evalData?.legal_consent_tc && evalData?.legal_consent_data) {
+                    setLegalAccepted(true)
+                    console.log(' Legal accepted for evaluation:', evaluation.id)
+                } else {
+                    console.warn(' Legal NOT accepted for evaluation:', evaluation.id, evalData)
+                }
 
                 // Load saved A1 responses if they exist
                 const savedA1 = await getA1Results(evaluation.id)
@@ -191,5 +206,6 @@ export function useCandidateContext() {
         restoredA1,
         restoredA2,
         restoredA3,
+        legalAccepted,
     }
 }

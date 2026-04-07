@@ -40,7 +40,7 @@ export default function LoginPage() {
                 if (profile?.role === 'evaluator') {
                     router.push('/evaluator')
                 } else if (profile?.role === 'candidate') {
-                    router.push('/candidate')
+                    router.push('/candidate/onboarding')
                 } else {
                     router.push('/')
                 }
