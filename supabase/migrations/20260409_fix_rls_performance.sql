@@ -24,7 +24,7 @@ DROP POLICY IF EXISTS "Evaluators and owners can view/manage selection processes
 
 CREATE POLICY "Evaluators and owners can view/manage selection processes" ON public.selection_processes FOR ALL 
 USING (
-  candidate_email = (SELECT email FROM auth.users WHERE id = (SELECT auth.uid()))
+  candidate_email = (auth.jwt() ->> 'email')
   OR 
   EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = (SELECT auth.uid()) AND profiles.role = 'evaluator')
 );

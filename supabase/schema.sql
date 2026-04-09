@@ -62,7 +62,7 @@ alter table public.selection_processes enable row level security;
 create policy "Evaluators and owners can view/manage selection processes"
   on selection_processes for all
   using (
-    candidate_email = (select email from auth.users where id = (select auth.uid()))
+    candidate_email = (auth.jwt() ->> 'email')
     OR
     exists (
       select 1 from profiles
@@ -84,6 +84,8 @@ create table public.evaluations (
   final_score numeric(5,2),
   classification text,
   ai_insights jsonb,
+  final_feedback_ai jsonb,
+  completed_at timestamptz,
   legal_consent_tc boolean default false,
   legal_consent_data boolean default false,
   legal_accepted_at timestamptz,

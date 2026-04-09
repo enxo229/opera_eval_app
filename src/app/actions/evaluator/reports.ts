@@ -9,6 +9,8 @@ import {
     calculateFinalScoreAndClassification 
 } from '../evaluation'
 import { generateNarrativeFeedback } from '../ai'
+import { log } from '@/lib/observability/logger'
+import { metricsApp } from '@/lib/observability/metrics'
 
 /**
  * Resumen de lo que se evidenció en los módulos reactivos para dar contexto a la IA.
@@ -91,6 +93,7 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
         .single()
 
     if (evalErr || !evaluation) {
+        log.db.error('No se pudo encontrar la evaluación o los datos asociados.', evalErr, { evaluationId });
         throw new Error('No se pudo encontrar la evaluación o los datos asociados.')
     }
 
@@ -108,9 +111,12 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
 
     // 3. Generar Feedback IA
     const contextForIA = await buildAIContext({ ...evaluation, score_a: subA, score_b: subB, score_c: subC, score_ia: subIA }, scores, tests, profile)
+    
+    log.info('Generando feedback narrativo con IA', { evaluationId });
     const aiFeedback = await generateNarrativeFeedback(contextForIA)
+    log.info('Feedback narrativo generado exitosamente', { evaluationId });
 
-    // 4. Actualizar Evaluación en DB
+    const startUpdate = Date.now()
     const { error: updateErr } = await supabase
         .from('evaluations')
         .update({
@@ -125,7 +131,14 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
         } as any)
         .eq('id', evaluationId)
 
-    if (updateErr) throw updateErr
+    if (updateErr) {
+        metricsApp.recordDbOperation(Date.now() - startUpdate, { table: 'evaluations', operation: 'update', status: 'error' });
+        log.db.error('Error actualizando evaluación a completada', updateErr, { evaluationId });
+        throw updateErr
+    }
+
+    metricsApp.recordDbOperation(Date.now() - startUpdate, { table: 'evaluations', operation: 'update', status: 'success' });
+    metricsApp.recordEvaluationFinalized({ status: 'completed' });
 
     // 5. MARCAR PROCESO DE SELECCIÓN COMO COMPLETADO
     if (evaluation.selection_process_id) {
@@ -155,7 +168,10 @@ export async function regenerateNarrativeFeedbackManual(evaluationId: string) {
         .eq('id', evaluationId)
         .single()
 
-    if (evalErr || !evaluation) throw new Error('Evaluación no encontrada.')
+    if (evalErr || !evaluation) {
+        log.db.error('Evaluación no encontrada para regeneración manual.', evalErr, { evaluationId });
+        throw new Error('Evaluación no encontrada.')
+    }
 
     const scores = (evaluation.dimension_scores as any[]) || []
     const tests = (evaluation.dynamic_tests as any[]) || []
@@ -167,14 +183,20 @@ export async function regenerateNarrativeFeedbackManual(evaluationId: string) {
     const { generateNarrativeFeedbackLite } = await import('../ai')
     
     // Llamada forzada al modelo Lite (Estrategia de respaldo)
+    log.info('Regenerando feedback narrativo manualmente (Modelo Lite)', { evaluationId });
     const aiFeedback = await generateNarrativeFeedbackLite(contextForIA)
+    log.info('Feedback regenerado exitosamente', { evaluationId });
 
     const { error: updateErr } = await supabase
         .from('evaluations')
         .update({ final_feedback_ai: aiFeedback })
         .eq('id', evaluationId)
 
-    if (updateErr) throw updateErr
+    if (updateErr) {
+        log.db.error('Error actualizando feedback regenerado', updateErr, { evaluationId });
+        throw updateErr
+    }
 
+    log.info('Manual feedback regeneration complete', { evaluationId });
     return { success: true }
 }

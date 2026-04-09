@@ -1,6 +1,7 @@
 'use server'
 
 import { generateContentWithRetry, evaluateContentWithRetry } from '@/lib/ai/gemini'
+import { log } from '@/lib/observability/logger'
 
 /**
  * Fuerza la generación de feedback usando el modelo Lite.
@@ -33,10 +34,11 @@ Responde ÚNICAMENTE con JSON:
     const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     
     try {
-        return JSON.parse(cleaned)
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Feedback narrativo Lite generado exitosamente');
+        return parsed
     } catch (e) {
-        console.error('Error parseando Narrative Feedback Lite:', e)
-        console.log('Raw output from AI:', raw)
+        log.ai.error('Error parseando Narrative Feedback Lite', e as Error, { raw });
         return {
             final_narrative: "Error crítico en la comunicación con la IA. El modelo respondió con un formato inesperado.",
             fortalezas: ["Falla de formato"],
@@ -99,10 +101,11 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura:
     const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     
     try {
-        return JSON.parse(cleaned)
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Feedback narrativo generado exitosamente');
+        return parsed
     } catch (e) {
-        console.error('Error parseando Narrative Feedback:', e)
-        console.log('Raw output from AI:', raw)
+        log.ai.error('Error parseando Narrative Feedback', e as Error, { raw });
         return {
             final_narrative: "No se pudo generar el feedback narrativo en este momento. El formato de respuesta fue inválido.",
             fortalezas: ["Error de formato"],
@@ -164,8 +167,11 @@ Responde ÚNICAMENTE con un JSON array de 3 objetos:
     const raw = await evaluateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Evaluación A4 Chat completada');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando evaluación A4 Chat', e as Error, { raw });
         return [
             { subcategory: 'A4.1', label: 'Identificación de Fuentes', score: 0, justification: 'Error en evaluación' },
             { subcategory: 'A4.2', label: 'Lógica de Investigación', score: 0, justification: 'Error en evaluación' },
@@ -225,8 +231,11 @@ Formato exacto:
     const raw = await generateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Preguntas A1 generadas exitosamente');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando preguntas A1', e as Error, { raw });
         return [
             { subcategory: 'A1.1', label: 'Linux', question: '¿Conoce cómo navegar el sistema de archivos en Linux? Explique.' },
             { subcategory: 'A1.2', label: 'Windows Server', question: '¿Sabe dónde revisar los eventos del sistema en Windows Server?' },
@@ -279,8 +288,11 @@ Responde ÚNICAMENTE con un JSON array de 5 objetos:
     const raw = await evaluateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Evaluación A1 completada');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando evaluación A1', e as Error, { raw });
         return questionsAndAnswers.map(qa => ({
             subcategory: qa.subcategory,
             label: qa.label,
@@ -332,8 +344,11 @@ Formato exacto:
     const raw = await generateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Preguntas A2 generadas exitosamente');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando preguntas A2', e as Error, { raw });
         return [
             { subcategory: 'A2.1', label: 'Monitoreo vs Observabilidad', question: '¿Cuál es la diferencia entre monitoreo reactivo y observabilidad proactiva? Explique con un ejemplo.' },
             { subcategory: 'A2.2', label: 'Tres Pilares', question: '¿Cuáles son los tres pilares de la observabilidad? Defina cada uno brevemente.' },
@@ -433,8 +448,11 @@ Reglas:
     const raw = await generateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Preguntas A3 generadas exitosamente');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando preguntas A3', e as Error, { raw });
         return [
             { subcategory: 'A3.1', label: 'Git Básico', question: '¿Para qué sirve Git en el trabajo diario de un equipo técnico? ¿Puedes explicar qué es un "commit" y para qué se usa?' },
             { subcategory: 'A3.2', label: 'Scripting', question: '¿Has ejecutado o leído algún script en Bash o Python? ¿Puedes explicar qué haría un script que lee un archivo y cuenta las líneas?' },
@@ -600,8 +618,11 @@ Donde puntaje_normalizado = (puntaje_total / 16) * 7, redondeado a 1 decimal.`
     const raw = await evaluateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Evaluación detallada B1 completada');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando evaluación detallada B1', e as Error, { raw });
         return {
             estructura: { puntaje: 0, comentario: 'Error al evaluar' },
             precision_tecnica: { puntaje: 0, comentario: 'Error al evaluar' },
@@ -671,8 +692,11 @@ Donde puntaje_normalizado = (puntaje_total / 12) * 4, redondeado a 1 decimal.`
     const raw = await evaluateContentWithRetry(prompt)
     const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
-        return JSON.parse(cleaned)
-    } catch {
+        const parsed = JSON.parse(cleaned)
+        log.ai.info('Evaluación detallada B6 completada');
+        return parsed
+    } catch (e) {
+        log.ai.error('Error parseando evaluación detallada B6', e as Error, { raw });
         return {
             handoff: { puntaje: 0, comentario: 'Error al evaluar' },
             claridad_bloqueos: { puntaje: 0, comentario: 'Error al evaluar' },
