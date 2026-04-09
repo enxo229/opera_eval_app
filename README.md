@@ -51,7 +51,7 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 2.  **Onboarding Legal**: Consentimiento expreso e informado (Ley 1581 Habeas Data). Incluye lectura in-app de Términos y Condiciones y Política de Tratamiento de Datos mediante ventanas modales.
 3.  **Información Académica**: Selección de nivel de formación con tooltips informativos por nivel.
 4.  **Evaluación Técnica**: Acceso a los 6 módulos con temporizador de 60 minutos.
-5.  **Temporizador**: Cronómetro global en sticky header con sistema de pausas (máx. 2) y auto-pausa al cambiar de pestaña.
+5.  **Temporizador**: Cronómetro global en sticky header con sistema de pausas (máx. 3) y auto-pausa al cambiar de pestaña.
 
 ```
 src/
@@ -115,8 +115,9 @@ src/
 5. Búsqueda histórica por CC, correo o equipo
 
 ### Admin
-1. Gestión de usuarios (crear, eliminar)
-2. Al eliminar un candidato, sus procesos activos se marcan como `archived` (no se borran)
+1. Gestión de usuarios (crear, editar, eliminar)
+2. Edición: Permite corregir Nombre e Identificación (CC/CE/etc.) y datos del proceso (Equipo/Observaciones). No permite cambio de Email o Rol por estabilidad.
+3. Al eliminar un candidato, sus procesos activos se marcan como `archived` (no se borran)
 3. Esto permite recrear el mismo email en un nuevo proceso sin conflictos
 
 ## Documentación Técnica

@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus } from '@/app/actions/admin'
-import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle } from 'lucide-react'
+import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus } from '@/app/actions/admin'
+import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Link from 'next/link'
 
 export default function AdminPage() {
@@ -34,6 +35,17 @@ export default function AdminPage() {
     const [historyEmail, setHistoryEmail] = useState<string | null>(null)
     const [historyData, setHistoryData] = useState<SelectionProcessWithStatus[]>([])
     const [loadingHistory, setLoadingHistory] = useState(false)
+
+    // Edit Modal State
+    const [editingUser, setEditingUser] = useState<UserWithProfile | null>(null)
+    const [editFullName, setEditFullName] = useState('')
+    const [editPassword, setEditPassword] = useState('')
+    const [editNationalIdType, setEditNationalIdType] = useState('')
+    const [editNationalId, setEditNationalId] = useState('')
+    const [editTeam, setEditTeam] = useState('')
+    const [editObservations, setEditObservations] = useState('')
+    const [savingEdit, setSavingEdit] = useState(false)
+    const [editError, setEditError] = useState<string | null>(null)
 
     const loadUsers = useCallback(async () => {
         try {
@@ -94,6 +106,53 @@ export default function AdminPage() {
             alert(`Error: ${result.error}`)
         }
         setDeletingId(null)
+    }
+
+    const handleEditOpen = async (user: UserWithProfile) => {
+        setEditingUser(user)
+        setEditFullName(user.full_name || '')
+        setEditPassword('')
+        setEditNationalIdType(user.national_id_type || 'CC (Cédula de Ciudadanía)')
+        setEditNationalId(user.national_id || '')
+        setEditError(null)
+        
+        // If candidate, try to fetch the active team/observations from history
+        if (user.role === 'candidate') {
+            const history = await getSelectionProcessHistory(user.email)
+            const active = history.find(h => h.status === 'active')
+            if (active) {
+                setEditTeam(active.team || '')
+                setEditObservations(active.observations || '')
+            } else {
+                setEditTeam('')
+                setEditObservations('')
+            }
+        }
+    }
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingUser) return
+        setEditError(null)
+        setSavingEdit(true)
+
+        const result = await updateUser(
+            editingUser.id,
+            editFullName,
+            editNationalIdType,
+            editNationalId,
+            editPassword || undefined,
+            editingUser.role === 'candidate' ? editTeam : undefined,
+            editingUser.role === 'candidate' ? editObservations : undefined
+        )
+
+        if (result.success) {
+            setEditingUser(null)
+            await loadUsers()
+        } else {
+            setEditError(result.error || 'Error al actualizar')
+        }
+        setSavingEdit(false)
     }
 
     const candidates = users.filter(u => u.role === 'candidate')
@@ -289,17 +348,22 @@ export default function AdminPage() {
                                             {new Date(user.created_at).toLocaleDateString('es-CO')}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {user.role === 'candidate' && (
-                                                <Button variant="ghost" size="sm" onClick={() => handleViewHistory(user.email)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 px-2 mr-2" title="Ver Historial de Procesos">
-                                                    <History className="h-4 w-4" />
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" onClick={() => handleEditOpen(user)} className="text-primary hover:text-primary/80 hover:bg-primary/5 h-8 px-2" title="Editar Usuario">
+                                                    <Pencil className="h-4 w-4" />
                                                 </Button>
-                                            )}
-                                            <Button variant="ghost" size="sm"
-                                                onClick={() => handleDelete(user.id, user.email)}
-                                                disabled={deletingId === user.id}
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2" title="Eliminar Perfil (No borra el historial)">
-                                                {deletingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                            </Button>
+                                                {user.role === 'candidate' && (
+                                                    <Button variant="ghost" size="sm" onClick={() => handleViewHistory(user.email)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 px-2" title="Ver Historial de Procesos">
+                                                        <History className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <Button variant="ghost" size="sm"
+                                                    onClick={() => handleDelete(user.id, user.email)}
+                                                    disabled={deletingId === user.id}
+                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2" title="Eliminar Perfil (No borra el historial)">
+                                                    {deletingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -349,6 +413,89 @@ export default function AdminPage() {
                             </Table>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit User Modal */}
+            <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5 text-primary" /> Editar Usuario: {editingUser?.email}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveEdit} className="space-y-4 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Email (No editable)</label>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger className="relative w-full text-left outline-none block">
+                                            <Input value={editingUser?.email || ''} disabled className="bg-muted opacity-80 cursor-not-allowed pr-10" />
+                                            <Info className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" className="max-w-[200px] text-xs">
+                                            Si requiere cambiar el correo se recomienda eliminar el registro y crearlo de nuevo.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Rol (No editable)</label>
+                                <Input value={editingUser?.role === 'candidate' ? 'Candidato' : 'Evaluador'} disabled className="bg-muted opacity-80 cursor-not-allowed" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Nombre Completo</label>
+                                <Input value={editFullName} onChange={e => setEditFullName(e.target.value)} required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Nueva Contraseña (Opcional)</label>
+                                <Input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="Dejar en blanco para no cambiar" minLength={6} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Tipo ID</label>
+                                <select value={editNationalIdType} onChange={e => setEditNationalIdType(e.target.value)} required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                    <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
+                                    <option value="CE (Cédula de Extranjera)">Cédula de Extranjería (CE)</option>
+                                    <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
+                                    <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
+                                    <option value="PA (Pasaporte)">Pasaporte (PA)</option>
+                                    <option value="Otro">Otro / Internacional</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">Número ID</label>
+                                <Input value={editNationalId} onChange={e => setEditNationalId(e.target.value)} required />
+                            </div>
+                            
+                            {editingUser?.role === 'candidate' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold">Equipo</label>
+                                        <Input value={editTeam} onChange={e => setEditTeam(e.target.value)} placeholder="Nombre del equipo" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold">Observaciones</label>
+                                        <Input value={editObservations} onChange={e => setEditObservations(e.target.value)} placeholder="Notas internas" />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {editError && (
+                            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex gap-2 items-center">
+                                <AlertTriangle className="h-4 w-4" /> {editError}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                            <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+                            <Button type="submit" disabled={savingEdit} className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px]">
+                                {savingEdit ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando...</> : "Guardar Cambios"}
+                            </Button>
+                        </div>
+                    </form>
                 </DialogContent>
             </Dialog>
 

@@ -44,7 +44,7 @@ export function EvaluationTimer({
             : 'text-emerald-500'
 
     const handlePauseClick = async () => {
-        if (!evaluationId || isPaused || pauseCount >= 2) return
+        if (!evaluationId || isPaused || pauseCount >= 3) return
         
         setIsSubmittingPause(true)
         const res = await pauseEvaluation(evaluationId)
@@ -74,14 +74,14 @@ export function EvaluationTimer({
                     )}
                 </div>
 
-                {!isPaused && pauseCount < 2 && (
+                {!isPaused && pauseCount < 3 && (
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={handlePauseClick}
                         disabled={isSubmittingPause}
                         className="h-6 w-6 rounded-md hover:bg-white text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200 shadow-none transition-all"
-                        title={`Pausar Prueba (${2 - pauseCount} restantes)`}
+                        title={`Pausar Prueba (${3 - pauseCount} restantes)`}
                     >
                         {isSubmittingPause ? (
                             <Loader2 className="h-3 w-3 animate-spin" />

@@ -165,7 +165,7 @@ opera_eval_app/
 
 ### Configuración
 - **Duración por defecto**: 60 minutos (configurable por evaluador en tiempo real).
-- **Máximo de pausas**: 2 por evaluación.
+- **Máximo de pausas**: 3 por evaluación.
 - **Auto-pausa**: Se activa al cambiar de pestaña del navegador o perder conexión (si quedan pausas disponibles).
 
 ### Arquitectura del Timer
@@ -210,7 +210,7 @@ opera_eval_app/
 | `test_duration_minutes` | int (default 60) | Duración total configurable por evaluador |
 | `paused_at` | timestamptz | Marca de última pausa (null si no está pausado) |
 | `total_paused_ms` | bigint (default 0) | Milisegundos totales pausados acumulados |
-| `pause_count` | int (default 0) | Número de pausas utilizadas (máx. 2) |
+| `pause_count` | int (default 0) | Número de pausas utilizadas (máx. 3) |
 
 ### Campos de Auditoría Legal (tabla `evaluations`)
 
@@ -237,7 +237,8 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 - **Candidatos**: SELECT, INSERT, UPDATE, DELETE sobre `dynamic_tests` (solo sus propios registros)
 - **Candidatos**: SELECT y UPDATE sobre campos de consentimiento legal en `evaluations` (solo sus propios registros)
 - **Evaluadores**: Acceso completo a todas las tablas (`SELECT`, `INSERT`, `UPDATE`, `DELETE`)
-- **Profiles**: Visible públicamente (SELECT), editable solo por el propietario
+- **Profiles**: Visible públicamente (SELECT), editable solo por el propietario o administrador (vía `updateUser`).
+- **Performance**: Se han indexado las llaves foráneas en `dimension_scores`, `dynamic_tests`, `evaluations` y `selection_processes` para optimizar los JOINs y el filtrado por `evaluation_id`.
 
 ---
 
@@ -254,7 +255,11 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 9. **UI Componentes**: Shadcn UI v4 (basado en Base UI de @base-ui/react). NO usar la prop `asChild` (no existe en esta versión). Aplicar estilos directamente con `className` en `DialogTrigger`, `DialogClose`, `TooltipTrigger`, etc.
 10. **Diseño Legal**: Los textos legales oficiales deben provenir siempre de los archivos en `docs/specs/`. No alterar el texto sin aprobación explícita de la organización.
 11. **Hydration Safety**: `<html>` y `<body>` en `layout.tsx` incluyen `suppressHydrationWarning` para evitar falsos positivos causados por extensiones del navegador.
-12. **Eliminación de Candidatos (Admin)**: Al eliminar un usuario desde admin, `deleteUser()` archiva (`status: 'archived'`) todos sus procesos de selección activos antes de borrar la cuenta. Esto preserva el historial y permite recrear el mismo email.
+12. **Eliminación y Edición (Admin)**: 
+    - Al eliminar un usuario, `deleteUser()` archiva sus procesos activos.
+    - Al editar un usuario, no se permite el cambio de **Email** ni **Rol** por integridad de datos. Se incluye un tooltip informativo al respecto. Se permite editar Nombre, ID, Equipo y Observaciones (estas últimas impactan el proceso activo).
+13. **Auto-Fill Técnico (Dimensión B)**: La interfaz del evaluador en B1/B6 detecta respuestas de IA y mueve los sliders automáticamente a la posición sugerida si el evaluador no ha intervenido manualmente.
+14. **Recordatorio: Revisión Realtime**: Se ha implementado un componente `RealtimeSync` para suscripción vía WebSockets a `dynamic_tests`. Esta funcionalidad requiere una auditoría técnica profunda en el futuro para validar escalabilidad y manejo de reconexiones. Queda fuera de la documentación de "mejoras finalizadas" hasta entonces.
 
 ---
 
@@ -276,3 +281,7 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Admin delete archiva procesos | Previene procesos huérfanos y conflictos al recrear el mismo email | 2026-04-07 |
 | Setters expuestos en CandidateContext | `setLegalAccepted`, `setEducationLevel` evitan redirect loops en onboarding | 2026-04-07 |
 | Timer ajustable por evaluador | Permite dar tiempo extra (+5/+10/+15 min o valor exacto) sin interrumpir la prueba | 2026-04-07 |
+| Pausas aumentadas (2 -> 3) | Solicitud de usuario para mejorar la flexibilidad en la prueba | 2026-04-09 |
+| Edición de perfiles restringida | Permite corregir errores (nombre/id) pero bloquea email/rol por estabilidad | 2026-04-09 |
+| Índices en llaves foráneas | Optimización crítica sugerida por Supabase Linter para performance | 2026-04-09 |
+| Auto-fill asíncrono en B1 | Sliders reaccionan a sugerencias de IA automáticamente en el dashboard del evaluador | 2026-04-09 |

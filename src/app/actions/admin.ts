@@ -233,3 +233,63 @@ export async function searchHistoricalProcesses(cc: string, email: string, team:
 
     return data || []
 }
+
+/**
+ * Update a user's profile and, if applicable, their active selection process.
+ */
+export async function updateUser(
+    userId: string,
+    fullName: string,
+    nationalIdType: string,
+    nationalId: string,
+    password?: string,
+    team?: string,
+    observations?: string
+): Promise<{ success: boolean; error?: string }> {
+    const admin = createAdminClient()
+
+    // 1. Update Auth User if password provided
+    if (password && password.trim().length >= 6) {
+        const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+            password: password.trim()
+        })
+        if (authError) return { success: false, error: `Error actualizando contraseña: ${authError.message}` }
+    }
+
+    // 2. Update Profile
+    const { error: profileError } = await admin
+        .from('profiles')
+        .update({
+            full_name: fullName,
+            national_id_type: nationalIdType,
+            national_id: nationalId
+        })
+        .eq('id', userId)
+
+    if (profileError) return { success: false, error: `Error actualizando perfil: ${profileError.message}` }
+
+    // 3. Update active selection process if it's a candidate
+    // We get the user's email first
+    const { data: userData } = await admin.auth.admin.getUserById(userId)
+    const userEmail = userData?.user?.email
+
+    if (userEmail) {
+        // Update active process
+        const { error: processError } = await admin
+            .from('selection_processes')
+            .update({
+                team: team || null,
+                observations: observations || null,
+                candidate_national_id: nationalId || null
+            })
+            .eq('candidate_email', userEmail)
+            .eq('status', 'active')
+
+        if (processError) {
+            console.error('Error updating selection process:', processError)
+            // We don't return error here because the profile was already updated successfully
+        }
+    }
+
+    return { success: true }
+}

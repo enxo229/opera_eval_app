@@ -301,6 +301,24 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
         handleRefreshA4()
     }, [])
 
+    // Realtime Sync Listener
+    useEffect(() => {
+        const handleSync = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail?.evaluationId === evaluationId) {
+                console.log('🔄 [Dimension A] Sincronización en tiempo real detectada. Recargando telemetría...');
+                handleRefreshA1();
+                handleRefreshA2();
+                handleRefreshA3();
+                handleRefreshA4();
+            }
+        };
+
+        window.addEventListener('evaluator_db_updated', handleSync);
+        return () => window.removeEventListener('evaluator_db_updated', handleSync);
+    }, [evaluationId]);
+
+
     useEffect(() => {
         if (expandedEvidence === 'A4' && a4HistoryRef.current) {
             a4HistoryRef.current.scrollTop = a4HistoryRef.current.scrollHeight
@@ -374,48 +392,92 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 )}
             </div>
 
-            <A1SubEvaluation
-                a1QuestionsData={a1QData}
-                a1SubScores={a1SubScores} setA1SubScores={setA1SubScores}
-                a1SubComments={a1SubComments} setA1SubComments={setA1SubComments}
-                a1Total={a1Total}
-                a1Refreshing={a1Refreshing} a1Resetting={a1Resetting}
-                onRefresh={handleRefreshA1} onReset={handleResetA1}
-                readOnly={readOnly}
-            />
+            {/* Sticky Sub-navigation */}
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
+                <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
+                    {[
+                        { id: 'section-A1', label: 'A1. Sistemas' },
+                        { id: 'section-A2', label: 'A2. Observabilidad' },
+                        { id: 'section-A3', label: 'A3. Analítica' },
+                        { id: 'section-A4', label: 'A4. Escenarios' }
+                    ].map(link => (
+                        <Button 
+                            key={link.id} 
+                            variant="secondary" 
+                            size="sm" 
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                            onClick={() => {
+                                const el = document.getElementById(link.id);
+                                if (el) {
+                                    const offset = 120; // Space for the main tabs + this sub-nav
+                                    const bodyRect = document.body.getBoundingClientRect().top;
+                                    const elementRect = el.getBoundingClientRect().top;
+                                    const elementPosition = elementRect - bodyRect;
+                                    const offsetPosition = elementPosition - offset;
 
-            <A2SubEvaluation
-                a2QData={a2QData}
-                a2SelectedTool={a2SelectedTool}
-                a2SubScores={a2SubScores} setA2SubScores={setA2SubScores}
-                a2SubComments={a2SubComments} setA2SubComments={setA2SubComments}
-                a2Total={a2Total}
-                a2Refreshing={a2Refreshing} a2Resetting={a2Resetting}
-                onRefresh={handleRefreshA2} onReset={handleResetA2}
-                readOnly={readOnly}
-            />
+                                    window.scrollTo({
+                                        top: offsetPosition,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        >
+                            {link.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
 
-            <A3SubEvaluation
-                a3QData={a3QData}
-                a3SubScores={a3SubScores} setA3SubScores={setA3SubScores}
-                a3SubComments={a3SubComments} setA3SubComments={setA3SubComments}
-                a3Total={a3Total} a3Normalized={a3Normalized}
-                a3Refreshing={a3Refreshing} a3Resetting={a3Resetting}
-                onRefresh={handleRefreshA3} onReset={handleResetA3}
-                readOnly={readOnly}
-            />
+            <div id="section-A1" className="scroll-mt-32">
+                <A1SubEvaluation
+                    a1QuestionsData={a1QData}
+                    a1SubScores={a1SubScores} setA1SubScores={setA1SubScores}
+                    a1SubComments={a1SubComments} setA1SubComments={setA1SubComments}
+                    a1Total={a1Total}
+                    a1Refreshing={a1Refreshing} a1Resetting={a1Resetting}
+                    onRefresh={handleRefreshA1} onReset={handleResetA1}
+                    readOnly={readOnly}
+                />
+            </div>
 
-            <A4SubEvaluation
-                a4Data={a4Data}
-                a4History={a4History} a4HistoryRef={a4HistoryRef}
-                expandedEvidence={expandedEvidence} setExpandedEvidence={setExpandedEvidence}
-                a4SubScores={a4SubScores} setA4SubScores={setA4SubScores}
-                a4SubComments={a4SubComments} setA4SubComments={setA4SubComments}
-                a4Total={a4Total} a4Normalized={a4Normalized}
-                a4Refreshing={a4Refreshing} a4Resetting={a4Resetting}
-                onRefresh={handleRefreshA4} onReset={handleResetA4}
-                readOnly={readOnly}
-            />
+            <div id="section-A2" className="scroll-mt-32">
+                <A2SubEvaluation
+                    a2QData={a2QData}
+                    a2SelectedTool={a2SelectedTool}
+                    a2SubScores={a2SubScores} setA2SubScores={setA2SubScores}
+                    a2SubComments={a2SubComments} setA2SubComments={setA2SubComments}
+                    a2Total={a2Total}
+                    a2Refreshing={a2Refreshing} a2Resetting={a2Resetting}
+                    onRefresh={handleRefreshA2} onReset={handleResetA2}
+                    readOnly={readOnly}
+                />
+            </div>
+
+            <div id="section-A3" className="scroll-mt-32">
+                <A3SubEvaluation
+                    a3QData={a3QData}
+                    a3SubScores={a3SubScores} setA3SubScores={setA3SubScores}
+                    a3SubComments={a3SubComments} setA3SubComments={setA3SubComments}
+                    a3Total={a3Total} a3Normalized={a3Normalized}
+                    a3Refreshing={a3Refreshing} a3Resetting={a3Resetting}
+                    onRefresh={handleRefreshA3} onReset={handleResetA3}
+                    readOnly={readOnly}
+                />
+            </div>
+
+            <div id="section-A4" className="scroll-mt-32">
+                <A4SubEvaluation
+                    a4Data={a4Data}
+                    a4History={a4History} a4HistoryRef={a4HistoryRef}
+                    expandedEvidence={expandedEvidence} setExpandedEvidence={setExpandedEvidence}
+                    a4SubScores={a4SubScores} setA4SubScores={setA4SubScores}
+                    a4SubComments={a4SubComments} setA4SubComments={setA4SubComments}
+                    a4Total={a4Total} a4Normalized={a4Normalized}
+                    a4Refreshing={a4Refreshing} a4Resetting={a4Resetting}
+                    onRefresh={handleRefreshA4} onReset={handleResetA4}
+                    readOnly={readOnly}
+                />
+            </div>
 
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
                 <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="gap-2 shadow-sm">
