@@ -31,6 +31,13 @@ const EVALUATION_MODEL_CHAIN = [
     'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente.
 ]
 
+// Cadena de prioridad para Reportes Ejecutivos (Narrativa de alta calidad)
+const REPORT_MODEL_CHAIN = [
+    'gemma-4-31b-it',        // 1. Principal: Máxima razonamiento y narrativa.
+    'gemma-4-26b-a4b-it',    // 2. Fallback 1: Consistente.
+    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Resistente.
+]
+
 
 /**
  * Espera un número determinado de milisegundos
@@ -91,6 +98,21 @@ export async function generateContentWithRetry(prompt: string, maxRetries = 3): 
  */
 export async function evaluateContentWithRetry(prompt: string, maxRetries = 3): Promise<string> {
     return callWithRetry(EVALUATION_MODEL_CHAIN, prompt, maxRetries)
+}
+
+/**
+ * Genera feedback narrativo para reportes ejecutivos.
+ * Usa la cadena de modelos de reporte (Gemma 4 31B -> Gemma 4 26B -> Gemini 2.5 Flash Lite)
+ */
+export async function generateReportFeedbackWithRetry(prompt: string, maxRetries = 3): Promise<string> {
+    return callWithRetry(REPORT_MODEL_CHAIN, prompt, maxRetries)
+}
+
+/**
+ * Fuerza la generación usando exclusivamente Gemini 2.5 Flash Lite (Estrategia de respaldo manual).
+ */
+export async function generateReportFeedbackLite(prompt: string): Promise<string> {
+    return callWithRetry(['gemini-2.5-flash-lite'], prompt, 2)
 }
 
 /**

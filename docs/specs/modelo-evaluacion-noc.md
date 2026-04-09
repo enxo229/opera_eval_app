@@ -1,12 +1,12 @@
-# Modelo de Evaluación
-## Pivote NOC Nivel 1 → Analista de Observabilidad Junior
+# Modelo de Evaluación de Talento Técnico
+## Pivote Técnico / Soporte → Analista de Observabilidad Junior
 ### CoE de Observabilidad | Equipo de Delivery MSP
 
 ---
 
 ## 1. PROPÓSITO DEL MODELO
 
-Este modelo tiene como objetivo evaluar a los integrantes del equipo de NOC / Soporte Nivel 1 para determinar su **aptitud y preparación para pivotar al rol de Analista de Observabilidad Junior** en el equipo de Delivery. La evaluación considera tres dimensiones: técnica, habilidades blandas y actitudinal. El resultado clasifica a cada persona en una de tres categorías de decisión.
+Este modelo tiene como objetivo evaluar a los integrantes de los equipos técnicos (Soporte Nivel 1 / NOC / Infraestructura) para determinar su **aptitud y preparación para pivotar al rol de Analista de Observabilidad Junior** en el equipo de Delivery. La evaluación considera tres dimensiones: técnica, habilidades blandas y actitunidal; además de una sección complementaria de IA. El resultado clasifica a cada persona en una de cuatro categorías de decisión y genera un informe ejecutivo automatizado.
 
 ---
 
@@ -560,6 +560,21 @@ Entrega al candidato el siguiente enunciado y permítele usar cualquier herramie
 | **60 – 79** | 🟡 **Pivote con plan de nivelación** | Puede iniciar el pivote, pero requiere un plan de cierre de brechas específico antes del mes 2 |
 | **40 – 59** | 🟠 **En preparación** | No está listo aún. Se define un plan de formación de 2–3 meses y se re-evalúa |
 | **< 40** | 🔴 **Continúa en su rol actual** | El perfil actual no es compatible con el pivote en esta convocatoria. Se revisa en 6 meses |
+
+---
+
+## 9. INFORME EJECUTIVO Y NARRATIVA IA
+
+Al finalizar la evaluación, el sistema utiliza un modelo de alta capacidad analítica (**Gemma 4 31B**) para procesar todos los datos recolectados (scores, logs de chat, tickets y comentarios del evaluador) y generar una narrativa resumida.
+
+### Componentes del Informe
+
+1.  **Resumen Narrativo:** Un dictamen de 2-3 párrafos que explica el perfil del candidato, integrando sus capacidades técnicas con su potencial de crecimiento.
+2.  **Fortalezas Identificadas:** Listado automático de los puntos donde el candidato sobresalió según los percentiles de la evaluación.
+3.  **Brechas Técnicas y Actitudinales:** Identificación de áreas críticas que requieren un plan de formación o nivelación antes de asumir el nuevo rol.
+
+### Mecanismo de Resiliencia
+En caso de fallo en la generación automática, la plataforma dispone de un botón de **"Regeneración Manual de Respaldo"** que fuerza la creación del informe usando el modelo **Gemini 2.5 Flash Lite**, garantizando que el evaluador siempre obtenga un dictamen procesable.
 
 ---
 

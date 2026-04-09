@@ -30,9 +30,11 @@ Configuración en `src/lib/ai/gemini.ts`.
 |---|---|---|---|
 | **Generación** | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
 | **Evaluación** (JSON) | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
+| **Reportes** (Narrativa) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
 
 - **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
-- **PII Filter**: Eliminado intencionalmente (`sanitizePII` fue removido en la auditoría del 2026-03-31). Se deshabilitó por falsos positivos con timestamps y datos técnicos en logs. Si se requiere en el futuro, implementar con una lista blanca de patrones técnicos.
+- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo `gemini-2.5-flash-lite` para garantizar la generación en situaciones de alta latencia o agotamiento de cuota de los modelos Gemma.
+- **PII Filter**: Eliminado intencionalmente (`sanitizePII` fue removido en la auditoría del 2026-03-31). Se deshabilitó por falsos positivos con timestamps y datos técnicos en logs.
 - **Variable de entorno**: Usa `APP_GEMINI_API_KEY` (NO `GEMINI_API_KEY`) para evitar colisiones con el entorno del sistema.
 - **Logging**: El log de la API Key solo se ejecuta en `development` (`process.env.NODE_ENV === 'development'`).
 
@@ -285,3 +287,6 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Edición de perfiles restringida | Permite corregir errores (nombre/id) pero bloquea email/rol por estabilidad | 2026-04-09 |
 | Índices en llaves foráneas | Optimización crítica sugerida por Supabase Linter para performance | 2026-04-09 |
 | Auto-fill asíncrono en B1 | Sliders reaccionan a sugerencias de IA automáticamente en el dashboard del evaluador | 2026-04-09 |
+| Manual Backup (IA Lite) | Botón manual que fuerza el uso de Gemini Lite para evitar fallos de cuota en reportes | 2026-04-09 |
+| Rediseño Historial Navegación | Estandarización a columna "Acciones" con flujo Ver Resultado -> Ver Reporte | 2026-04-09 |
+| Sincronización Proceso Status | Finalizar evaluación marca automáticamente el proceso como `completed` | 2026-04-09 |

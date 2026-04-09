@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import NextImage from 'next/image'
@@ -210,9 +210,12 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
         B4: getInitialComment('B4'), B5: getInitialComment('B5'), B6: getInitialComment('B6')
     })
 
+    // Ref to prevent infinite loops by ensuring auto-fill only runs once
+    const hasAppliedAutoFill = useRef(false)
+
     // Auto-fill for B1 and B6 based on AI results
     useEffect(() => {
-        if (aiB1Data.length > 0) {
+        if (aiB1Data.length > 0 && !hasAppliedAutoFill.current) {
             // Check if evaluator hasn't overridden any B1 scores (assuming 1 is default or empty)
             const hasExistingB1 = B1_SUBS.some(s => existingScores.some(es => es.dimension === 'B' && es.category === s.id && es.raw_score > 1))
             if (!hasExistingB1) {
@@ -242,8 +245,11 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                     return next
                 })
             }
+
+            // Mark as applied to prevent loops
+            hasAppliedAutoFill.current = true
         }
-    }, [aiB1Data, existingScores])
+    }, [aiB1Data, existingScores, B1_SUBS, B6_SUBS])
 
 
     const handleSave = async () => {

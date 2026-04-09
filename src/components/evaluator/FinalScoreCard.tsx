@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { calculateDimensionA, calculateDimensionB, calculateDimensionC, calculateFinalScoreAndClassification, calculateDimensionIA } from '@/app/actions/evaluation'
+import { finalizeEvaluationAndGenerateReport } from '@/app/actions/evaluator/reports'
+import { FileText, Sparkles, Loader2 } from 'lucide-react'
 
 export function FinalScoreCard({ evaluation }: { evaluation: any }) {
     const router = useRouter()
@@ -15,82 +15,16 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
     const handleCompleteEvaluation = async () => {
         setIsCalculating(true)
         setErrorMsg('')
-        const supabase = createClient()
-
-        // 1. Fetch all saved dimension scores 
-        const { data: scoresResult } = await supabase
-            .from('dimension_scores')
-            .select('*')
-            .eq('evaluation_id', evaluation.id)
-
-        const scores = (scoresResult as any[]) || []
-
-        if (scores.length === 0) {
-            setErrorMsg('No hay calificaciones guardadas aún. Por favor completa los formularios de las Dimensiones A, B y C primero y presiona "Guardar" en cada uno.')
-            setIsCalculating(false)
-            return
-        }
-
-        // Helper
-        const getRaw = (cat: string) => scores.find(s => s.category === cat)?.raw_score || 0
-
-        // 2. Build Objects for calculations
-        const dimAScores = {
-            a1: getRaw('A1'),
-            a2: getRaw('A2'),
-            a3: getRaw('A3'),
-            a4: getRaw('A4')
-        }
-        const dimBScores = {
-            b1: getRaw('B1'),
-            b2: getRaw('B2'),
-            b3: getRaw('B3'),
-            b4: getRaw('B4'),
-            b5: getRaw('B5'),
-            b6: getRaw('B6')
-        }
-        const dimCScores = {
-            c1: getRaw('C1'),
-            c2: getRaw('C2'),
-            c3: getRaw('C3'),
-            c4: getRaw('C4')
-        }
-        const dimDScores = {
-            ia1: getRaw('IA-1'),
-            ia2: getRaw('IA-2')
-        }
 
         try {
-            // 3. Run Calculations
-            const subA = await calculateDimensionA(dimAScores)
-            const subB = await calculateDimensionB(dimBScores)
-            const subC = await calculateDimensionC(dimCScores)
-            const subIA = await calculateDimensionIA(dimDScores)
-
-            const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
-
-            // 4. Update the Evaluation row
-            // @ts-ignore
-            const { error: updateErr } = await supabase
-                .from('evaluations')
-                .update({
-                    score_a: subA,
-                    score_b: subB,
-                    score_c: subC,
-                    score_ia: subIA,
-                    final_score: finalResult.score,
-                    classification: finalResult.classification,
-                    status: 'completed'
-                } as any)
-                .eq('id', evaluation.id)
-
-            if (updateErr) throw updateErr
-
-            router.refresh()
-            router.push('/evaluator') // Back to dashboard
+            const result = await finalizeEvaluationAndGenerateReport(evaluation.id)
+            if (result.success) {
+                router.refresh()
+                router.push(`/evaluator/report/${evaluation.id}`)
+            }
         } catch (e: any) {
-            console.error('Error saving calculations:', e)
-            setErrorMsg('Hubo un error de base de datos calculando los totales. Reintenta en unos instantes.')
+            console.error('Error finalizing evaluation:', e)
+            setErrorMsg(e.message || 'Hubo un error al generar el dictamen. Reintenta en unos instantes.')
         } finally {
             setIsCalculating(false)
         }
@@ -132,9 +66,11 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                     )}
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-6">
-                    Asegúrate de haber guardado ("Guardar Dimensión X") en cada una de las tres pestañas de la izquierda antes de emitir el dictamen.
-                </p>
+                {evaluation.status !== 'completed' && (
+                    <p className="text-sm text-muted-foreground mb-6">
+                        Asegúrate de haber guardado cada pestaña antes de generar el dictamen con IA.
+                    </p>
+                )}
 
                 {errorMsg && (
                     <div className="text-red-600 bg-red-50 p-3 rounded-md border border-red-200 text-sm mb-4 font-semibold">
@@ -142,13 +78,34 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                     </div>
                 )}
 
-                <Button
-                    onClick={handleCompleteEvaluation}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold drop-shadow-md py-6 text-md"
-                    disabled={evaluation.status === 'completed' || isCalculating}
-                >
-                    {isCalculating ? 'Calculando y Guardando...' : evaluation.status === 'completed' ? 'Evaluación Finalizada' : 'Generar Dictamen Definitivo'}
-                </Button>
+                <div className="space-y-3">
+                    {evaluation.status === 'completed' ? (
+                        <Button
+                            onClick={() => router.push(`/evaluator/report/${evaluation.id}`)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 text-md shadow-md gap-2"
+                        >
+                            <FileText className="h-5 w-5" /> Ver Reporte Ejecutivo
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleCompleteEvaluation}
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-md shadow-md gap-2"
+                            disabled={isCalculating}
+                        >
+                            {isCalculating ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Generando Reporte con IA...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-5 w-5 fill-current" />
+                                    Generar Dictamen con IA
+                                </>
+                            )}
+                        </Button>
+                    )}
+                </div>
             </CardContent>
         </Card>
     )
