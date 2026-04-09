@@ -56,11 +56,13 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ---
 
-## 5. Arquitectura de Carpetas
+## 5. Arquitectura de Carpetas y Documentación
+
+**REGLA DE ORO PARA DOCUMENTACIÓN:** Basado en las mejores prácticas de estructuración de proyectos Web modernos (como Next.js), se debe centralizar y colocar todas las documentaciones y especificaciones técnicas dentro de una única carpeta raíz `/docs` o `/docs/specs`. Almacenar especificaciones de manera aislada (ej. en carpetas `/specs` independientes) fragmenta la estructura y genera confusión sobre la ubicación de la fuente de verdad. El proyecto sigue estrictamente esta regla.
 
 ```
 opera_eval_app/
-├── docs/specs/                     # Documentación, rúbricas, perfiles y textos legales
+├── docs/specs/                     # ÚNICA FUENTE DE VERDAD para Documentación, rúbricas, perfiles y textos.
 │   ├── AGENTS.md                   # Este archivo (especificación para agentes IA)
 │   ├── modelo-evaluacion-noc.md    # Modelo de evaluación detallado
 │   ├── terminosCondiciones.md      # Texto oficial de T&C
@@ -155,7 +157,7 @@ opera_eval_app/
 - **≥ 80**: Listo para pivotar (Verde)
 - **60–79**: Pivote con nivelación (Amarillo)
 - **40–59**: En preparación (Naranja)
-- **< 40**: Continúa en Ópera (Rojo)
+- **< 40**: Continúa en Soporte Nivel 1 (Rojo)
 
 ---
 

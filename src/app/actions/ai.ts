@@ -124,7 +124,7 @@ Subcategorías:
 4. A1.4 — Contenedores: qué es Docker, para qué se usa
 5. A1.5 — Cloud: IaaS/PaaS/SaaS, diferencia on-premise vs cloud
 
-Contexto: El candidato viene de un rol de soporte (NOC/Ópera). NO es un examen de ingeniería.
+Contexto: El candidato viene de un rol de soporte (NOC/Soporte Nivel 1). NO es un examen de ingeniería.
 Se evalúa comprensión conceptual y capacidad de explicar, no resolución de problemas avanzados.
 
 Reglas:
@@ -475,6 +475,8 @@ ${caseContext}
 TICKET DOCUMENTADO POR EL CANDIDATO:
 ${ticketText}
 
+REGLA LIMITANTE Y ESTRICTA: Si la respuesta del candidato tiene menos de 10 palabras, contiene solo afirmaciones genéricas (ej: "Se presentan errores", "Hubo falla") o carece por completo de los detalles técnicos mínimos provistos en el escenario, DEBES calificar con 1 TODOS los criterios. No asumas conocimiento que no está escrito explícitamente en el ticket.
+
 Evalúa con la siguiente rúbrica (1-4 por criterio):
 
 1. ESTRUCTURA DEL REGISTRO (1-4):
@@ -550,6 +552,8 @@ export async function evaluateTicketB6Detailed(ticketText: string): Promise<B6Ru
     
 TICKET DOCUMENTADO POR EL CANDIDATO:
 ${ticketText}
+
+REGLA LIMITANTE Y ESTRICTA: Si la respuesta del candidato es excesivamente corta (menos de 10 palabras), puramente genérica, o no contiene instrucciones, escalamientos ni referencias a siguientes pasos, DEBES calificar con 1 TODOS los criterios.
 
 Evalúa cómo el registro facilita que otro ingeniero tome el relevo, con la siguiente rúbrica (1-4 por criterio):
 

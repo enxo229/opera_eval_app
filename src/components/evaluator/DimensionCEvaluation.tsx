@@ -50,7 +50,7 @@ const EVALUATOR_GUIDES: Record<string, {
         ],
     },
     C2: {
-        opening: '"En el tiempo que llevas en Ópera, ¿ha habido algún cambio en cómo trabajan, en los procesos o herramientas? ¿Cómo te fue con eso?"',
+        opening: '"En el tiempo que llevas en Soporte Nivel 1, ¿ha habido algún cambio en cómo trabajan, en los procesos o herramientas? ¿Cómo te fue con eso?"',
         deepening: [
             '"¿Qué fue lo más difícil de ese cambio?"',
             '"¿Hubo algo que hicieras tú específicamente para adaptarte más rápido?"',
@@ -81,7 +81,7 @@ const EVALUATOR_GUIDES: Record<string, {
         opening: '"Si pudieras elegir en qué dirección crecer profesionalmente dentro de tecnología, ¿hacia dónde irías? ¿Hay algo que te llame la atención?"',
         deepening: [
             '"¿Por qué esa área en particular?"',
-            '"¿Hay algo de lo que haces hoy en Ópera que sientas que podría conectarse con ese camino?"',
+            '"¿Hay algo de lo que haces hoy en soporte que sientas que podría conectarse con ese camino?"',
             '"¿Has hecho algo concreto para acercarte a eso, aunque sea pequeño?"',
         ],
         positive: [
@@ -106,7 +106,7 @@ const EVALUATOR_GUIDES: Record<string, {
         ],
     },
     C4: {
-        opening: '"Cuéntame de una situación en Ópera en que recibiste una alerta que no sabías cómo manejar y no había nadie disponible. ¿Qué hiciste?"',
+        opening: '"Cuéntame de una situación en tu rol actual en que recibiste una alerta que no sabías cómo manejar y no había nadie disponible. ¿Qué hiciste?"',
         deepening: [
             '"¿Qué fue lo primero que hiciste antes de escalar?"',
             '"¿Dejaste algún registro de lo que investigaste?"',

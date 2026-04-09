@@ -9,7 +9,7 @@ import { Bot, User, Send, ChevronDown, ChevronUp, Loader2, CheckCircle2, ShieldA
 import { handleCandidateChat, generateDynamicCaseA4 } from '@/app/actions/ai'
 import { saveA4ChatSession, getA4State, saveA4Case } from '@/app/actions/candidate/a4'
 
-export function ChatbotA4({ evaluationId }: { evaluationId: string | null }) {
+export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: string | null; onStatusChange?: (finished: boolean) => void }) {
     const [caseText, setCaseText] = useState<string | null>(null)
     const [caseCollapsed, setCaseCollapsed] = useState(false)
     const [loadingCase, setLoadingCase] = useState(true)
@@ -19,6 +19,13 @@ export function ChatbotA4({ evaluationId }: { evaluationId: string | null }) {
     const [isFinishing, setIsFinishing] = useState(false)
     const [isFinished, setIsFinished] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+
+    // Notify parent when status changes
+    useEffect(() => {
+        if (onStatusChange) {
+            onStatusChange(isFinished)
+        }
+    }, [isFinished, onStatusChange])
 
     // Autoscroll to bottom when messages change
     useEffect(() => {

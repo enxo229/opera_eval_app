@@ -102,6 +102,6 @@ export async function calculateFinalScoreAndClassification(
     } else if (finalScore >= 40) {
         return { score: finalScore, classification: 'En preparación', color: '#F97316' } // Naranja
     } else {
-        return { score: finalScore, classification: 'Continúa en Ópera', color: '#EF4444' } // Rojo
+        return { score: finalScore, classification: 'Continúa en su rol actual', color: '#EF4444' } // Rojo
     }
 }

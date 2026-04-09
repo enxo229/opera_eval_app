@@ -10,7 +10,7 @@ import { A2Tab } from '@/components/candidate/tabs/A2Tab'
 import { A3Tab } from '@/components/candidate/tabs/A3Tab'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, Mail, GraduationCap, Loader2, Clock } from 'lucide-react'
+import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, Mail, GraduationCap, Loader2, Clock, CheckCircle2 } from 'lucide-react'
 import { EDUCATION_LABELS } from '@/lib/constants'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +37,13 @@ export default function CandidateEvaluationFlow() {
     const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1)
     const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2)
     const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3)
+
+    // Completion states for tabs that don't export them via hooks
+    const [a4Submitted, setA4Submitted] = useState(false)
+    const [b1Submitted, setB1Submitted] = useState(false)
+    const [d2Submitted, setD2Submitted] = useState(false)
+    const [b2Submitted, setB2Submitted] = useState(false)
+    const [cSubmitted, setCSubmitted] = useState(false)
 
     // Legal Guard
     useEffect(() => {
@@ -180,24 +187,38 @@ export default function CandidateEvaluationFlow() {
                 </div>
 
                 <Tabs defaultValue="a1" className="w-full">
-                    <TabsList className="grid w-full grid-cols-6 h-12 bg-muted/50 p-1 mb-6">
+                    <TabsList className="grid w-full grid-cols-8 h-12 bg-muted/50 p-1 mb-6">
                         <TabsTrigger value="a1" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
-                            <Terminal className="h-4 w-4 hidden sm:block" /> A1: Infra
+                            <Terminal className="h-4 w-4 hidden sm:block" /> <span className="hidden sm:inline">A1</span><span className="sm:hidden">A1</span>
+                            {a1.a1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="a2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
-                            <HelpCircle className="h-4 w-4 hidden sm:block" /> A2: Observ.
+                            <HelpCircle className="h-4 w-4 hidden sm:block" /> <span className="hidden sm:inline">A2</span><span className="sm:hidden">A2</span>
+                            {a2.a2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="a3" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
-                            <GitBranch className="h-4 w-4 hidden sm:block" /> A3: Git
+                            <GitBranch className="h-4 w-4 hidden sm:block" /> <span className="hidden sm:inline">A3</span><span className="sm:hidden">A3</span>
+                            {a3.a3Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="a4" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
-                            <Bot className="h-4 w-4 hidden sm:block text-rose-600" /> A4: Caso
+                            <Bot className="h-4 w-4 hidden sm:block text-rose-600" /> <span className="hidden sm:inline">A4</span><span className="sm:hidden">A4</span>
+                            {a4Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="b1" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
-                            <FileText className="h-4 w-4 hidden sm:block" /> B1: Ticket
+                            <FileText className="h-4 w-4 hidden sm:block" /> <span className="hidden sm:inline">B1</span><span className="sm:hidden">B1</span>
+                            {b1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
-                        <TabsTrigger value="ia2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
+                        <TabsTrigger value="b2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
+                            B2-B6
+                            {b2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                        </TabsTrigger>
+                        <TabsTrigger value="c" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
+                            C
+                            {cSubmitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                        </TabsTrigger>
+                        <TabsTrigger value="d" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
                             <Sparkles className="h-4 w-4 hidden sm:block text-indigo-500 group-data-[state=active]:text-indigo-200" /> Dim. D
+                            {d2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                     </TabsList>
 
@@ -263,7 +284,7 @@ export default function CandidateEvaluationFlow() {
                             <p className="text-muted-foreground text-sm mb-4">
                                 Lee el caso práctico y usa la consola de investigación para buscar logs, métricas y datos que te ayuden a entender la causa raíz del incidente.
                             </p>
-                            <ChatbotA4 evaluationId={ctx.evaluationId} />
+                            <ChatbotA4 evaluationId={ctx.evaluationId} onStatusChange={setA4Submitted} />
                         </div>
                     </TabsContent>
 
@@ -275,16 +296,86 @@ export default function CandidateEvaluationFlow() {
                                 B1. Comunicación Técnica Escrita
                             </h2>
                             <p className="text-muted-foreground text-sm">
-                                Lee el escenario del incidente con atención. Tienes aproximadamente 10 minutos para documentar el ticket como si lo fueras a ingresar en GLPI.
+                                Lee el escenario del incidente con atención y documenta el ticket como si lo fueras a ingresar en GLPI o JIRA.
                             </p>
-                            <TicketEditor evaluationId={ctx.evaluationId} />
+                            <TicketEditor evaluationId={ctx.evaluationId} onComplete={() => setB1Submitted(true)} />
                         </div>
                     </TabsContent>
 
-                    {/* ===== Dimensión D: IA-2 Prompt ===== */}
-                    <TabsContent value="ia2" className="space-y-6">
+                    {/* ===== B2-B6: Habilidades Blandas Síncronas ===== */}
+                    <TabsContent value="b2" className="space-y-6">
+                        <Card className="border border-indigo-200 shadow-md bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:border-indigo-800/30">
+                            <CardHeader className="text-center pb-4 pt-8">
+                                <div className="mx-auto w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
+                                    <HelpCircle className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                                </div>
+                                <CardTitle className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">Evaluación Sincrónica (B2-B6)</CardTitle>
+                                <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-indigo-200">
+                                    Esta sección mide tus habilidades blandas (adaptabilidad, autonomía, etc.). Se realiza a través de preguntas de situación ("Roleplay") mediante entrevista.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center pb-8 border-t border-indigo-100 dark:border-indigo-800/30 pt-6 mt-4">
+                                <p className="font-bold text-lg text-indigo-700 dark:text-indigo-300 mb-6">
+                                    ✋ ¡Alto! Por favor, indica a tu líder técnico/evaluador que has llegado a este punto para que dirija las preguntas.
+                                </p>
+                                <Button 
+                                    onClick={() => setB2Submitted(true)}
+                                    disabled={b2Submitted}
+                                    className={`font-semibold transition-all ${b2Submitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                                >
+                                    {b2Submitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección B2-B6 Completada</> : 'Marcar sección como completada'}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ===== C: Cultura ===== */}
+                    <TabsContent value="c" className="space-y-6">
+                        <Card className="border border-teal-200 shadow-md bg-gradient-to-br from-teal-50/50 to-white dark:from-teal-950/20 dark:border-teal-800/30">
+                            <CardHeader className="text-center pb-4 pt-8">
+                                <div className="mx-auto w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center mb-4 dark:bg-teal-900/50">
+                                    <Sparkles className="h-8 w-8 text-teal-600 dark:text-teal-400" />
+                                </div>
+                                <CardTitle className="text-2xl font-bold text-teal-900 dark:text-teal-100">C. Evaluación Cultural</CardTitle>
+                                <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-teal-200">
+                                    Queremos conocer tus motivaciones, cómo trabajas en equipo y qué te apasiona de este posible nuevo rol.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center pb-8 border-t border-teal-100 dark:border-teal-800/30 pt-6 mt-4">
+                                <p className="font-bold text-lg text-teal-700 dark:text-teal-300 mb-6">
+                                    ✋ ¡Alto! Esta sección es un diálogo abierto. Avísale a tu evaluador que ya puedes comenzar la charla cultural.
+                                </p>
+                                <Button 
+                                    onClick={() => setCSubmitted(true)}
+                                    disabled={cSubmitted}
+                                    className={`font-semibold transition-all ${cSubmitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'}`}
+                                >
+                                    {cSubmitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección C Completada</> : 'Marcar sección como completada'}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ===== Dimensión D: IA ===== */}
+                    <TabsContent value="d" className="space-y-6">
+                        {/* Indicación para D1 */}
+                        <Card className="border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6">
+                            <CardContent className="p-4 flex items-start gap-4">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                                    <Bot className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-amber-900 dark:text-amber-100">D1: Comprensión de IA (Sincrónica)</h3>
+                                    <p className="text-sm text-amber-800/80 dark:text-amber-200/80 mt-1">
+                                        Antes de hacer el ejercicio escrito a continuación, el evaluador te hará un par de preguntas conceptuales rápidas sobre Inteligencia Artificial. Infórmale que estás listo.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Implementación real de D2 */}
                         <div className="space-y-4">
-                            {ctx.evaluationId && <PromptEditorIA2 evaluationId={ctx.evaluationId} />}
+                            {ctx.evaluationId && <PromptEditorIA2 evaluationId={ctx.evaluationId} onStatusChange={setD2Submitted} />}
                         </div>
                     </TabsContent>
                 </Tabs>

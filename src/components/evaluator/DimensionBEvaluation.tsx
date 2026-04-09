@@ -47,7 +47,7 @@ const EVALUATOR_GUIDES: Record<string, { description: string; questions: string[
         ],
     },
     B4: {
-        description: 'Comportamiento dentro del equipo de Ópera en situaciones de presión.',
+        description: 'Comportamiento dentro del equipo de soporte en situaciones de presión.',
         questions: [
             '"Cuéntame de una situación en que apoyaste a un compañero con algo que no era tu responsabilidad."',
             '"¿Hay algo que el equipo podría hacer mejor? ¿Lo has mencionado?"',

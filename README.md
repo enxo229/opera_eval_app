@@ -121,9 +121,11 @@ src/
 
 ## Documentación Técnica
 
+> **Regla de Oro:** Todas las especificaciones, manuales, rúbricas y documentaciones de arquitectura deben residir **exclusivamente** dentro de `/docs/specs`. De esta manera se evita la duplicidad de fuentes de verdad.
+
 - Especificación completa: [`docs/specs/AGENTS.md`](docs/specs/AGENTS.md)
 - Modelo de evaluación detallado: [`docs/specs/modelo-evaluacion-noc.md`](docs/specs/modelo-evaluacion-noc.md)
-- Especificación de duración (60 min): [`specs/duracion-evaluacion-60min.md`](specs/duracion-evaluacion-60min.md)
+- Especificación de duración (60 min): [`docs/specs/duracion-evaluacion-60min.md`](docs/specs/duracion-evaluacion-60min.md)
 - Términos y Condiciones: [`docs/specs/terminosCondiciones.md`](docs/specs/terminosCondiciones.md)
 - Política de Tratamiento de Datos: [`docs/specs/tratamientoDatosPersonales.md`](docs/specs/tratamientoDatosPersonales.md)
 
