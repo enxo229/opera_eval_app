@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { searchHistoricalProcesses } from '@/app/actions/admin'
+import { searchHistoricalProcesses, reopenEvaluation } from '@/app/actions/admin'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield, FileText } from 'lucide-react'
+import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield, FileText, RefreshCw } from 'lucide-react'
 
 type HistoricalProcess = {
     id: string
@@ -51,6 +51,7 @@ export default function HistorySearchPage() {
     const [loading, setLoading] = useState(false)
     const [processes, setProcesses] = useState<HistoricalProcess[]>([])
     const [searched, setSearched] = useState(false)
+    const [reopening, setReopening] = useState(false)
     const router = useRouter()
 
     const handleSearch = async (e?: React.FormEvent) => {
@@ -65,6 +66,25 @@ export default function HistorySearchPage() {
             console.error('Error fetching historical processes:', err)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleReopen = async (evaluationId: string) => {
+        if (!confirm('¿Estás seguro de reabrir esta evaluación? El evaluador podrá editarla y el reporte actual se invalidará.')) return
+        
+        setReopening(true)
+        try {
+            const result = await reopenEvaluation(evaluationId)
+            if (result.success) {
+                alert('✅ Evaluación reabierta exitosamente.')
+                handleSearch() // Refresh results
+            } else {
+                alert(`❌ Error: ${result.error}`)
+            }
+        } catch (err: any) {
+            alert(`❌ Error inesperado: ${err.message}`)
+        } finally {
+            setReopening(false)
         }
     }
 
@@ -212,15 +232,29 @@ export default function HistorySearchPage() {
                                         {getClassBadge(evalData?.classification)}
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
-                                        {hasCandidateId ? (
-                                            <Link href={`/evaluator/evaluate/${evalData.candidate_id}`}>
-                                                <Button size="sm" variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold transition-all shadow-sm gap-2">
-                                                    <FileText className="h-3.5 w-3.5" /> Ver Resultado
+                                        <div className="flex justify-end gap-2">
+                                            {hasCandidateId ? (
+                                                <Link href={`/evaluator/evaluate/${evalData.candidate_id}`}>
+                                                    <Button size="sm" variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold transition-all shadow-sm gap-2">
+                                                        <FileText className="h-3.5 w-3.5" /> Ver Resultado
+                                                    </Button>
+                                                </Link>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground italic">Sin evaluación</span>
+                                            )}
+                                            {evalData?.status === 'completed' && (
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    disabled={reopening}
+                                                    onClick={() => handleReopen(evalData.id)}
+                                                    className="border-amber-200 text-amber-700 hover:bg-amber-50 font-bold gap-2"
+                                                >
+                                                    {reopening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                                    Reabrir
                                                 </Button>
-                                            </Link>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground italic">Sin evaluación</span>
-                                        )}
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             )
