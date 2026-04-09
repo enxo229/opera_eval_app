@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { searchHistoricalProcesses } from '@/app/actions/admin'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Input } from '@/components/ui/input'
@@ -15,7 +16,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield } from 'lucide-react'
+import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield, FileText } from 'lucide-react'
 
 type HistoricalProcess = {
     id: string
@@ -27,6 +28,7 @@ type HistoricalProcess = {
     created_at: string
     evaluations: {
         id: string
+        candidate_id: string
         status: string
         final_score: number | null
         classification: string | null
@@ -49,6 +51,7 @@ export default function HistorySearchPage() {
     const [loading, setLoading] = useState(false)
     const [processes, setProcesses] = useState<HistoricalProcess[]>([])
     const [searched, setSearched] = useState(false)
+    const router = useRouter()
 
     const handleSearch = async (e?: React.FormEvent) => {
         if (e) e.preventDefault()
@@ -81,7 +84,7 @@ export default function HistorySearchPage() {
                         <h1 className="text-3xl font-bold tracking-tight text-primary drop-shadow-sm flex items-center gap-3">
                             <History className="h-7 w-7 text-primary/80" /> Búsqueda Histórica
                         </h1>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-muted-foreground mt-1 text-lg">
                             Explora y filtra procesos de selección previos y activos globalmente.
                         </p>
                     </div>
@@ -139,78 +142,84 @@ export default function HistorySearchPage() {
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow className="border-border bg-muted/30">
-                            <TableHead className="font-bold">Fecha Proceso</TableHead>
-                            <TableHead className="font-bold">Candidato / Identificación</TableHead>
-                            <TableHead className="font-bold">Status del Proceso</TableHead>
-                            <TableHead className="font-bold">Equipo y Obs.</TableHead>
-                            <TableHead className="font-bold">Evaluación</TableHead>
+                        <TableRow className="border-border bg-muted/50">
+                            <TableHead className="font-bold text-foreground">Fecha Proceso</TableHead>
+                            <TableHead className="font-bold text-foreground">Candidato / Identificación</TableHead>
+                            <TableHead className="font-bold text-foreground">Status Proceso</TableHead>
+                            <TableHead className="font-bold text-foreground">Score Final</TableHead>
+                            <TableHead className="font-bold text-foreground">Clasificación</TableHead>
+                            <TableHead className="text-right font-bold text-foreground pr-8">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {!loading && searched && processes.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                                <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                                     No se hallaron procesos que coincidan con los filtros brindados.
                                 </TableCell>
                             </TableRow>
                         )}
                         {loading && processes.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-12">
+                                <TableCell colSpan={6} className="text-center py-12">
                                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
                         )}
                         {processes.map((proc) => {
                             const evalData = proc.evaluations && proc.evaluations.length > 0 ? proc.evaluations[0] : null
-                            
+                            const hasCandidateId = !!evalData?.candidate_id
+
                             return (
-                                <TableRow key={proc.id} className="border-border hover:bg-muted/30">
+                                <TableRow 
+                                    key={proc.id} 
+                                    className="border-border hover:bg-muted/30 transition-colors"
+                                >
                                     <TableCell className="whitespace-nowrap text-muted-foreground">
                                         {new Date(proc.created_at).toLocaleDateString('es-CO')}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-medium">{proc.candidate_email}</div>
+                                        <div className="font-medium text-foreground">{proc.candidate_email}</div>
                                         <div className="text-xs font-mono text-muted-foreground mt-0.5">
                                             ID: {proc.candidate_national_id || 'N/A'}
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         {proc.status === 'active' ? (
-                                            <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-sm">
-                                                <PlayCircle className="h-4 w-4" /> Activo
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+                                                <PlayCircle className="h-3 w-3" /> Activo
                                             </span>
                                         ) : proc.status === 'completed' ? (
-                                            <span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-sm">
-                                                <CheckCircle2 className="h-4 w-4" /> Completado
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                                                <CheckCircle2 className="h-3 w-3" /> Completado
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-muted-foreground font-semibold text-sm">
-                                                <Archive className="h-4 w-4" /> Archivado
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                                                <Archive className="h-3 w-3" /> Archivado
                                             </span>
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="text-sm font-medium">{proc.team || 'Sin equipo asignado'}</div>
-                                        <div className="text-xs text-muted-foreground max-w-[200px] truncate" title={proc.observations || ''}>
-                                            {proc.observations || '-'}
-                                        </div>
+                                        {evalData?.final_score !== null && evalData?.final_score !== undefined ? (
+                                            <span className="font-mono text-lg font-black" style={{ color: evalData.final_score >= 80 ? '#10B981' : evalData.final_score >= 60 ? '#F59E0B' : '#EF4444' }}>
+                                                {evalData.final_score}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground italic">-</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {evalData ? (
-                                            <div className="flex flex-col gap-1.5 items-start">
-                                                {evalData.final_score !== null ? (
-                                                    <span className="font-mono font-bold text-sm" style={{ color: evalData.final_score >= 80 ? '#10B981' : evalData.final_score >= 60 ? '#F59E0B' : '#EF4444' }}>
-                                                        Score: {evalData.final_score}/100
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground italic">Score Pdto.</span>
-                                                )}
-                                                {getClassBadge(evalData.classification)}
-                                            </div>
+                                        {getClassBadge(evalData?.classification)}
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        {hasCandidateId ? (
+                                            <Link href={`/evaluator/evaluate/${evalData.candidate_id}`}>
+                                                <Button size="sm" variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold transition-all shadow-sm gap-2">
+                                                    <FileText className="h-3.5 w-3.5" /> Ver Resultado
+                                                </Button>
+                                            </Link>
                                         ) : (
-                                            <span className="text-muted-foreground text-xs italic">Sin Evaluación Vinculada</span>
+                                            <span className="text-xs text-muted-foreground italic">Sin evaluación</span>
                                         )}
                                     </TableCell>
                                 </TableRow>

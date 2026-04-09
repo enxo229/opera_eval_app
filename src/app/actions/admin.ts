@@ -210,7 +210,7 @@ export async function searchHistoricalProcesses(cc: string, email: string, team:
             observations, 
             status, 
             created_at,
-            evaluations (id, status, final_score, classification)
+            evaluations (id, candidate_id, status, final_score, classification)
         `)
         .order('created_at', { ascending: false })
 

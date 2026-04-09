@@ -2,6 +2,49 @@
 
 import { generateContentWithRetry, evaluateContentWithRetry } from '@/lib/ai/gemini'
 
+/**
+ * Fuerza la generación de feedback usando el modelo Lite.
+ */
+export async function generateNarrativeFeedbackLite(context: string): Promise<AINarrativeReport> {
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
+Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+
+CONTEXTO DE LA EVALUACIÓN:
+${context}
+
+INSTRUCCIONES:
+1. Analiza el desempeño global.
+2. Genera un "Relato Final" de 2-3 párrafos profesional y constructivo.
+3. Identifica una lista de "Fortalezas" (mínimo 3).
+4. Identifica una lista de "Brechas" (mínimo 2).
+
+Responde ÚNICAMENTE con JSON:
+{
+  "final_narrative": "...",
+  "fortalezas": [...],
+  "brechas": [...]
+}`
+
+    const { generateReportFeedbackLite } = await import('@/lib/ai/gemini')
+    const raw = await generateReportFeedbackLite(prompt)
+    
+    // Extractor de JSON robusto
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    
+    try {
+        return JSON.parse(cleaned)
+    } catch (e) {
+        console.error('Error parseando Narrative Feedback Lite:', e)
+        console.log('Raw output from AI:', raw)
+        return {
+            final_narrative: "Error crítico en la comunicación con la IA. El modelo respondió con un formato inesperado.",
+            fortalezas: ["Falla de formato"],
+            brechas: ["Falla de formato"]
+        }
+    }
+}
+
 export async function generateDynamicCaseA4(): Promise<string> {
     const prompt = `Actúa como un líder técnico de observabilidad. Genera un escenario de incidente técnico de Nivel 2 (caída de servidor o alto CPU) que el candidato debe investigar en un entorno Dynatrace/Grafana. Retorna solo el caso en 2 párrafos concisos sin la solución.`
     return generateContentWithRetry(prompt)
@@ -18,15 +61,52 @@ export type AIInsightsContent = {
     recomendacion_final: string
 }
 
-export async function generateFinalInsights(scoresAndCommentsContext: string): Promise<AIInsightsContent> {
-    const prompt = `Dado el contexto del candidato:\n${scoresAndCommentsContext}\nRetorna ÚNICAMENTE un JSON válido: {"fortalezas":["..."], "brechas":["..."], "recomendacion_final":"..."}`
-    const rawJson = await evaluateContentWithRetry(prompt)
-    const cleaned = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim()
+export type AINarrativeReport = {
+    final_narrative: string
+    fortalezas: string[]
+    brechas: string[]
+}
+
+/**
+ * Genera un feedback narrativo consolidado, fortalezas y brechas basado en toda la evaluación.
+ * Usa la cadena de modelos de REPORTE (Gemma 4 31B -> 26B -> Gemini Flash Lite).
+ */
+export async function generateNarrativeFeedback(context: string): Promise<AINarrativeReport> {
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
+Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+
+CONTEXTO DE LA EVALUACIÓN (Scores, Comentarios del Evaluador y Respuestas del Candidato):
+${context}
+
+INSTRUCCIONES:
+1. Analiza el desempeño global.
+2. Genera un "Relato Final" (narrativa) de unos 2-3 párrafos que sea profesional, constructivo y directamente compartible con el candidato. Debe tener un tono de mentoría.
+3. Identifica una lista de "Fortalezas" (mínimo 3).
+4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2).
+
+Responde ÚNICAMENTE con un JSON válido con esta estructura:
+{
+  "final_narrative": "Texto largo aquí...",
+  "fortalezas": ["puntos fuertes..."],
+  "brechas": ["áreas de mejora..."]
+}`
+
+    const { generateReportFeedbackWithRetry } = await import('@/lib/ai/gemini')
+    const raw = await generateReportFeedbackWithRetry(prompt)
+    
+    // Extractor de JSON robusto
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    
     try {
         return JSON.parse(cleaned)
-    } catch {
+    } catch (e) {
+        console.error('Error parseando Narrative Feedback:', e)
+        console.log('Raw output from AI:', raw)
         return {
-            fortalezas: ["Error"], brechas: ["Error"], recomendacion_final: "Fallo temporal del modelo."
+            final_narrative: "No se pudo generar el feedback narrativo en este momento. El formato de respuesta fue inválido.",
+            fortalezas: ["Error de formato"],
+            brechas: ["Error de formato"]
         }
     }
 }

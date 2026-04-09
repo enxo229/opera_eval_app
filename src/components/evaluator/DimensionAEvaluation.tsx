@@ -200,18 +200,22 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             setA2Resetting(false)
         }
     }
+    const hasAppliedA2AutoFill = useRef(false)
     useEffect(() => {
-        if (a2QData.length > 0) {
+        if (a2QData.length > 0 && !hasAppliedA2AutoFill.current) {
             const hasExisting = A2_SUBS.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a2QData.forEach(q => {
                     if (q.subcategory && q.ai_score !== null) aiScores[q.subcategory] = q.ai_score
                 })
-                if (Object.keys(aiScores).length > 0) setA2SubScores(prev => ({ ...prev, ...aiScores }))
+                if (Object.keys(aiScores).length > 0) {
+                    setA2SubScores(prev => ({ ...prev, ...aiScores }))
+                    hasAppliedA2AutoFill.current = true
+                }
             }
         }
-    }, [a2QData])
+    }, [a2QData, A2_SUBS])
 
     // --- A3 Handlers ---
     const handleRefreshA3 = async () => {
@@ -251,18 +255,22 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             setA3Resetting(false)
         }
     }
+    const hasAppliedA3AutoFill = useRef(false)
     useEffect(() => {
-        if (a3QData.length > 0) {
+        if (a3QData.length > 0 && !hasAppliedA3AutoFill.current) {
             const hasExisting = A3_SUBS.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a3QData.forEach(q => {
                     if (q.subcategory && q.ai_score !== null) aiScores[q.subcategory] = q.ai_score
                 })
-                if (Object.keys(aiScores).length > 0) setA3SubScores(prev => ({ ...prev, ...aiScores }))
+                if (Object.keys(aiScores).length > 0) {
+                    setA3SubScores(prev => ({ ...prev, ...aiScores }))
+                    hasAppliedA3AutoFill.current = true
+                }
             }
         }
-    }, [a3QData])
+    }, [a3QData, A3_SUBS])
 
     // --- A4 Handlers ---
     const handleRefreshA4 = async () => {
