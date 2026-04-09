@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus } from '@/app/actions/admin'
+import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation } from '@/app/actions/admin'
 import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +46,11 @@ export default function AdminPage() {
     const [editObservations, setEditObservations] = useState('')
     const [savingEdit, setSavingEdit] = useState(false)
     const [editError, setEditError] = useState<string | null>(null)
+    
+    // Emergency Tools State
+    const [reopenId, setReopenId] = useState('')
+    const [reopening, setReopening] = useState(false)
+    const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
 
     const loadUsers = useCallback(async () => {
         try {
@@ -155,6 +160,29 @@ export default function AdminPage() {
         setSavingEdit(false)
     }
 
+    const handleReopen = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!reopenId.trim()) return
+        if (!confirm(`¿Estás seguro de reabrir la evaluación ${reopenId}? El evaluador podrá editarla de nuevo y se borrará el puntaje final actual.`)) return
+        
+        setReopenStatus(null)
+        setReopening(true)
+        try {
+            const result = await reopenEvaluation(reopenId.trim())
+            if (result.success) {
+                setReopenStatus({ type: 'success', msg: `✅ Evaluación ${reopenId} reabierta exitosamente.` })
+                setReopenId('')
+                await loadUsers()
+            } else {
+                setReopenStatus({ type: 'error', msg: `❌ Error: ${result.error}` })
+            }
+        } catch (err: any) {
+            setReopenStatus({ type: 'error', msg: `❌ Error inesperado: ${err.message}` })
+        } finally {
+            setReopening(false)
+        }
+    }
+
     const candidates = users.filter(u => u.role === 'candidate')
     const evaluators = users.filter(u => u.role === 'evaluator')
     const others = users.filter(u => !u.role)
@@ -172,6 +200,41 @@ export default function AdminPage() {
                 <h1 className="text-3xl font-bold text-primary drop-shadow-sm">Panel de Administración</h1>
                 <p className="text-muted-foreground">Gestiona candidatos y evaluadores de la plataforma OTP.</p>
             </div>
+
+            {/* Emergency Tool: Reopen */}
+            <Card className="border-red-200 bg-red-50/30 overflow-hidden">
+                <CardHeader className="bg-red-100/50 border-b border-red-200 pb-3">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-red-800 uppercase tracking-wider">
+                        <AlertTriangle className="h-4 w-4" /> Herramientas de Emergencia
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                    <form onSubmit={handleReopen} className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-bold text-red-700 uppercase">ID de Evaluación a Reabrir</label>
+                            <Input 
+                                value={reopenId} 
+                                onChange={e => setReopenId(e.target.value)}
+                                placeholder="Pega el ID de la URL aquí (ej. c400...)"
+                                className="bg-white border-red-200 text-sm h-9"
+                            />
+                        </div>
+                        <Button 
+                            type="submit" 
+                            disabled={reopening || !reopenId.trim()} 
+                            variant="destructive"
+                            className="h-9 px-4 text-xs font-bold"
+                        >
+                            {reopening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "FORZAR REAPERTURA"}
+                        </Button>
+                    </form>
+                    {reopenStatus && (
+                        <div className={`mt-2 text-xs font-medium ${reopenStatus.type === 'success' ? 'text-emerald-700' : 'text-red-700'}`}>
+                            {reopenStatus.msg}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Create User Form */}
             <Card className="border-border shadow-sm">

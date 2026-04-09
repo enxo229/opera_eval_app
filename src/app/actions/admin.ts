@@ -293,3 +293,50 @@ export async function updateUser(
 
     return { success: true }
 }
+
+/**
+ * Reopens a completed evaluation by setting status to 'draft' and selection process back to 'active'.
+ * This is an emergency tool for cases where an evaluation was finalized accidentally.
+ */
+export async function reopenEvaluation(evaluationId: string): Promise<{ success: boolean; error?: string }> {
+    const admin = createAdminClient()
+
+    // 1. Get the evaluation to find the selection_process_id
+    const { data: evaluation, error: getError } = await admin
+        .from('evaluations')
+        .select('selection_process_id')
+        .eq('id', evaluationId)
+        .single()
+
+    if (getError || !evaluation) {
+        return { success: false, error: 'No se encontró la evaluación con ese ID.' }
+    }
+
+    // 2. Reopen Evaluation
+    const { error: evalUpdateError } = await admin
+        .from('evaluations')
+        .update({ 
+            status: 'draft',
+            final_score: null,
+            classification: null,
+            final_feedback_ai: null
+        } as any)
+        .eq('id', evaluationId)
+
+    if (evalUpdateError) return { success: false, error: `Error reabriendo evaluación: ${evalUpdateError.message}` }
+
+    // 3. Reopen Selection Process
+    if (evaluation.selection_process_id) {
+        const { error: procUpdateError } = await admin
+            .from('selection_processes')
+            .update({ status: 'active' })
+            .eq('id', evaluation.selection_process_id)
+        
+        if (procUpdateError) {
+            console.error('Error al reabrir proceso de selección:', procUpdateError)
+            // No fallamos aquí porque la evaluación ya se reabrió exitosamente
+        }
+    }
+
+    return { success: true }
+}
