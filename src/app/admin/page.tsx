@@ -47,8 +47,6 @@ export default function AdminPage() {
     const [savingEdit, setSavingEdit] = useState(false)
     const [editError, setEditError] = useState<string | null>(null)
     
-    // Emergency Tools State
-    const [reopenId, setReopenId] = useState('')
     const [reopening, setReopening] = useState(false)
     const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
 
@@ -160,24 +158,21 @@ export default function AdminPage() {
         setSavingEdit(false)
     }
 
-    const handleReopen = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!reopenId.trim()) return
-        if (!confirm(`¿Estás seguro de reabrir la evaluación ${reopenId}? El evaluador podrá editarla de nuevo y se borrará el puntaje final actual.`)) return
+    const handleReopenInHistory = async (evaluationId: string) => {
+        if (!confirm(`¿Estás seguro de reabrir esta evaluación? El evaluador podrá editarla de nuevo y se invalidará el reporte ejecutivo actual.`)) return
         
-        setReopenStatus(null)
         setReopening(true)
         try {
-            const result = await reopenEvaluation(reopenId.trim())
+            const result = await reopenEvaluation(evaluationId)
             if (result.success) {
-                setReopenStatus({ type: 'success', msg: `✅ Evaluación ${reopenId} reabierta exitosamente.` })
-                setReopenId('')
+                alert('✅ Evaluación reabierta exitosamente. El evaluador ya puede modificarla.')
+                if (historyEmail) handleViewHistory(historyEmail)
                 await loadUsers()
             } else {
-                setReopenStatus({ type: 'error', msg: `❌ Error: ${result.error}` })
+                alert(`❌ Error: ${result.error}`)
             }
         } catch (err: any) {
-            setReopenStatus({ type: 'error', msg: `❌ Error inesperado: ${err.message}` })
+            alert(`❌ Error inesperado: ${err.message}`)
         } finally {
             setReopening(false)
         }
@@ -200,41 +195,6 @@ export default function AdminPage() {
                 <h1 className="text-3xl font-bold text-primary drop-shadow-sm">Panel de Administración</h1>
                 <p className="text-muted-foreground">Gestiona candidatos y evaluadores de la plataforma OTP.</p>
             </div>
-
-            {/* Emergency Tool: Reopen */}
-            <Card className="border-red-200 bg-red-50/30 overflow-hidden">
-                <CardHeader className="bg-red-100/50 border-b border-red-200 pb-3">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-red-800 uppercase tracking-wider">
-                        <AlertTriangle className="h-4 w-4" /> Herramientas de Emergencia
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <form onSubmit={handleReopen} className="flex gap-2 items-end">
-                        <div className="flex-1 space-y-1">
-                            <label className="text-[10px] font-bold text-red-700 uppercase">ID de Evaluación a Reabrir</label>
-                            <Input 
-                                value={reopenId} 
-                                onChange={e => setReopenId(e.target.value)}
-                                placeholder="Pega el ID de la URL aquí (ej. c400...)"
-                                className="bg-white border-red-200 text-sm h-9"
-                            />
-                        </div>
-                        <Button 
-                            type="submit" 
-                            disabled={reopening || !reopenId.trim()} 
-                            variant="destructive"
-                            className="h-9 px-4 text-xs font-bold"
-                        >
-                            {reopening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "FORZAR REAPERTURA"}
-                        </Button>
-                    </form>
-                    {reopenStatus && (
-                        <div className={`mt-2 text-xs font-medium ${reopenStatus.type === 'success' ? 'text-emerald-700' : 'text-red-700'}`}>
-                            {reopenStatus.msg}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
 
             {/* Create User Form */}
             <Card className="border-border shadow-sm">
@@ -456,6 +416,7 @@ export default function AdminPage() {
                                         <TableHead>Equipo</TableHead>
                                         <TableHead>Observaciones</TableHead>
                                         <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -466,9 +427,34 @@ export default function AdminPage() {
                                             <TableCell>{proc.team || '-'}</TableCell>
                                             <TableCell className="max-w-xs truncate" title={proc.observations || ''}>{proc.observations || '-'}</TableCell>
                                             <TableCell>
-                                                {proc.status === 'active' ? <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-default">Activo</Badge> : 
-                                                 proc.status === 'completed' ? <Badge variant="secondary" className="cursor-default">Completado</Badge> : 
-                                                 <Badge variant="outline" className="cursor-default text-muted-foreground">Archivado</Badge>}
+                                                <div className="flex flex-col gap-1">
+                                                    {proc.status === 'active' ? (
+                                                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-default w-fit">Proceso Activo</Badge>
+                                                    ) : proc.status === 'completed' ? (
+                                                        <Badge variant="secondary" className="cursor-default w-fit">Proceso Finalizado</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="cursor-default text-muted-foreground w-fit">Archivado</Badge>
+                                                    )}
+                                                    {proc.evaluation_status === 'completed' && (
+                                                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px] w-fit">
+                                                            Evaluación Cerrada
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {proc.evaluation_status === 'completed' && proc.evaluation_id && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        disabled={reopening}
+                                                        onClick={() => handleReopenInHistory(proc.evaluation_id!)}
+                                                        className="h-8 text-[10px] font-bold border-amber-200 text-amber-700 hover:bg-amber-50"
+                                                    >
+                                                        {reopening ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                                                        REABRIR
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

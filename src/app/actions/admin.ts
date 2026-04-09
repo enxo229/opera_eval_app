@@ -21,6 +21,8 @@ export type SelectionProcessWithStatus = {
     observations: string | null
     status: string
     created_at: string
+    evaluation_id?: string
+    evaluation_status?: string
 }
 
 /**
@@ -148,7 +150,10 @@ export async function getSelectionProcessHistory(email: string): Promise<Selecti
     const admin = createAdminClient()
     const { data: processes, error } = await admin
         .from('selection_processes')
-        .select('*')
+        .select(`
+            *,
+            evaluations (id, status)
+        `)
         .eq('candidate_email', email)
         .order('created_at', { ascending: false })
 
@@ -164,7 +169,9 @@ export async function getSelectionProcessHistory(email: string): Promise<Selecti
         team: p.team,
         observations: p.observations,
         status: p.status,
-        created_at: p.created_at
+        created_at: p.created_at,
+        evaluation_id: p.evaluations?.[0]?.id,
+        evaluation_status: p.evaluations?.[0]?.status
     }))
 }
 
