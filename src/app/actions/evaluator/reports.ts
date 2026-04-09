@@ -13,29 +13,31 @@ import { generateNarrativeFeedback } from '../ai'
 /**
  * Resumen de lo que se evidenció en los módulos reactivos para dar contexto a la IA.
  */
-function buildAIContext(evaluation: any, scores: any[], tests: any[], profile: any) {
-    const finalResult = calculateFinalScoreAndClassification(
-        calculateDimensionA({ 
-            a1: scores.find(s => s.category === 'A1')?.raw_score || 0,
-            a2: scores.find(s => s.category === 'A2')?.raw_score || 0,
-            a3: scores.find(s => s.category === 'A3')?.raw_score || 0,
-            a4: scores.find(s => s.category === 'A4')?.raw_score || 0
-        }),
-        calculateDimensionB({
-            b1: scores.find(s => s.category === 'B1')?.raw_score || 0,
-            b2: scores.find(s => s.category === 'B2')?.raw_score || 0,
-            b3: scores.find(s => s.category === 'B3')?.raw_score || 0,
-            b4: scores.find(s => s.category === 'B4')?.raw_score || 0,
-            b5: scores.find(s => s.category === 'B5')?.raw_score || 0,
-            b6: scores.find(s => s.category === 'B6')?.raw_score || 0
-        }),
-        calculateDimensionC({
-            c1: scores.find(s => s.category === 'C1')?.raw_score || 0,
-            c2: scores.find(s => s.category === 'C2')?.raw_score || 0,
-            c3: scores.find(s => s.category === 'C3')?.raw_score || 0,
-            c4: scores.find(s => s.category === 'C4')?.raw_score || 0
-        })
-    )
+async function buildAIContext(evaluation: any, scores: any[], tests: any[], profile: any) {
+    const subA = await calculateDimensionA({ 
+        a1: scores.find(s => s.category === 'A1')?.raw_score || 0,
+        a2: scores.find(s => s.category === 'A2')?.raw_score || 0,
+        a3: scores.find(s => s.category === 'A3')?.raw_score || 0,
+        a4: scores.find(s => s.category === 'A4')?.raw_score || 0
+    })
+    
+    const subB = await calculateDimensionB({
+        b1: scores.find(s => s.category === 'B1')?.raw_score || 0,
+        b2: scores.find(s => s.category === 'B2')?.raw_score || 0,
+        b3: scores.find(s => s.category === 'B3')?.raw_score || 0,
+        b4: scores.find(s => s.category === 'B4')?.raw_score || 0,
+        b5: scores.find(s => s.category === 'B5')?.raw_score || 0,
+        b6: scores.find(s => s.category === 'B6')?.raw_score || 0
+    })
+
+    const subC = await calculateDimensionC({
+        c1: scores.find(s => s.category === 'C1')?.raw_score || 0,
+        c2: scores.find(s => s.category === 'C2')?.raw_score || 0,
+        c3: scores.find(s => s.category === 'C3')?.raw_score || 0,
+        c4: scores.find(s => s.category === 'C4')?.raw_score || 0
+    })
+
+    const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
     const commentsBlock = scores
         .filter(s => s.comments)
@@ -105,7 +107,7 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
     const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
     // 3. Generar Feedback IA
-    const contextForIA = buildAIContext({ ...evaluation, score_a: subA, score_b: subB, score_c: subC, score_ia: subIA }, scores, tests, profile)
+    const contextForIA = await buildAIContext({ ...evaluation, score_a: subA, score_b: subB, score_c: subC, score_ia: subIA }, scores, tests, profile)
     const aiFeedback = await generateNarrativeFeedback(contextForIA)
 
     // 4. Actualizar Evaluación en DB
@@ -159,7 +161,7 @@ export async function regenerateNarrativeFeedbackManual(evaluationId: string) {
     const tests = (evaluation.dynamic_tests as any[]) || []
     const profile = evaluation.profiles as any
 
-    const contextForIA = buildAIContext(evaluation, scores, tests, profile)
+    const contextForIA = await buildAIContext(evaluation, scores, tests, profile)
 
     // Usamos el import dinámico para evitar dependencias circulares y forzar el modelo lite
     const { generateNarrativeFeedbackLite } = await import('../ai')
