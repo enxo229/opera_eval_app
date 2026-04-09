@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
-import { AlertCircle, Clock, Loader2, FileText, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, Loader2, FileText, CheckCircle2 } from 'lucide-react'
 
 interface TicketEditorProps {
     evaluationId: string | null
@@ -15,12 +15,17 @@ interface TicketEditorProps {
 
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
     const [ticket, setTicket] = useState('')
-    const [timeLeft, setTimeLeft] = useState(10 * 60) // 10 minutes
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
-    const [timerStarted, setTimerStarted] = useState(false)
+
+    // Notify parent
+    useEffect(() => {
+        if (submitted && onComplete) {
+            onComplete(ticket, caseText || '')
+        }
+    }, [submitted, onComplete, ticket, caseText])
 
     // Load state on mount
     useEffect(() => {
@@ -54,9 +59,6 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                     setSubmitted(true)
                 }
 
-                // Iniciar el temporizador al cargar (equivale a entrar en la pestaña)
-                setTimerStarted(true)
-
             } catch (e) {
                 console.error('Error loading B1 state:', e)
             } finally {
@@ -65,17 +67,6 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
         }
         loadState()
     }, [evaluationId])
-
-    // Timer logic
-    useEffect(() => {
-        if (!timerStarted || timeLeft <= 0 || submitted || loading) return
-        const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000)
-        return () => clearInterval(timer)
-    }, [timerStarted, timeLeft, submitted, loading])
-
-    const mins = Math.floor(timeLeft / 60)
-    const secs = timeLeft % 60
-    const isWarning = timeLeft < 60 // Rojo a falta de 1 minuto
 
     async function handleSubmit() {
         if (!caseText || !evaluationId) return
@@ -114,12 +105,6 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                         <FileText className="h-5 w-5 text-primary" /> B1: Comunicación Técnica Escrita
                     </CardTitle>
                 </div>
-                {!submitted && (
-                    <div className={`flex items-center gap-2 font-mono text-lg p-2 rounded shrink-0 transition-all ${isWarning ? 'bg-red-500/20 text-red-600 font-black animate-pulse border border-red-500/50' : 'bg-secondary/50 text-secondary-foreground'}`}>
-                        <Clock className={`w-5 h-5 ${isWarning ? 'text-red-600' : 'text-primary'}`} />
-                        {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
-                    </div>
-                )}
                 {submitted && (
                     <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 p-2 rounded font-medium text-sm border border-emerald-500/20">
                         <CheckCircle2 className="h-4 w-4" /> Finalizado
@@ -158,7 +143,7 @@ Atención de alerta a las 02:47h..."
                             onPaste={(e) => e.preventDefault()}
                             onCopy={(e) => e.preventDefault()}
                             onContextMenu={(e) => e.preventDefault()}
-                            disabled={isSubmitting || (timeLeft <= 0 && false) /* El usuario dijo que si llega a cero no pasa nada */}
+                            disabled={isSubmitting}
                         />
 
                         <div className="flex justify-between items-center pt-2">

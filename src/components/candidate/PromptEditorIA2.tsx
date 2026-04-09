@@ -8,12 +8,18 @@ import { getIA2State, saveIA2Prompt } from '@/app/actions/candidate/ia'
 import { AlertCircle, Bot, Save, CheckCircle2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-export function PromptEditorIA2({ evaluationId }: { evaluationId: string }) {
+export function PromptEditorIA2({ evaluationId, onStatusChange }: { evaluationId: string; onStatusChange?: (finished: boolean) => void }) {
     const [promptText, setPromptText] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [isFinished, setIsFinished] = useState(false)
     const [errorMsg, setErrorMsg] = useState('')
     const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        if (onStatusChange) {
+            onStatusChange(isFinished)
+        }
+    }, [isFinished, onStatusChange])
 
     // Cargar estado inicial
     useEffect(() => {

@@ -78,6 +78,9 @@ export function A2Tab({
                                     <textarea
                                         value={a2Answers[q.subcategory] || ''}
                                         onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        onContextMenu={(e) => e.preventDefault()}
                                         disabled={a2Submitted}
                                         placeholder="Escribe tu respuesta aquí..."
                                         name={`answer-${q.subcategory}`}

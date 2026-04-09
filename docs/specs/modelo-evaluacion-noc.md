@@ -1,12 +1,12 @@
 # Modelo de Evaluación
-## Pivote Ópera → Analista de Observabilidad Junior
+## Pivote NOC Nivel 1 → Analista de Observabilidad Junior
 ### CoE de Observabilidad | Equipo de Delivery MSP
 
 ---
 
 ## 1. PROPÓSITO DEL MODELO
 
-Este modelo tiene como objetivo evaluar a los integrantes del equipo de Ópera para determinar su **aptitud y preparación para pivotar al rol de Analista de Observabilidad Junior** en el equipo de Delivery. La evaluación considera tres dimensiones: técnica, habilidades blandas y actitudinal. El resultado clasifica a cada persona en una de tres categorías de decisión.
+Este modelo tiene como objetivo evaluar a los integrantes del equipo de NOC / Soporte Nivel 1 para determinar su **aptitud y preparación para pivotar al rol de Analista de Observabilidad Junior** en el equipo de Delivery. La evaluación considera tres dimensiones: técnica, habilidades blandas y actitudinal. El resultado clasifica a cada persona en una de tres categorías de decisión.
 
 ---
 
@@ -21,7 +21,7 @@ Antes de aplicar la evaluación, el candidato debe cumplir al menos uno de los s
 | Profesional / Ingeniería | Sistemas, Electrónica, Telecomunicaciones o afín | ✅ |
 | Bachiller sin formación TI | — | ❌ No elegible en esta convocatoria |
 
-> **Nota:** La experiencia práctica en Ópera puede compensar el nivel académico mínimo si el evaluador lo justifica documentadamente.
+> **Nota:** La experiencia práctica en su rol actual puede compensar el nivel académico mínimo si el evaluador lo justifica documentadamente.
 
 ---
 
@@ -201,7 +201,7 @@ Antes de aplicar la evaluación, el candidato debe cumplir al menos uno de los s
 
 ### B4. Trabajo en Equipo (4 puntos)
 
-**Instrucción para el evaluador:** Explora cómo el candidato se comporta dentro del equipo de Ópera, especialmente en situaciones de presión o cuando las responsabilidades no están del todo claras.
+**Instrucción para el evaluador:** Explora cómo el candidato se comporta dentro del equipo de soporte, especialmente en situaciones de presión o cuando las responsabilidades no están del todo claras.
 
 **Preguntas guía:**
 
@@ -224,7 +224,7 @@ Antes de aplicar la evaluación, el candidato debe cumplir al menos uno de los s
 
 ### B5. Gestión del Tiempo y Priorización (4 puntos)
 
-**Instrucción para el evaluador:** En Ópera es habitual recibir múltiples alertas simultáneas. Explora cómo el candidato decide qué atender primero y cómo maneja la presión.
+**Instrucción para el evaluador:** En un equipo NOC es habitual recibir múltiples alertas simultáneas. Explora cómo el candidato decide qué atender primero y cómo maneja la presión.
 
 **Preguntas guía:**
 
@@ -338,7 +338,7 @@ Cada competencia actitudinal se puntúa de 0 a 5. A continuación se define con 
 ### C2. Adaptabilidad al Cambio (0–5 puntos)
 
 **Pregunta de apertura:**
-> "En el tiempo que llevas en Ópera, ¿ha habido algún cambio en cómo trabajan, en los procesos o en las herramientas? ¿Cómo te fue con eso?"
+> "En el tiempo que llevas en Soporte Nivel 1, ¿ha habido algún cambio en cómo trabajan, en los procesos o en las herramientas? ¿Cómo te fue con eso?"
 
 **Preguntas de profundización:**
 - "¿Qué fue lo más difícil de ese cambio?"
@@ -376,7 +376,7 @@ Cada competencia actitudinal se puntúa de 0 a 5. A continuación se define con 
 
 **Preguntas de profundización:**
 - "¿Por qué esa área en particular?"
-- "¿Hay algo de lo que haces hoy en Ópera que sientas que podría conectarse con ese camino?"
+- "¿Hay algo de lo que haces hoy en soporte que sientas que podría conectarse con ese camino?"
 - "¿Has hecho algo concreto para acercarte a eso, aunque sea pequeño?"
 
 | Indicadores positivos ✅ | Indicadores de alerta 🚨 |
@@ -404,7 +404,7 @@ Cada competencia actitudinal se puntúa de 0 a 5. A continuación se define con 
 ### C4. Tolerancia a la Incertidumbre y Resolución de Problemas (0–5 puntos)
 
 **Pregunta de apertura:**
-> "Cuéntame de una situación en Ópera en la que recibiste una alerta que no sabías cómo manejar y no había nadie disponible para ayudarte en ese momento. ¿Qué hiciste?"
+> "Cuéntame de una situación en tu rol actual en la que recibiste una alerta que no sabías cómo manejar y no había nadie disponible para ayudarte en ese momento. ¿Qué hiciste?"
 
 **Preguntas de profundización:**
 - "¿Qué fue lo primero que hiciste antes de escalar?"
@@ -453,7 +453,7 @@ Cada competencia actitudinal se puntúa de 0 a 5. A continuación se define con 
 
 ### Contexto para el evaluador
 
-No se espera que el equipo de Ópera tenga conocimiento técnico de IA. Lo que se evalúa es:
+No se espera que el equipo de soporte base tenga conocimiento técnico avanzado de IA. Lo que se evalúa es:
 - Si ya usan herramientas de IA como asistentes en su trabajo o vida personal
 - Si tienen criterio para validar lo que la IA les responde
 - Si ven la IA como una herramienta de crecimiento o como una amenaza
@@ -559,7 +559,7 @@ Entrega al candidato el siguiente enunciado y permítele usar cualquier herramie
 | **80 – 100** | 🟢 **Listo para pivotar** | Puede incorporarse al equipo de Delivery con onboarding estándar del CoE |
 | **60 – 79** | 🟡 **Pivote con plan de nivelación** | Puede iniciar el pivote, pero requiere un plan de cierre de brechas específico antes del mes 2 |
 | **40 – 59** | 🟠 **En preparación** | No está listo aún. Se define un plan de formación de 2–3 meses y se re-evalúa |
-| **< 40** | 🔴 **Continúa en Ópera** | El perfil actual no es compatible con el pivote en esta convocatoria. Se revisa en 6 meses |
+| **< 40** | 🔴 **Continúa en su rol actual** | El perfil actual no es compatible con el pivote en esta convocatoria. Se revisa en 6 meses |
 
 ---
 
@@ -569,7 +569,7 @@ Entrega al candidato el siguiente enunciado y permítele usar cualquier herramie
 **Evaluador:** ___________________________
 **Fecha:** ___________________________
 **Nivel Académico:** ___________________________
-**Años de experiencia en Ópera:** ___________________________
+**Años de experiencia en NOC / Soporte:** ___________________________
 **Turno actual:** ___________________________
 
 | Dimensión | Puntaje |
@@ -596,7 +596,7 @@ Entrega al candidato el siguiente enunciado y permítele usar cualquier herramie
 | **IA Complementario** | **/ 10** |
 | **PUNTAJE TOTAL** | **/ 100** |
 
-**Clasificación:** 🟢 Listo / 🟡 Con nivelación / 🟠 En preparación / 🔴 Continúa en Ópera
+**Clasificación:** 🟢 Listo / 🟡 Con nivelación / 🟠 En preparación / 🔴 Continúa en su rol actual
 
 **Puntaje IA (Complementario):** _______ / 10
 **Interpretación IA:** 🔵 Acelerado / 🟣 Con acompañamiento / ⚪ Desde cero

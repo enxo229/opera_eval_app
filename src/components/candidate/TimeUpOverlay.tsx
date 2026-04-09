@@ -28,7 +28,7 @@ export function TimeUpOverlay() {
                     <div className="space-y-3">
                         <h2 className="text-4xl font-black text-slate-900 leading-tight">¡Tiempo Agotado!</h2>
                         <p className="text-slate-500 text-lg leading-relaxed">
-                            Has alcanzado el límite de **90 minutos** definido para esta evaluación técnica. Tus respuestas han sido guardadas.
+                            Has alcanzado el límite de tiempo definido para esta evaluación técnica. Tus respuestas han sido guardadas.
                         </p>
                     </div>
 
