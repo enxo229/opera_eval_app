@@ -195,13 +195,49 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
                 )}
             </div>
 
+            {/* Sticky Sub-navigation */}
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
+                <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
+                    {[
+                        { id: 'section-C1', label: 'C1. Aprendizaje' },
+                        { id: 'section-C2', label: 'C2. Adaptabilidad' },
+                        { id: 'section-C3', label: 'C3. Crecimiento' },
+                        { id: 'section-C4', label: 'C4. Incertidumbre' }
+                    ].map(link => (
+                        <Button 
+                            key={link.id} 
+                            variant="secondary" 
+                            size="sm" 
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                            onClick={() => {
+                                const el = document.getElementById(link.id);
+                                if (el) {
+                                    const offset = 120;
+                                    const bodyRect = document.body.getBoundingClientRect().top;
+                                    const elementRect = el.getBoundingClientRect().top;
+                                    const elementPosition = elementRect - bodyRect;
+                                    const offsetPosition = elementPosition - offset;
+
+                                    window.scrollTo({
+                                        top: offsetPosition,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        >
+                            {link.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
 
             {CATEGORIES.map(cat => {
                 const guide = EVALUATOR_GUIDES[cat.id]
                 const isGuideOpen = expandedGuide === cat.id
 
                 return (
-                    <Card key={cat.id} className="border-border">
+                    <Card key={cat.id} id={`section-${cat.id}`} className="border-border scroll-mt-32">
                         <CardHeader className="bg-muted/30 border-b border-border py-4">
                             <CardTitle className="text-xl font-bold text-primary">
                                 {cat.id}. {cat.name}

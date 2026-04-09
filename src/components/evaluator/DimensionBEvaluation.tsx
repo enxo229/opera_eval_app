@@ -210,6 +210,42 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
         B4: getInitialComment('B4'), B5: getInitialComment('B5'), B6: getInitialComment('B6')
     })
 
+    // Auto-fill for B1 and B6 based on AI results
+    useEffect(() => {
+        if (aiB1Data.length > 0) {
+            // Check if evaluator hasn't overridden any B1 scores (assuming 1 is default or empty)
+            const hasExistingB1 = B1_SUBS.some(s => existingScores.some(es => es.dimension === 'B' && es.category === s.id && es.raw_score > 1))
+            if (!hasExistingB1) {
+                setB1SubScores(prev => {
+                    const next = { ...prev }
+                    aiB1Data.forEach(q => {
+                        if (q.subcategory && q.ai_score !== null) {
+                            const targetId = q.subcategory.replace('EVAL_', '') // EVAL_B1.1 -> B1.1
+                            if (next[targetId] !== undefined) next[targetId] = q.ai_score
+                        }
+                    })
+                    return next
+                })
+            }
+
+            // Also map B6 items evaluated by AI
+            const hasExistingB6 = B6_SUBS.some(s => existingScores.some(es => es.dimension === 'B' && es.category === s.id && es.raw_score > 1))
+            if (!hasExistingB6) {
+                setB6SubScores(prev => {
+                    const next = { ...prev }
+                    aiB1Data.forEach(q => {
+                        if (q.subcategory && q.ai_score !== null) {
+                            const targetId = q.subcategory.replace('EVAL_', '') // EVAL_B6.1 -> B6.1
+                            if (next[targetId] !== undefined) next[targetId] = q.ai_score
+                        }
+                    })
+                    return next
+                })
+            }
+        }
+    }, [aiB1Data, existingScores])
+
+
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
@@ -378,13 +414,51 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                 </div>
             </div>
 
+            {/* Sticky Sub-navigation */}
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
+                <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
+                    {[
+                        { id: 'section-B1', label: 'B1. Escrita' },
+                        { id: 'section-B2', label: 'B2. Verbal' },
+                        { id: 'section-B3', label: 'B3. Cliente' },
+                        { id: 'section-B4', label: 'B4. Equipo' },
+                        { id: 'section-B5', label: 'B5. Tiempo' },
+                        { id: 'section-B6', label: 'B6. Orden' }
+                    ].map(link => (
+                        <Button 
+                            key={link.id} 
+                            variant="secondary" 
+                            size="sm" 
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                            onClick={() => {
+                                const el = document.getElementById(link.id);
+                                if (el) {
+                                    const offset = 120;
+                                    const bodyRect = document.body.getBoundingClientRect().top;
+                                    const elementRect = el.getBoundingClientRect().top;
+                                    const elementPosition = elementRect - bodyRect;
+                                    const offsetPosition = elementPosition - offset;
+
+                                    window.scrollTo({
+                                        top: offsetPosition,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        >
+                            {link.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             {CATEGORIES.map(cat => {
                 const guide = EVALUATOR_GUIDES[cat.id]
                 const isGuideOpen = expandedGuide === cat.id
                 const isEvidenceOpen = expandedEvidence === cat.id
 
                 return (
-                    <Card key={cat.id} className="border-border shadow-sm overflow-hidden group">
+                    <Card key={cat.id} id={`section-${cat.id}`} className="border-border shadow-sm overflow-hidden group scroll-mt-32">
                         <CardHeader className="bg-muted/20 border-b border-border py-4 transition-colors group-hover:bg-muted/40">
                             <CardTitle className="text-lg flex justify-between items-center">
                                 <span className="text-foreground font-bold">{cat.id}. {cat.name}</span>

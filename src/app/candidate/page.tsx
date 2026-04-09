@@ -58,7 +58,7 @@ export default function CandidateEvaluationFlow() {
         if (!ctx.evaluationId || !ctx.startedAt || ctx.isPaused || ctx.isTimeUp) return
 
         const triggerAutoPause = async () => {
-            if (ctx.pauseCount >= 2) return
+            if (ctx.pauseCount >= 3) return
 
             const res = await pauseEvaluation(ctx.evaluationId!)
             if (res.success) {
@@ -127,7 +127,7 @@ export default function CandidateEvaluationFlow() {
                                 <p className="font-bold flex items-center gap-1.5">⚠️ Importante:</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-xs ml-1">
                                     <li>Tienes <strong>{ctx.testDuration} minutos</strong> para completar todas las secciones.</li>
-                                    <li>Dispones de <strong>máximo 2 pausas</strong> durante la prueba.</li>
+                                    <li>Dispones de <strong>máximo 3 pausas</strong> durante la prueba.</li>
                                     <li>Si cambias de pestaña o pierdes conexión, se activará una pausa automática.</li>
                                     <li>Asegúrate de tener una conexión estable antes de iniciar.</li>
                                 </ul>

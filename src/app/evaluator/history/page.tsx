@@ -15,7 +15,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2 } from 'lucide-react'
+import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield } from 'lucide-react'
 
 type HistoricalProcess = {
     id: string
@@ -87,6 +87,11 @@ export default function HistorySearchPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <Link href="/admin">
+                        <Button variant="outline" className="border-border text-muted-foreground hover:text-primary hover:border-primary">
+                            <Shield className="h-4 w-4 mr-2" /> Panel de Admin
+                        </Button>
+                    </Link>
                     <Link href="/evaluator">
                         <Button variant="outline" className="border-border text-muted-foreground hover:text-primary hover:border-primary">
                             <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Dashboard

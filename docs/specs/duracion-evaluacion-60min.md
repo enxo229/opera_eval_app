@@ -59,7 +59,7 @@ La evaluación consta de **6 módulos** independientes:
 | Riesgo | Mitigación |
 |--------|-----------|
 | Candidato lento leyendo | Las instrucciones son breves y claras |
-| Candidato con conexión inestable | Sistema de pausas (máx. 2) sigue activo |
+| Candidato con conexión inestable | Sistema de pausas (máx. 3) sigue activo |
 | Presión excesiva | La distribución da ~2 min/pregunta promedio, alineado con estándares de certificación IT |
 
 ## 5. Cambio Técnico Requerido

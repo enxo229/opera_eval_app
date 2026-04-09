@@ -83,7 +83,7 @@ export async function pauseEvaluation(evaluationId: string) {
         
     if (fetchError) return { success: false, error: fetchError.message }
     if (current?.paused_at) return { success: true } // Already paused
-    if ((current?.pause_count || 0) >= 2) return { success: false, error: 'Has alcanzado el límite máximo de 2 pausas.' }
+    if ((current?.pause_count || 0) >= 3) return { success: false, error: 'Has alcanzado el límite máximo de 3 pausas.' }
 
     const { error } = await supabase
         .from('evaluations')

@@ -121,7 +121,7 @@ Antes de aplicar la evaluación, el candidato debe cumplir al menos uno de los s
 
 ### B1. Comunicación Técnica Escrita (7 puntos)
 
-**Instrucción para el evaluador:** Entrega al candidato el siguiente escenario por escrito y dale entre 15 y 20 minutos para redactar el registro del incidente como si lo fuera a ingresar en GLPI. No orientes ni corrijas durante el ejercicio. Evalúa el resultado con la rúbrica al final.
+**Instrucción para el evaluador:** Entrega al candidato el siguiente escenario por escrito y dale **10 minutos** para redactar el registro del incidente como si lo fuera a ingresar en GLPI. No orientes ni corrijas durante el ejercicio. Evalúa el resultado con la rúbrica al final.
 
 ---
 
@@ -498,7 +498,7 @@ La evaluación combina una **pregunta práctica** (componente técnico) y una **
 
 **Ejercicio práctico (5 minutos):**
 
-Entrega al candidato el siguiente enunciado y permítele usar cualquier herramienta de IA de su preferencia (ChatGPT, Gemini, Copilot, Claude, etc.) en su celular o computador:
+Entrega al candidato el siguiente enunciado y permítele usar cualquier herramienta de IA de su preferencia (ChatGPT, Gemini, Copilot, Claude, etc.) e ingresar el prompt resultante en el editor integrado de la plataforma:
 
 > "Usando la herramienta de IA que prefieras, pregúntale cómo buscarías en Elasticsearch todos los logs de error del servidor `srv-prod-payments-01` del día de ayer. Cuando tengas la respuesta, explícame si crees que es correcta y por qué."
 

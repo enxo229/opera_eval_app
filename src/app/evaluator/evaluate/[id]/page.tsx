@@ -4,8 +4,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import NextImage from 'next/image'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, User, Mail, Calendar, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, User, Mail, Calendar, CheckCircle2, Sparkles, Monitor, BrainCircuit, ShieldCheck, Info } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DimensionAEvaluation } from '@/components/evaluator/DimensionAEvaluation'
 import { DimensionBEvaluation } from '@/components/evaluator/DimensionBEvaluation'
 import { DimensionCEvaluation } from '@/components/evaluator/DimensionCEvaluation'
@@ -13,6 +14,7 @@ import { DimensionDEvaluation } from '@/components/evaluator/DimensionDEvaluatio
 import { FinalScoreCard } from '@/components/evaluator/FinalScoreCard'
 import { TimerAdjuster } from '@/components/evaluator/TimerAdjuster'
 import { ScrollToTopButton } from '@/components/evaluator/ScrollToTopButton'
+import { RealtimeSync } from '@/components/evaluator/RealtimeSync'
 export default async function EvaluateCandidatePage({ params }: { params: Promise<{ id: string }> }) {
     const supabase = await createClient()
     const { id } = await params
@@ -109,6 +111,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
+            <RealtimeSync evaluationId={evaluation.id} />
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link href="/evaluator">
@@ -166,10 +169,10 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 <div className="lg:col-span-2 space-y-6">
                     <Tabs defaultValue="overview" className="w-full">
                         {(() => {
-                            const hasA = existingScores.some(s => s.dimension === 'A')
-                            const hasB = existingScores.some(s => s.dimension === 'B')
-                            const hasC = existingScores.some(s => s.dimension === 'C')
-                            const hasD = existingScores.some(s => s.dimension === 'D')
+                            const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
+                            const hasB = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
+                            const hasC = ['C1', 'C2', 'C3', 'C4'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
+                            const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => s.dimension === 'D' && s.category === cat))
 
                             return (
                                 <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 mb-8">
@@ -190,12 +193,86 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                             )
                         })()}
 
-                        <TabsContent value="overview" className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                            <h3 className="text-xl font-bold text-foreground mb-4">Instrucciones del Evaluador</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                                Esta pantalla te permite registrar la calificación de los tres perfiles (Técnico, Entrevistador Blando, Entrevistador Cultural).
-                                Asegúrate de haber completado las pruebas dinámicas antes interactuar con las dimensiones A y B, donde podrás encontrar las respuestas almacenadas del candidato.
-                            </p>
+                        <TabsContent value="overview" className="bg-card border border-border shadow-sm rounded-xl p-8 min-h-[400px] space-y-8 animate-in fade-in duration-500">
+                            <div className="space-y-3">
+                                <h3 className="text-3xl font-extrabold text-primary flex items-center gap-3 tracking-tight">
+                                    <Sparkles className="h-8 w-8 text-amber-500 drop-shadow-sm" /> 
+                                    Guía del Evaluador SkillFlow
+                                </h3>
+                                <p className="text-muted-foreground leading-relaxed text-lg max-w-3xl">
+                                    Bienvenido al panel central de evaluación. Aquí transformamos la telemetría recolectada en una calificación estratégica y objetiva basada en evidencias claras.
+                                </p>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6 mt-8">
+                                <Card className="border-primary/10 bg-gradient-to-br from-card to-primary/5 shadow-md hover:shadow-lg transition-all duration-300">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-black uppercase tracking-widest text-primary/70 flex items-center gap-3">
+                                            <div className="p-2 bg-primary/10 rounded-lg">
+                                                <Monitor className="h-5 w-5 text-primary" />
+                                            </div>
+                                            Dimensiones A y B
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            Analiza la ejecución técnica y conductual. Revisa los logs de chat, los tickets resueltos y las justificaciones de IA antes de emitir tu juicio final.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-indigo-500/10 bg-gradient-to-br from-card to-indigo-500/5 shadow-md hover:shadow-lg transition-all duration-300">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-black uppercase tracking-widest text-indigo-600/70 flex items-center gap-3">
+                                            <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                                <BrainCircuit className="h-5 w-5 text-indigo-600" />
+                                            </div>
+                                            Dimensiones C y D
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            Usa las guías integradas para evaluar la mentalidad de crecimiento y el dominio de IA. Recuerda que la Dimensión D es un factor de desempate.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <ShieldCheck className="w-32 h-32 -mr-10 -mt-10" />
+                                </div>
+                                
+                                <h4 className="font-sans font-black text-primary text-xl flex items-center gap-3 mb-6">
+                                    <ShieldCheck className="h-6 w-6" /> Reglas de Oro para una Evaluación Elite
+                                </h4>
+                                
+                                <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
+                                    {[
+                                        { title: "Evidencia Primaria", desc: "Nunca asignes puntaje sin leer los prompts o justificaciones registradas." },
+                                        { title: "Criterio de Desempate", desc: "La Dimensión D (IA) no suma puntos al score base de 100, es diferencial." },
+                                        { title: "Consistencia", desc: "Asegúrate de que tus comentarios reflejen fielmente la puntuación asignada." },
+                                        { title: "Guardado Individual", desc: "Recuerda presionar 'Guardar' al finalizar cada dimensión técnica o blanda." }
+                                    ].map((rule, idx) => (
+                                        <div key={idx} className="flex gap-4 group/item">
+                                            <div className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-bold text-sm shadow-sm transition-transform group-hover/item:scale-110">
+                                                {idx + 1}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="font-bold text-foreground">{rule.title}</p>
+                                                <p className="text-sm text-muted-foreground leading-snug">{rule.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                <Info className="h-5 w-5 text-amber-500 shrink-0" />
+                                <p className="text-sm text-muted-foreground italic">
+                                    Tip: Puedes usar la navegación horizontal rápida dentro de cada dimensión para moverte entre secciones.
+                                </p>
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="dimA" className="m-0">

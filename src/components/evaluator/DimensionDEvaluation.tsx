@@ -118,6 +118,20 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
         loadIa2State()
     }, [evaluationId])
 
+    // Realtime Sync Listener
+    useEffect(() => {
+        const handleSync = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail?.evaluationId === evaluationId) {
+                console.log('🔄 [Dimension D] Sincronización detectada. Recargando IA-2...');
+                loadIa2State();
+            }
+        };
+        window.addEventListener('evaluator_db_updated', handleSync);
+        return () => window.removeEventListener('evaluator_db_updated', handleSync);
+    }, [evaluationId])
+
+
     const handleResetIa2 = async () => {
         if (!confirm('¿Estás seguro de que deseas borrar la respuesta del candidato? Tendrá que enviarla de nuevo.')) return
         await resetIAResponses(evaluationId)
@@ -162,11 +176,45 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
                 )}
             </div>
 
+            {/* Sticky Sub-navigation */}
+            <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
+                <div className="flex flex-wrap gap-2 p-1.5 bg-indigo-100/30 rounded-xl border border-indigo-200/40">
+                    {[
+                        { id: 'section-IA-1', label: 'IA-1. Actitud' },
+                        { id: 'section-IA-2', label: 'IA-2. Práctica' }
+                    ].map(link => (
+                        <Button 
+                            key={link.id} 
+                            variant="secondary" 
+                            size="sm" 
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all duration-200"
+                            onClick={() => {
+                                const el = document.getElementById(link.id);
+                                if (el) {
+                                    const offset = 120;
+                                    const bodyRect = document.body.getBoundingClientRect().top;
+                                    const elementRect = el.getBoundingClientRect().top;
+                                    const elementPosition = elementRect - bodyRect;
+                                    const offsetPosition = elementPosition - offset;
+
+                                    window.scrollTo({
+                                        top: offsetPosition,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        >
+                            {link.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             {CATEGORIES.map(cat => {
                 const guide = EVALUATOR_GUIDES[cat.id]
 
                 return (
-                    <Card key={cat.id} className="border-border">
+                    <Card key={cat.id} id={`section-${cat.id}`} className="border-border scroll-mt-32">
                         <CardHeader className="bg-muted/30 border-b border-border py-4">
                             <CardTitle className="text-xl font-bold flex justify-between items-center text-primary">
                                 <span>{cat.id}. {cat.name}</span>
