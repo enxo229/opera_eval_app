@@ -38,7 +38,7 @@ npm run dev
 
 El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). Incluye:
 - 5 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`
-- RLS policies para candidatos y evaluadores
+- RLS policies optimizadas para alto rendimiento (InitPlan optimization & Policy Consolidation)
 - Campos de auditoría legal: `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` en `evaluations`
 - Campos de temporizador: `started_at`, `test_duration_minutes` (default 60), `paused_at`, `total_paused_ms`, `pause_count`
 - Función RPC `get_user_email`
@@ -126,7 +126,7 @@ src/
 > **Regla de Oro:** Todas las especificaciones, manuales, rúbricas y documentaciones de arquitectura deben residir **exclusivamente** dentro de `/docs/specs`. De esta manera se evita la duplicidad de fuentes de verdad.
 
 - Especificación completa: [`docs/specs/AGENTS.md`](docs/specs/AGENTS.md)
-- Modelo de evaluación detallado: [`docs/specs/modelo-evaluacion-noc.md`](docs/specs/modelo-evaluacion-noc.md)
+- Modelo de evaluación detallado: [`docs/specs/modelo-evaluacion-talento-tecnico.md`](docs/specs/modelo-evaluacion-talento-tecnico.md)
 - Especificación de duración (60 min): [`docs/specs/duracion-evaluacion-60min.md`](docs/specs/duracion-evaluacion-60min.md)
 - Términos y Condiciones: [`docs/specs/terminosCondiciones.md`](docs/specs/terminosCondiciones.md)
 - Política de Tratamiento de Datos: [`docs/specs/tratamientoDatosPersonales.md`](docs/specs/tratamientoDatosPersonales.md)

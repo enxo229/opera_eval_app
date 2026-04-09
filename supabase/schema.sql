@@ -30,17 +30,17 @@ create table public.profiles (
 alter table public.profiles enable row level security;
 
 -- Policies for profiles
-create policy "Public profiles are viewable by everyone."
+create policy "Profiles are viewable by everyone."
   on profiles for select
   using ( true );
 
-create policy "Users can insert their own profile."
+create policy "Users can insert/update own profile."
   on profiles for insert
-  with check ( auth.uid() = id );
+  with check ( (select auth.uid()) = id );
 
 create policy "Users can update own profile."
   on profiles for update
-  using ( auth.uid() = id );
+  using ( (select auth.uid()) = id );
 
 
 
@@ -59,37 +59,15 @@ create table public.selection_processes (
 alter table public.selection_processes enable row level security;
 
 -- Policies for selection_processes
-create policy "Evaluators can view all selection processes"
-  on selection_processes for select
+create policy "Evaluators and owners can view/manage selection processes"
+  on selection_processes for all
   using (
+    candidate_email = (select email from auth.users where id = (select auth.uid()))
+    OR
     exists (
       select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+      where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
     )
-  );
-
-create policy "Evaluators can insert selection processes"
-  on selection_processes for insert
-  with check (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Evaluators can update selection processes"
-  on selection_processes for update
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Candidates can view their own selection processes"
-  on selection_processes for select
-  using (
-    candidate_email = (select email from auth.users where id = auth.uid())
   );
 
 -- 2. EVALUATIONS
@@ -119,42 +97,14 @@ create table public.evaluations (
 alter table public.evaluations enable row level security;
 
 -- Policies for evaluations
-create policy "Evaluators can view all evaluations"
-  on evaluations for select
+create policy "Evaluators and owners can view/manage evaluations"
+  on evaluations for all
   using (
+    (select auth.uid()) = candidate_id
+    OR
     exists (
       select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Candidates can view their own evaluations"
-  on evaluations for select
-  using (
-    auth.uid() = candidate_id
-  );
-
-create policy "Candidates can update their own evaluations (consent and timer)"
-  on evaluations for update
-  using (
-    auth.uid() = candidate_id
-  );
-
-create policy "Evaluators can insert evaluations"
-  on evaluations for insert
-  with check (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Evaluators can update evaluations"
-  on evaluations for update
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+      where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
     )
   );
 
@@ -171,41 +121,15 @@ create table public.dimension_scores (
 
 alter table public.dimension_scores enable row level security;
 
-create policy "Evaluators can view all dimension scores"
-  on dimension_scores for select
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Candidates can view their own completed dimension scores"
-  on dimension_scores for select
+create policy "Evaluators and owners can view/manage dimension scores"
+  on dimension_scores for all
   using (
     exists (
       select 1 from evaluations
       where evaluations.id = dimension_scores.evaluation_id
-        and evaluations.candidate_id = auth.uid()
-        and evaluations.status = 'completed'
-    )
-  );
-
-create policy "Evaluators can insert dimension scores"
-  on dimension_scores for insert
-  with check (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Evaluators can update dimension scores"
-  on dimension_scores for update
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+        and (evaluations.candidate_id = (select auth.uid()) OR exists (
+          select 1 from profiles where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
+        ))
     )
   );
 
@@ -226,82 +150,14 @@ create table public.dynamic_tests (
 alter table public.dynamic_tests enable row level security;
 
 -- Policies for dynamic_tests
-create policy "Evaluators can view all dynamic tests"
-  on dynamic_tests for select
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Candidates can view their own dynamic tests"
-  on dynamic_tests for select
+create policy "Evaluators and owners can view/manage dynamic tests"
+  on dynamic_tests for all
   using (
     exists (
       select 1 from evaluations
       where evaluations.id = dynamic_tests.evaluation_id
-        and evaluations.candidate_id = auth.uid()
-    )
-  );
-
-create policy "Evaluators can insert dynamic tests"
-  on dynamic_tests for insert
-  with check (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
-create policy "Evaluators can update dynamic tests"
-  on dynamic_tests for update
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
-    )
-  );
-
--- Candidates can insert dynamic tests (answers to questions)
-create policy "Candidates can insert their own dynamic tests"
-  on dynamic_tests for insert
-  with check (
-    exists (
-      select 1 from evaluations
-      where evaluations.id = dynamic_tests.evaluation_id
-        and evaluations.candidate_id = auth.uid()
-    )
-  );
-
--- Candidates can update dynamic tests to save their answers
-create policy "Candidates can update their own dynamic tests answers"
-  on dynamic_tests for update
-  using (
-    exists (
-      select 1 from evaluations
-      where evaluations.id = dynamic_tests.evaluation_id
-        and evaluations.candidate_id = auth.uid()
-    )
-  );
-
--- Candidates can delete their own dynamic tests (for regeneration of questions)
-create policy "Candidates can delete their own dynamic tests"
-  on dynamic_tests for delete
-  using (
-    exists (
-      select 1 from evaluations
-      where evaluations.id = dynamic_tests.evaluation_id
-        and evaluations.candidate_id = auth.uid()
-    )
-  );
-
--- Evaluators can delete dynamic tests (for reset functionality)
-create policy "Evaluators can delete dynamic tests"
-  on dynamic_tests for delete
-  using (
-    exists (
-      select 1 from profiles
-      where profiles.id = auth.uid() and profiles.role = 'evaluator'
+        and (evaluations.candidate_id = (select auth.uid()) OR exists (
+          select 1 from profiles where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
+        ))
     )
   );

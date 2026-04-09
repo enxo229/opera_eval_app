@@ -66,7 +66,7 @@ Configuración en `src/lib/ai/gemini.ts`.
 opera_eval_app/
 ├── docs/specs/                     # ÚNICA FUENTE DE VERDAD para Documentación, rúbricas, perfiles y textos.
 │   ├── AGENTS.md                   # Este archivo (especificación para agentes IA)
-│   ├── modelo-evaluacion-noc.md    # Modelo de evaluación detallado
+│   ├── modelo-evaluacion-talento-tecnico.md    # Modelo de evaluación detallado
 │   ├── terminosCondiciones.md      # Texto oficial de T&C
 │   └── tratamientoDatosPersonales.md # Texto oficial Habeas Data (Ley 1581)
 ├── supabase/
@@ -236,11 +236,10 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 
 ### RLS Policies
 
-- **Candidatos**: SELECT, INSERT, UPDATE, DELETE sobre `dynamic_tests` (solo sus propios registros)
-- **Candidatos**: SELECT y UPDATE sobre campos de consentimiento legal en `evaluations` (solo sus propios registros)
-- **Evaluadores**: Acceso completo a todas las tablas (`SELECT`, `INSERT`, `UPDATE`, `DELETE`)
-- **Profiles**: Visible públicamente (SELECT), editable solo por el propietario o administrador (vía `updateUser`).
-- **Performance**: Se han indexado las llaves foráneas en `dimension_scores`, `dynamic_tests`, `evaluations` y `selection_processes` para optimizar los JOINs y el filtrado por `evaluation_id`.
+- **RLS Performance**: 
+    - Se ha implementado el patrón **InitPlan Optimization** envolviendo las llamadas a `auth.uid()` en subqueries: `(select auth.uid())`. Esto previene la re-evaluación fila por fila.
+    - **Consolidación**: Se han fusionado múltiples políticas permisivas (ej. Candidato + Evaluador) en una sola regla con lógica `OR` para reducir la sobrecarga del motor de reglas de Supabase.
+- **Indexación**: Se han indexado las llaves foráneas en `dimension_scores`, `dynamic_tests`, `evaluations` y `selection_processes` para optimizar los JOINs y el filtrado por `evaluation_id`.
 
 ---
 
@@ -285,8 +284,9 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Timer ajustable por evaluador | Permite dar tiempo extra (+5/+10/+15 min o valor exacto) sin interrumpir la prueba | 2026-04-07 |
 | Pausas aumentadas (2 -> 3) | Solicitud de usuario para mejorar la flexibilidad en la prueba | 2026-04-09 |
 | Edición de perfiles restringida | Permite corregir errores (nombre/id) pero bloquea email/rol por estabilidad | 2026-04-09 |
-| Índices en llaves foráneas | Optimización crítica sugerida por Supabase Linter para performance | 2026-04-09 |
+| Optimización Crítica de RLS | Uso de `(select auth.uid())` y consolidación de políticas para performance | 2026-04-09 |
 | Auto-fill asíncrono en B1 | Sliders reaccionan a sugerencias de IA automáticamente en el dashboard del evaluador | 2026-04-09 |
 | Manual Backup (IA Lite) | Botón manual que fuerza el uso de Gemini Lite para evitar fallos de cuota en reportes | 2026-04-09 |
 | Rediseño Historial Navegación | Estandarización a columna "Acciones" con flujo Ver Resultado -> Ver Reporte | 2026-04-09 |
 | Sincronización Proceso Status | Finalizar evaluación marca automáticamente el proceso como `completed` | 2026-04-09 |
+| Auditoría de Documentación | Sincronización masiva de specs con la realidad técnica del proyecto | 2026-04-09 |
