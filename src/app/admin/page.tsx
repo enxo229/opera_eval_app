@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus } from '@/app/actions/admin'
+import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation } from '@/app/actions/admin'
 import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +46,9 @@ export default function AdminPage() {
     const [editObservations, setEditObservations] = useState('')
     const [savingEdit, setSavingEdit] = useState(false)
     const [editError, setEditError] = useState<string | null>(null)
+    
+    const [reopening, setReopening] = useState(false)
+    const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
 
     const loadUsers = useCallback(async () => {
         try {
@@ -153,6 +156,26 @@ export default function AdminPage() {
             setEditError(result.error || 'Error al actualizar')
         }
         setSavingEdit(false)
+    }
+
+    const handleReopenInHistory = async (evaluationId: string) => {
+        if (!confirm(`¿Estás seguro de reabrir esta evaluación? El evaluador podrá editarla de nuevo y se invalidará el reporte ejecutivo actual.`)) return
+        
+        setReopening(true)
+        try {
+            const result = await reopenEvaluation(evaluationId)
+            if (result.success) {
+                alert('✅ Evaluación reabierta exitosamente. El evaluador ya puede modificarla.')
+                if (historyEmail) handleViewHistory(historyEmail)
+                await loadUsers()
+            } else {
+                alert(`❌ Error: ${result.error}`)
+            }
+        } catch (err: any) {
+            alert(`❌ Error inesperado: ${err.message}`)
+        } finally {
+            setReopening(false)
+        }
     }
 
     const candidates = users.filter(u => u.role === 'candidate')
@@ -393,6 +416,7 @@ export default function AdminPage() {
                                         <TableHead>Equipo</TableHead>
                                         <TableHead>Observaciones</TableHead>
                                         <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -403,9 +427,34 @@ export default function AdminPage() {
                                             <TableCell>{proc.team || '-'}</TableCell>
                                             <TableCell className="max-w-xs truncate" title={proc.observations || ''}>{proc.observations || '-'}</TableCell>
                                             <TableCell>
-                                                {proc.status === 'active' ? <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-default">Activo</Badge> : 
-                                                 proc.status === 'completed' ? <Badge variant="secondary" className="cursor-default">Completado</Badge> : 
-                                                 <Badge variant="outline" className="cursor-default text-muted-foreground">Archivado</Badge>}
+                                                <div className="flex flex-col gap-1">
+                                                    {proc.status === 'active' ? (
+                                                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-default w-fit">Proceso Activo</Badge>
+                                                    ) : proc.status === 'completed' ? (
+                                                        <Badge variant="secondary" className="cursor-default w-fit">Proceso Finalizado</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="cursor-default text-muted-foreground w-fit">Archivado</Badge>
+                                                    )}
+                                                    {proc.evaluation_status === 'completed' && (
+                                                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px] w-fit">
+                                                            Evaluación Cerrada
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {proc.evaluation_status === 'completed' && proc.evaluation_id && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        disabled={reopening}
+                                                        onClick={() => handleReopenInHistory(proc.evaluation_id!)}
+                                                        className="h-8 text-[10px] font-bold border-amber-200 text-amber-700 hover:bg-amber-50"
+                                                    >
+                                                        {reopening ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                                                        REABRIR
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

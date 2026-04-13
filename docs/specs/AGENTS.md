@@ -58,7 +58,19 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 ---
 
-## 5. Arquitectura de Carpetas y Documentación
+## 5. Workflow de Desarrollo (CI/CD Local & Branching)
+
+**Procedimiento Operativo Estándar (SOP) para Agentes:**
+Para garantizar la estabilidad de producción, cualquier cambio destructivo o de esquema (DDL) debe seguir este flujo:
+
+1. **Creación de Rama**: Solicitar o crear una rama de desarrollo `dev-*` en Supabase.
+2. **Pruebas Aisladas**: Aplicar cambios SQL únicamente en el `project_id` de la rama.
+3. **Verificación**: Validar el esquema y las políticas RLS en la rama antes de proponer el merge.
+4. **Sincronización Local**: Actualizar el archivo `supabase/schema.sql` local una vez validados los cambios.
+
+---
+
+## 6. Arquitectura de Carpetas y Documentación
 
 **REGLA DE ORO PARA DOCUMENTACIÓN:** Basado en las mejores prácticas de estructuración de proyectos Web modernos (como Next.js), se debe centralizar y colocar todas las documentaciones y especificaciones técnicas dentro de una única carpeta raíz `/docs` o `/docs/specs`. Almacenar especificaciones de manera aislada (ej. en carpetas `/specs` independientes) fragmenta la estructura y genera confusión sobre la ubicación de la fuente de verdad. El proyecto sigue estrictamente esta regla.
 
