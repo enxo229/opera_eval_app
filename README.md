@@ -4,11 +4,11 @@ Plataforma de evaluación de talento técnico para equipos de infraestructura y 
 
 ## Stack
 
-- **Framework**: Next.js 16 (App Router, Turbopack)
-- **UI**: React 19, Tailwind CSS v4, Shadcn UI v4 (Base UI)
+- **Framework**: Next.js 16.1.6 (App Router, Turbopack)
+- **UI**: React 19.2.3, Tailwind CSS v4, Shadcn UI v4 (Base UI)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **IA**: Google Gemini (Gemma 3, Gemma 4 + Gemini 2.5 Flash Lite) con fallback automático y respaldo manual
-- **Animaciones**: Framer Motion
+- **IA**: Google Gemini (Gemma 3, Gemma 4 + Gemini 2.5 Flash Lite) con fallback automático y estrategia de respaldo manual
+- **Animaciones**: Framer Motion v12.35
 - **Despliegue**: Vercel (auto-deploy desde `main`)
 
 ## Setup
@@ -112,8 +112,9 @@ src/
 2. Ver respuestas del candidato + sugerencias de la IA
 3. Asignar puntajes manuales → Cálculo automático del score final
 4. **Generar Informe Ejecutivo**: Creación de narrativa automática (fortalezas/brechas) asistida por Gemma 4.
-5. **Ajustar tiempo del candidato** vía TimerAdjuster (+5, +10, +15 min ó valor exacto)
-6. **Búsqueda histórica**: Navegación estandarizada por columna de "Acciones" (Ver Resultado -> Ver Reporte).
+5. **Estrategia de Respaldo (Backup)**: Opción manual de regenerar reportes usando Gemini 2.5 Flash Lite en caso de fallos de cuota o latencia.
+6. **Ajustar tiempo del candidato**: Widget `TimerAdjuster` permite añadir extra (+5, +10, +15 min) o fijar un valor exacto.
+7. **Búsqueda histórica**: Navegación estandarizada en columna "Acciones" (Ver Resultado -> Ver Reporte).
 
 ### Admin
 1. Gestión de usuarios (crear, editar, eliminar)

@@ -22,7 +22,7 @@ create table public.profiles (
   full_name text,
   role text check (role in ('evaluator', 'candidate')),
   education_level text,
-  national_id_type text,      -- Tipo de documento (CC, CE, TI, PPT, PEP, etc.)
+  national_id_type text check (national_id_type in ('CC', 'CE', 'TI', 'PPT', 'PEP', 'Pasaporte')), -- Tipo de documento
   national_id text,           -- Número de identificación nacional
   created_at timestamptz default now()
 );
