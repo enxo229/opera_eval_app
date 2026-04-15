@@ -23,7 +23,7 @@ export default function AdminPage() {
     const [password, setPassword] = useState('')
     const [fullName, setFullName] = useState('')
     const [role, setRole] = useState<'candidate' | 'evaluator'>('candidate')
-    const [nationalIdType, setNationalIdType] = useState('CC (Cédula de Ciudadanía)')
+    const [nationalIdType, setNationalIdType] = useState('CC')
     const [nationalId, setNationalId] = useState('')
     const [team, setTeam] = useState('')
     const [observations, setObservations] = useState('')
@@ -115,7 +115,7 @@ export default function AdminPage() {
         setEditingUser(user)
         setEditFullName(user.full_name || '')
         setEditPassword('')
-        setEditNationalIdType(user.national_id_type || 'CC (Cédula de Ciudadanía)')
+        setEditNationalIdType(user.national_id_type || 'CC')
         setEditNationalId(user.national_id || '')
         setEditError(null)
         
@@ -243,12 +243,11 @@ export default function AdminPage() {
                                         <label className="text-sm font-semibold text-foreground">Tipo de Identificación *</label>
                                         <select value={nationalIdType} onChange={e => setNationalIdType(e.target.value)} required
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-                                            <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
-                                            <option value="CE (Cédula de Extranjería)">Cédula de Extranjería (CE)</option>
-                                            <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
-                                            <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
-                                            <option value="PA (Pasaporte)">Pasaporte (PA)</option>
-                                            <option value="Otro">Otro / Internacional</option>
+                                            <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                            <option value="CE">Cédula de Extranjería (CE)</option>
+                                            <option value="TI">Tarjeta de Identidad (TI)</option>
+                                            <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                            <option value="Pasaporte">Pasaporte (PA)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
@@ -505,12 +504,11 @@ export default function AdminPage() {
                                 <label className="text-sm font-semibold">Tipo ID</label>
                                 <select value={editNationalIdType} onChange={e => setEditNationalIdType(e.target.value)} required
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                                    <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
-                                    <option value="CE (Cédula de Extranjera)">Cédula de Extranjería (CE)</option>
-                                    <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
-                                    <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
-                                    <option value="PA (Pasaporte)">Pasaporte (PA)</option>
-                                    <option value="Otro">Otro / Internacional</option>
+                                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                    <option value="CE">Cédula de Extranjería (CE)</option>
+                                    <option value="TI">Tarjeta de Identidad (TI)</option>
+                                    <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                    <option value="Pasaporte">Pasaporte (PA)</option>
                                 </select>
                             </div>
                             <div className="space-y-2">
