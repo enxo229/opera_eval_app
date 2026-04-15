@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation } from '@/app/actions/admin'
-import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info } from 'lucide-react'
+import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation, closeSelectionProcess } from '@/app/actions/admin'
+import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info, CheckCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -46,6 +46,9 @@ export default function AdminPage() {
     const [editObservations, setEditObservations] = useState('')
     const [savingEdit, setSavingEdit] = useState(false)
     const [editError, setEditError] = useState<string | null>(null)
+    
+    // Close Process State
+    const [closingProcessId, setClosingProcessId] = useState<string | null>(null)
     
     const [reopening, setReopening] = useState(false)
     const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
@@ -167,6 +170,26 @@ export default function AdminPage() {
             setEditError(`Error inesperado: ${err.message}`)
         } finally {
             setSavingEdit(false)
+        }
+    }
+
+    const handleCloseProcessInHistory = async (processId: string) => {
+        if (!confirm('¿Estás seguro de que deseas cerrar y finalizar este proceso de selección manualmente?')) return
+        
+        setClosingProcessId(processId)
+        try {
+            const res = await closeSelectionProcess(processId)
+            if (res.success && historyEmail) {
+                const data = await getSelectionProcessHistory(historyEmail)
+                setHistoryData(data)
+                // Opcional: mostrar un success en algún lado
+            } else {
+                alert(res.error || 'Error al cerrar proceso.')
+            }
+        } catch (e: any) {
+            alert(`Error inesperado: ${e.message}`)
+        } finally {
+            setClosingProcessId(null)
         }
     }
 
@@ -465,6 +488,19 @@ export default function AdminPage() {
                                                     >
                                                         {reopening ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
                                                         REABRIR
+                                                    </Button>
+                                                )}
+                                                {proc.status === 'active' && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        disabled={closingProcessId === proc.id}
+                                                        onClick={() => handleCloseProcessInHistory(proc.id)}
+                                                        className="h-8 text-[10px] font-bold border-red-200 text-red-700 hover:bg-red-50"
+                                                        title="Cerrar proceso y marcar como finalizado"
+                                                    >
+                                                        {closingProcessId === proc.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                                                        CERRAR
                                                     </Button>
                                                 )}
                                             </TableCell>

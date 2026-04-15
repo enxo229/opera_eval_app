@@ -9,6 +9,7 @@ import {
     calculateFinalScoreAndClassification 
 } from '../evaluation'
 import { generateNarrativeFeedback } from '../ai'
+import { closeSelectionProcess } from '../admin'
 
 /**
  * Resumen de lo que se evidenció en los módulos reactivos para dar contexto a la IA.
@@ -129,10 +130,7 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
 
     // 5. MARCAR PROCESO DE SELECCIÓN COMO COMPLETADO
     if (evaluation.selection_process_id) {
-        await supabase
-            .from('selection_processes')
-            .update({ status: 'completed' })
-            .eq('id', evaluation.selection_process_id)
+        await closeSelectionProcess(evaluation.selection_process_id)
     }
 
     return { success: true, finalScore: finalResult.score }
