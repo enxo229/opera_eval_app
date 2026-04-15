@@ -1,6 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { metricsApp } from '@/lib/observability/metrics'
 
+/**
+ * Supabase Client Factory
+ * Proporciona un cliente de Supabase para Server Components / Server Actions.
+ * 
+ * TIP: Para instrumentar consultas pesadas, utiliza:
+ * const start = Date.now();
+ * const res = await supabase.from('...').select();
+ * metricsApp.recordDbOperation(Date.now() - start, { table: '...', operation: 'select', status: res.error ? 'error' : 'success' });
+ */
 export async function createClient() {
   const cookieStore = await cookies()
 

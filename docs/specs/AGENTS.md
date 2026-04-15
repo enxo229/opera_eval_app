@@ -19,6 +19,7 @@
 | Animaciones | Framer Motion | ^12.35 |
 | Iconos | Lucide React | ^0.577 |
 | Despliegue | Vercel | — |
+| Observabilidad | OpenTelemetry (Metrics, Logs, Traces) | SDK 1.x |
 
 ---
 
@@ -34,8 +35,9 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 - **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
 - **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo `gemini-2.5-flash-lite` para garantizar la generación en situaciones de alta latencia o agotamiento de cuota de los modelos Gemma.
-- **PII Filter**: Eliminado intencionalmente (`sanitizePII` fue removido en la auditoría del 2026-03-31). Se deshabilitó por falsos positivos con timestamps y datos técnicos en logs.
+- **PII Filter**: Eliminado intencionalmente. El usuario ha confirmado que desea capturar `prompt` y `completion` incluso en producción para auditoría técnica.
 - **Variable de entorno**: Usa `APP_GEMINI_API_KEY` (NO `GEMINI_API_KEY`) para evitar colisiones con el entorno del sistema.
+- **Observability**: Toda llamada a la IA debe registrarse usando `metricsApp.recordAiRequest()` y envolverse en un Span de OTel (`tracer.startActiveSpan`).
 - **Logging**: El log de la API Key solo se ejecuta en `development` (`process.env.NODE_ENV === 'development'`).
 
 ---
@@ -302,3 +304,4 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Rediseño Historial Navegación | Estandarización a columna "Acciones" con flujo Ver Resultado -> Ver Reporte | 2026-04-09 |
 | Sincronización Proceso Status | Finalizar evaluación marca automáticamente el proceso como `completed` | 2026-04-09 |
 | Auditoría de Documentación | Sincronización masiva de specs con la realidad técnica del proyecto | 2026-04-09 |
+| Integración de OTel | Consolidación de logger y métricas estandarizadas vía OpenTelemetry | 2026-04-13 |

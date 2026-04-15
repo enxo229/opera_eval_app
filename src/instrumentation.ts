@@ -24,7 +24,7 @@ export function register() {
     const logExporter = new OTLPLogExporter();
     
     const loggerProvider = new LoggerProvider({ 
-      resource,
+      resource: resource as any,
       processors: [new BatchLogRecordProcessor(logExporter)]
     });
 
