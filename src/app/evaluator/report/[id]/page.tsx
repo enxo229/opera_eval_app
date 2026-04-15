@@ -121,6 +121,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                         'CE': 'Cédula de Extranjería',
                                         'TI': 'Tarjeta de Identidad',
                                         'PPT': 'Permiso por Protección Temporal',
+                                        'PEP': 'Permiso Especial de Permanencia (PEP)',
                                         'Pasaporte': 'Pasaporte'
                                     };
                                     return labels[profile?.national_id_type || ''] || profile?.national_id_type;

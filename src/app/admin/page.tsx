@@ -23,7 +23,7 @@ export default function AdminPage() {
     const [password, setPassword] = useState('')
     const [fullName, setFullName] = useState('')
     const [role, setRole] = useState<'candidate' | 'evaluator'>('candidate')
-    const [nationalIdType, setNationalIdType] = useState('CC (Cédula de Ciudadanía)')
+    const [nationalIdType, setNationalIdType] = useState('CC')
     const [nationalId, setNationalId] = useState('')
     const [team, setTeam] = useState('')
     const [observations, setObservations] = useState('')
@@ -259,6 +259,7 @@ export default function AdminPage() {
                                             <option value="CE">Cédula de Extranjería (CE)</option>
                                             <option value="TI">Tarjeta de Identidad (TI)</option>
                                             <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                            <option value="PEP">Permiso Especial de Permanencia (PEP)</option>
                                             <option value="Pasaporte">Pasaporte (PA)</option>
                                         </select>
                                     </div>
@@ -520,6 +521,7 @@ export default function AdminPage() {
                                     <option value="CE">Cédula de Extranjería (CE)</option>
                                     <option value="TI">Tarjeta de Identidad (TI)</option>
                                     <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                    <option value="PEP">Permiso Especial de Permanencia (PEP)</option>
                                     <option value="Pasaporte">Pasaporte (PA)</option>
                                 </select>
                             </div>
