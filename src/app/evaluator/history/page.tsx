@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { searchHistoricalProcesses, reopenEvaluation } from '@/app/actions/admin'
+import { searchHistoricalProcesses, reopenEvaluation, closeSelectionProcess } from '@/app/actions/admin'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,8 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield, FileText, RefreshCw } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Search, History, ArrowLeft, Loader2, PlayCircle, Archive, CheckCircle2, Shield, FileText, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 
 type HistoricalProcess = {
     id: string
@@ -52,7 +53,33 @@ export default function HistorySearchPage() {
     const [processes, setProcesses] = useState<HistoricalProcess[]>([])
     const [searched, setSearched] = useState(false)
     const [reopening, setReopening] = useState(false)
+    const [closingProcessId, setClosingProcessId] = useState<string | null>(null)
+    const [processToClose, setProcessToClose] = useState<string | null>(null)
     const router = useRouter()
+
+    const handleCloseProcessClick = (processId: string) => {
+        setProcessToClose(processId)
+    }
+
+    const confirmCloseProcess = async () => {
+        if (!processToClose) return
+        const processId = processToClose
+        setProcessToClose(null)
+        
+        setClosingProcessId(processId)
+        try {
+            const res = await closeSelectionProcess(processId)
+            if (res.success) {
+                handleSearch() // Refresh results
+            } else {
+                alert(res.error || 'Error al cerrar proceso.')
+            }
+        } catch (e: any) {
+            alert(`Error inesperado: ${e.message}`)
+        } finally {
+            setClosingProcessId(null)
+        }
+    }
 
     const handleSearch = async (e?: React.FormEvent) => {
         if (e) e.preventDefault()
@@ -242,6 +269,18 @@ export default function HistorySearchPage() {
                                             ) : (
                                                 <span className="text-xs text-muted-foreground italic">Sin evaluación</span>
                                             )}
+                                            {proc.status === 'active' && (
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    disabled={closingProcessId === proc.id}
+                                                    onClick={() => handleCloseProcessClick(proc.id)}
+                                                    className="border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2"
+                                                >
+                                                    {closingProcessId === proc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                                                    Cerrar
+                                                </Button>
+                                            )}
                                             {evalData?.status === 'completed' && (
                                                 <Button 
                                                     size="sm" 
@@ -262,6 +301,30 @@ export default function HistorySearchPage() {
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Close Process Confirmation Modal */}
+            <Dialog open={!!processToClose} onOpenChange={(open) => !open && setProcessToClose(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            Cerrar Proceso
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-center">
+                        <p className="text-foreground font-medium text-lg">¿Está seguro que quiere cerrar este proceso?</p>
+                        <p className="text-muted-foreground text-sm mt-2">Esta acción no se puede deshacer y marcará el proceso como finalizado.</p>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button variant="outline" onClick={() => setProcessToClose(null)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmCloseProcess}>
+                            Aceptar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
