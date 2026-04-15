@@ -97,18 +97,18 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                     <hr className="border-border/50" />
 
                     {/* Candidate Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6">
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <FileText className="h-3 w-3" /> Candidato
                             </p>
-                            <p className="font-bold text-lg">{profile?.full_name}</p>
+                            <p className="font-bold text-lg leading-tight">{profile?.full_name}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <Mail className="h-3 w-3" /> Email de Contacto
                             </p>
-                            <p className="font-mono text-sm">{candidateEmail}</p>
+                            <p className="font-mono text-sm break-all">{candidateEmail}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
