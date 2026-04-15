@@ -5,14 +5,21 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { finalizeEvaluationAndGenerateReport } from '@/app/actions/evaluator/reports'
-import { FileText, Sparkles, Loader2 } from 'lucide-react'
+import { FileText, Sparkles, Loader2, AlertTriangle } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export function FinalScoreCard({ evaluation }: { evaluation: any }) {
     const router = useRouter()
     const [isCalculating, setIsCalculating] = useState(false)
     const [errorMsg, setErrorMsg] = useState('')
+    const [showConfirm, setShowConfirm] = useState(false)
 
-    const handleCompleteEvaluation = async () => {
+    const handleConfirmClick = () => {
+        setShowConfirm(true)
+    }
+
+    const confirmFinalize = async () => {
+        setShowConfirm(false)
         setIsCalculating(true)
         setErrorMsg('')
 
@@ -88,7 +95,7 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                         </Button>
                     ) : (
                         <Button
-                            onClick={handleCompleteEvaluation}
+                            onClick={handleConfirmClick}
                             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-md shadow-md gap-2"
                             disabled={isCalculating}
                         >
@@ -107,6 +114,33 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                     )}
                 </div>
             </CardContent>
+
+            {/* Finalize Confirmation Modal */}
+            <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            Finalizar Evaluación
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-center">
+                        <p className="text-foreground font-medium text-lg">¿Estás seguro de generar el dictamen final?</p>
+                        <p className="text-muted-foreground text-sm mt-2">
+                            Esta acción marcará la evaluación y el proceso de selección como **COMPLETADOS**. 
+                            Ya no podrás modificar los puntajes ni comentarios después de este paso.
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmFinalize} className="bg-primary hover:bg-primary/90">
+                            Confirmar y Finalizar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Card>
     )
 }
