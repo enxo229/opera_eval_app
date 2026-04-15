@@ -25,8 +25,8 @@ export function register() {
     
     const loggerProvider = new LoggerProvider({ 
       resource: resource as any,
-      processors: [new BatchLogRecordProcessor(logExporter)]
     });
+    loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
 
     // Registrar globalmente Logger
     logs.setGlobalLoggerProvider(loggerProvider);
