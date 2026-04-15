@@ -135,7 +135,7 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                         <Button variant="outline" onClick={() => setShowConfirm(false)}>
                             Cancelar
                         </Button>
-                        <Button variant="destructive" onClick={confirmFinalize} className="bg-primary hover:bg-primary/90">
+                        <Button variant="destructive" onClick={confirmFinalize} className="bg-primary hover:bg-primary/90 text-white font-bold">
                             Confirmar y Finalizar
                         </Button>
                     </div>

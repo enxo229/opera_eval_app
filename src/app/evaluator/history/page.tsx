@@ -319,7 +319,7 @@ export default function HistorySearchPage() {
                         <Button variant="outline" onClick={() => setProcessToClose(null)}>
                             Cancelar
                         </Button>
-                        <Button variant="destructive" onClick={confirmCloseProcess}>
+                        <Button variant="destructive" onClick={confirmCloseProcess} className="text-white font-bold">
                             Aceptar
                         </Button>
                     </div>
