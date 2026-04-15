@@ -72,23 +72,29 @@ export default function AdminPage() {
         setFormWarning(null)
         setCreating(true)
 
-        const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
+        try {
+            const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
 
-        if (result.success) {
-            setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
-            setEmail('')
-            setPassword('')
-            setFullName('')
-            setNationalId('')
-            setTeam('')
-            setObservations('')
-            await loadUsers()
-        } else if (result.warning) {
-            setFormWarning(result.warning)
-        } else {
-            setFormError(result.error || 'Error desconocido')
+            if (result.success) {
+                setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
+                setEmail('')
+                setPassword('')
+                setFullName('')
+                setNationalId('')
+                setTeam('')
+                setObservations('')
+                await loadUsers()
+            } else if (result.warning) {
+                setFormWarning(result.warning)
+            } else {
+                setFormError(result.error || 'Error desconocido')
+            }
+        } catch (err: any) {
+            console.error('Error in handleCreate:', err)
+            setFormError(`Error inesperado: ${err.message}`)
+        } finally {
+            setCreating(false)
         }
-        setCreating(false)
     }
 
     const handleViewHistory = async (email: string) => {
@@ -139,23 +145,29 @@ export default function AdminPage() {
         setEditError(null)
         setSavingEdit(true)
 
-        const result = await updateUser(
-            editingUser.id,
-            editFullName,
-            editNationalIdType,
-            editNationalId,
-            editPassword || undefined,
-            editingUser.role === 'candidate' ? editTeam : undefined,
-            editingUser.role === 'candidate' ? editObservations : undefined
-        )
+        try {
+            const result = await updateUser(
+                editingUser.id,
+                editFullName,
+                editNationalIdType,
+                editNationalId,
+                editPassword || undefined,
+                editingUser.role === 'candidate' ? editTeam : undefined,
+                editingUser.role === 'candidate' ? editObservations : undefined
+            )
 
-        if (result.success) {
-            setEditingUser(null)
-            await loadUsers()
-        } else {
-            setEditError(result.error || 'Error al actualizar')
+            if (result.success) {
+                setEditingUser(null)
+                await loadUsers()
+            } else {
+                setEditError(result.error || 'Error al actualizar')
+            }
+        } catch (err: any) {
+            console.error('Error in handleSaveEdit:', err)
+            setEditError(`Error inesperado: ${err.message}`)
+        } finally {
+            setSavingEdit(false)
         }
-        setSavingEdit(false)
     }
 
     const handleReopenInHistory = async (evaluationId: string) => {
@@ -243,12 +255,11 @@ export default function AdminPage() {
                                         <label className="text-sm font-semibold text-foreground">Tipo de Identificación *</label>
                                         <select value={nationalIdType} onChange={e => setNationalIdType(e.target.value)} required
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-                                            <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
-                                            <option value="CE (Cédula de Extranjería)">Cédula de Extranjería (CE)</option>
-                                            <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
-                                            <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
-                                            <option value="PA (Pasaporte)">Pasaporte (PA)</option>
-                                            <option value="Otro">Otro / Internacional</option>
+                                            <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                            <option value="CE">Cédula de Extranjería (CE)</option>
+                                            <option value="TI">Tarjeta de Identidad (TI)</option>
+                                            <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                            <option value="Pasaporte">Pasaporte (PA)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
@@ -505,12 +516,11 @@ export default function AdminPage() {
                                 <label className="text-sm font-semibold">Tipo ID</label>
                                 <select value={editNationalIdType} onChange={e => setEditNationalIdType(e.target.value)} required
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                                    <option value="CC (Cédula de Ciudadanía)">Cédula de Ciudadanía (CC)</option>
-                                    <option value="CE (Cédula de Extranjera)">Cédula de Extranjería (CE)</option>
-                                    <option value="TI (Tarjeta de Identidad)">Tarjeta de Identidad (TI)</option>
-                                    <option value="PPT (Permiso por Protección Temporal)">Permiso por Protección Temporal (PPT)</option>
-                                    <option value="PA (Pasaporte)">Pasaporte (PA)</option>
-                                    <option value="Otro">Otro / Internacional</option>
+                                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                    <option value="CE">Cédula de Extranjería (CE)</option>
+                                    <option value="TI">Tarjeta de Identidad (TI)</option>
+                                    <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                    <option value="Pasaporte">Pasaporte (PA)</option>
                                 </select>
                             </div>
                             <div className="space-y-2">

@@ -114,7 +114,18 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <FileText className="h-3 w-3" /> Identificación
                             </p>
-                            <p className="font-bold">{profile?.national_id_type} {profile?.national_id}</p>
+                            <p className="font-bold">
+                                {(() => {
+                                    const labels: Record<string, string> = {
+                                        'CC': 'Cédula de Ciudadanía',
+                                        'CE': 'Cédula de Extranjería',
+                                        'TI': 'Tarjeta de Identidad',
+                                        'PPT': 'Permiso por Protección Temporal',
+                                        'Pasaporte': 'Pasaporte'
+                                    };
+                                    return labels[profile?.national_id_type || ''] || profile?.national_id_type;
+                                })()} {profile?.national_id}
+                            </p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
