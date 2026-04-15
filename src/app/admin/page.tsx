@@ -49,6 +49,7 @@ export default function AdminPage() {
     
     // Close Process State
     const [closingProcessId, setClosingProcessId] = useState<string | null>(null)
+    const [processToClose, setProcessToClose] = useState<string | null>(null)
     
     const [reopening, setReopening] = useState(false)
     const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
@@ -173,8 +174,14 @@ export default function AdminPage() {
         }
     }
 
-    const handleCloseProcessInHistory = async (processId: string) => {
-        if (!confirm('¿Estás seguro de que deseas cerrar y finalizar este proceso de selección manualmente?')) return
+    const handleCloseProcessClick = (processId: string) => {
+        setProcessToClose(processId)
+    }
+
+    const confirmCloseProcess = async () => {
+        if (!processToClose) return
+        const processId = processToClose
+        setProcessToClose(null)
         
         setClosingProcessId(processId)
         try {
@@ -495,7 +502,7 @@ export default function AdminPage() {
                                                         variant="outline" 
                                                         size="sm" 
                                                         disabled={closingProcessId === proc.id}
-                                                        onClick={() => handleCloseProcessInHistory(proc.id)}
+                                                        onClick={() => handleCloseProcessClick(proc.id)}
                                                         className="h-8 text-[10px] font-bold border-red-200 text-red-700 hover:bg-red-50"
                                                         title="Cerrar proceso y marcar como finalizado"
                                                     >
@@ -510,6 +517,30 @@ export default function AdminPage() {
                             </Table>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Close Process Confirmation Modal */}
+            <Dialog open={!!processToClose} onOpenChange={(open) => !open && setProcessToClose(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            Cerrar Proceso
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-center">
+                        <p className="text-foreground font-medium text-lg">¿Está seguro que quiere cerrar este proceso?</p>
+                        <p className="text-muted-foreground text-sm mt-2">Esta acción no se puede deshacer y marcará el proceso como finalizado.</p>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button variant="outline" onClick={() => setProcessToClose(null)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmCloseProcess}>
+                            Aceptar
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
