@@ -305,3 +305,24 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Sincronización Proceso Status | Finalizar evaluación marca automáticamente el proceso como `completed` | 2026-04-09 |
 | Auditoría de Documentación | Sincronización masiva de specs con la realidad técnica del proyecto | 2026-04-09 |
 | Integración de OTel | Consolidación de logger y métricas estandarizadas vía OpenTelemetry | 2026-04-13 |
+| **Ecosistema MCP** | Documentación de capacidades extendidas (GitHub, Supabase, Vercel) | 2026-04-15 |
+
+---
+
+## 12. Ecosistema de Protocolo de Contexto (MCP)
+
+Este proyecto utiliza el **Model Context Protocol (MCP)** para extender las capacidades de los agentes IA, permitiendo una interacción segura y estructurada con la infraestructura externa. La configuración reside en el archivo de sistema local del usuario.
+
+### Servidores y Utilidades
+
+| Servidor | Utilidad en el Proyecto | Herramientas Clave |
+|---|---|---|
+| **GitHub** | Gestión de código, ramas y Pull Requests. Vital para el flujo de CI/CD local del agente. | `create_pull_request`, `list_issues`, `get_file_contents` |
+| **Supabase** | Gestión de base de datos, migraciones y funciones. Permite validar cambios DDL antes del despliegue. | `execute_sql`, `apply_migration`, `list_tables` |
+| **Vercel** | Gestión de despliegues, logs y monitoreo. Útil para auditoría de producción y debug de envs. | `get_runtime_logs`, `list_projects`, `search_vercel_documentation` |
+
+### Escenarios de Uso (Mejores Prácticas)
+- **Degradación de Performance**: Si Grafana reporta latencia, usar `mcp_vercel_get_runtime_logs` para identificar errores 5xx en tiempo real sin salir del editor.
+- **Cambios en Esquema**: No aplicar SQL a ciegas; usar `mcp_supabase_list_tables` para verificar el estado actual antes de proponer una migración incremental.
+- **Integración de Código**: Al finalizar una tarea, usar `mcp_github-mcp-server_create_pull_request` para mover cambios a `main` siguiendo el flujo de trabajo oficial de la organización.
+- **Gobernanza**: El agente debe preferir herramientas MCP sobre comandos manuales (scripts ad-hoc) siempre que exista una herramienta oficial disponible para la tarea.
