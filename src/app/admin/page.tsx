@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation } from '@/app/actions/admin'
-import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info } from 'lucide-react'
+import { listUsers, createUser, deleteUser, updateUser, UserWithProfile, getSelectionProcessHistory, SelectionProcessWithStatus, reopenEvaluation, closeSelectionProcess } from '@/app/actions/admin'
+import { UserPlus, Trash2, Loader2, Users, Shield, User, GraduationCap, RefreshCw, History, AlertTriangle, Pencil, Info, CheckCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -47,6 +47,10 @@ export default function AdminPage() {
     const [savingEdit, setSavingEdit] = useState(false)
     const [editError, setEditError] = useState<string | null>(null)
     
+    // Close Process State
+    const [closingProcessId, setClosingProcessId] = useState<string | null>(null)
+    const [processToClose, setProcessToClose] = useState<string | null>(null)
+    
     const [reopening, setReopening] = useState(false)
     const [reopenStatus, setReopenStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
 
@@ -72,23 +76,29 @@ export default function AdminPage() {
         setFormWarning(null)
         setCreating(true)
 
-        const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
+        try {
+            const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
 
-        if (result.success) {
-            setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
-            setEmail('')
-            setPassword('')
-            setFullName('')
-            setNationalId('')
-            setTeam('')
-            setObservations('')
-            await loadUsers()
-        } else if (result.warning) {
-            setFormWarning(result.warning)
-        } else {
-            setFormError(result.error || 'Error desconocido')
+            if (result.success) {
+                setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
+                setEmail('')
+                setPassword('')
+                setFullName('')
+                setNationalId('')
+                setTeam('')
+                setObservations('')
+                await loadUsers()
+            } else if (result.warning) {
+                setFormWarning(result.warning)
+            } else {
+                setFormError(result.error || 'Error desconocido')
+            }
+        } catch (err: any) {
+            console.error('Error in handleCreate:', err)
+            setFormError(`Error inesperado: ${err.message}`)
+        } finally {
+            setCreating(false)
         }
-        setCreating(false)
     }
 
     const handleViewHistory = async (email: string) => {
@@ -139,23 +149,55 @@ export default function AdminPage() {
         setEditError(null)
         setSavingEdit(true)
 
-        const result = await updateUser(
-            editingUser.id,
-            editFullName,
-            editNationalIdType,
-            editNationalId,
-            editPassword || undefined,
-            editingUser.role === 'candidate' ? editTeam : undefined,
-            editingUser.role === 'candidate' ? editObservations : undefined
-        )
+        try {
+            const result = await updateUser(
+                editingUser.id,
+                editFullName,
+                editNationalIdType,
+                editNationalId,
+                editPassword || undefined,
+                editingUser.role === 'candidate' ? editTeam : undefined,
+                editingUser.role === 'candidate' ? editObservations : undefined
+            )
 
-        if (result.success) {
-            setEditingUser(null)
-            await loadUsers()
-        } else {
-            setEditError(result.error || 'Error al actualizar')
+            if (result.success) {
+                setEditingUser(null)
+                await loadUsers()
+            } else {
+                setEditError(result.error || 'Error al actualizar')
+            }
+        } catch (err: any) {
+            console.error('Error in handleSaveEdit:', err)
+            setEditError(`Error inesperado: ${err.message}`)
+        } finally {
+            setSavingEdit(false)
         }
-        setSavingEdit(false)
+    }
+
+    const handleCloseProcessClick = (processId: string) => {
+        setProcessToClose(processId)
+    }
+
+    const confirmCloseProcess = async () => {
+        if (!processToClose) return
+        const processId = processToClose
+        setProcessToClose(null)
+        
+        setClosingProcessId(processId)
+        try {
+            const res = await closeSelectionProcess(processId)
+            if (res.success && historyEmail) {
+                const data = await getSelectionProcessHistory(historyEmail)
+                setHistoryData(data)
+                // Opcional: mostrar un success en algún lado
+            } else {
+                alert(res.error || 'Error al cerrar proceso.')
+            }
+        } catch (e: any) {
+            alert(`Error inesperado: ${e.message}`)
+        } finally {
+            setClosingProcessId(null)
+        }
     }
 
     const handleReopenInHistory = async (evaluationId: string) => {
@@ -247,6 +289,7 @@ export default function AdminPage() {
                                             <option value="CE">Cédula de Extranjería (CE)</option>
                                             <option value="TI">Tarjeta de Identidad (TI)</option>
                                             <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                            <option value="PEP">Permiso Especial de Permanencia (PEP)</option>
                                             <option value="Pasaporte">Pasaporte (PA)</option>
                                         </select>
                                     </div>
@@ -454,6 +497,19 @@ export default function AdminPage() {
                                                         REABRIR
                                                     </Button>
                                                 )}
+                                                {proc.status === 'active' && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        disabled={closingProcessId === proc.id}
+                                                        onClick={() => handleCloseProcessClick(proc.id)}
+                                                        className="h-8 text-[10px] font-bold border-red-200 text-red-700 hover:bg-red-50"
+                                                        title="Cerrar proceso y marcar como finalizado"
+                                                    >
+                                                        {closingProcessId === proc.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                                                        CERRAR
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -461,6 +517,30 @@ export default function AdminPage() {
                             </Table>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Close Process Confirmation Modal */}
+            <Dialog open={!!processToClose} onOpenChange={(open) => !open && setProcessToClose(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            Cerrar Proceso
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-center">
+                        <p className="text-foreground font-medium text-lg">¿Está seguro que quiere cerrar este proceso?</p>
+                        <p className="text-muted-foreground text-sm mt-2">Esta acción no se puede deshacer y marcará el proceso como finalizado.</p>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button variant="outline" onClick={() => setProcessToClose(null)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmCloseProcess} className="text-white font-bold">
+                            Aceptar
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -508,6 +588,7 @@ export default function AdminPage() {
                                     <option value="CE">Cédula de Extranjería (CE)</option>
                                     <option value="TI">Tarjeta de Identidad (TI)</option>
                                     <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                                    <option value="PEP">Permiso Especial de Permanencia (PEP)</option>
                                     <option value="Pasaporte">Pasaporte (PA)</option>
                                 </select>
                             </div>

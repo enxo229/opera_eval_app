@@ -97,32 +97,67 @@ export async function createUser(
         }
     }
 
-    // Create auth user
-    const { data, error } = await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-    })
+    let userId: string | null = null;
+    let isNewUser = true;
 
-    if (error) return { success: false, error: error.message }
+    // Check if user already exists
+    const { data: authData } = await admin.auth.admin.listUsers()
+    const existingUser = authData?.users.find(u => u.email === email)
+    if (existingUser) {
+        userId = existingUser.id
+        isNewUser = false
+    }
 
-    // Create profile
-    const { error: profileError } = await admin.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        role,
-        national_id_type: nationalIdType || null,
-        national_id: nationalId || null,
-    })
+    if (isNewUser) {
+        // Create auth user
+        const { data, error } = await admin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+        })
+        if (error) return { success: false, error: error.message }
+        userId = data.user.id
 
-    if (profileError) {
-        // Rollback on fail
-        await admin.auth.admin.deleteUser(data.user.id)
-        return { success: false, error: profileError.message }
+        // Create profile
+        const { error: profileError } = await admin.from('profiles').insert({
+            id: userId,
+            full_name: fullName,
+            role,
+            national_id_type: nationalIdType || null,
+            national_id: nationalId || null,
+        })
+
+        if (profileError) {
+            // Rollback on fail
+            await admin.auth.admin.deleteUser(userId)
+            return { success: false, error: profileError.message }
+        }
+    } else {
+        // Re-using user: we update their profile info to match the inputs
+        const { error: profileError } = await admin.from('profiles').update({
+            full_name: fullName,
+            role,
+            national_id_type: nationalIdType || null,
+            national_id: nationalId || null,
+        }).eq('id', userId!)
+
+        if (profileError) {
+            return { success: false, error: `Error al actualizar el perfil existente: ${profileError.message}` }
+        }
+        
+        // Also update password if provided
+        if (password && password.trim().length >= 6) {
+             const { error: pwdError } = await admin.auth.admin.updateUserById(userId!, {
+                  password: password.trim()
+             })
+             if (pwdError) {
+                 console.error('Failed to update password for existing user:', pwdError)
+             }
+        }
     }
 
     // Create selection process and draft evaluation if candidate
-    if (role === 'candidate') {
+    if (role === 'candidate' && userId) {
         const { data: processData, error: processError } = await admin.from('selection_processes').insert({
             candidate_email: email,
             candidate_national_id: nationalId || null,
@@ -133,16 +168,34 @@ export async function createUser(
 
         if (processError) {
             console.error("Error al crear el proceso de selección:", processError)
+            return { success: false, error: `Error creando proceso: ${processError.message}` }
         } else if (processData) {
             // Also create the Draft Evaluation tied to this process
             await admin.from('evaluations').insert({
-                candidate_id: data.user.id,
+                candidate_id: userId,
                 selection_process_id: processData.id,
                 status: 'draft'
             })
         }
     }
 
+    return { success: true }
+}
+
+/**
+ * Manually closes an active selection process.
+ */
+export async function closeSelectionProcess(processId: string): Promise<{ success: boolean; error?: string }> {
+    const admin = createAdminClient()
+    const { error } = await admin
+        .from('selection_processes')
+        .update({ status: 'completed' })
+        .eq('id', processId)
+        
+    if (error) {
+        console.error('Error closing selection process:', error)
+        return { success: false, error: `Error cerrando proceso: ${error.message}` }
+    }
     return { success: true }
 }
 
