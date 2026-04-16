@@ -125,7 +125,7 @@ export default function AdminPage() {
         setEditingUser(user)
         setEditFullName(user.full_name || '')
         setEditPassword('')
-        setEditNationalIdType(user.national_id_type || 'CC (Cédula de Ciudadanía)')
+        setEditNationalIdType(user.national_id_type || 'CC')
         setEditNationalId(user.national_id || '')
         setEditError(null)
         

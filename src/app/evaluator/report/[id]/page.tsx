@@ -23,6 +23,15 @@ import { CopyButton } from '@/components/evaluator/CopyButton'
 import { PrintReportButton } from '@/components/evaluator/PrintReportButton'
 import { RegenerateAIButton } from '@/components/evaluator/RegenerateAIButton'
 
+const ID_TYPE_LABELS: Record<string, string> = {
+    'CC': 'Cédula de Ciudadanía',
+    'CE': 'Cédula de Extranjería',
+    'TI': 'Tarjeta de Identidad',
+    'PPT': 'Permiso por Protección Temporal',
+    'PEP': 'Permiso Especial de Permanencia (PEP)',
+    'Pasaporte': 'Pasaporte',
+}
+
 export default async function EvaluationReportPage({ params }: { params: Promise<{ id: string }> }) {
     const supabase = await createClient()
     const { id } = await params
@@ -115,17 +124,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                 <FileText className="h-3 w-3" /> Identificación
                             </p>
                             <p className="font-bold">
-                                {(() => {
-                                    const labels: Record<string, string> = {
-                                        'CC': 'Cédula de Ciudadanía',
-                                        'CE': 'Cédula de Extranjería',
-                                        'TI': 'Tarjeta de Identidad',
-                                        'PPT': 'Permiso por Protección Temporal',
-                                        'PEP': 'Permiso Especial de Permanencia (PEP)',
-                                        'Pasaporte': 'Pasaporte'
-                                    };
-                                    return labels[profile?.national_id_type || ''] || profile?.national_id_type;
-                                })()} {profile?.national_id}
+                                {profile?.national_id_type ? (ID_TYPE_LABELS[profile.national_id_type] || profile.national_id_type) : ''} {profile?.national_id}
                             </p>
                         </div>
                         <div className="space-y-1">

@@ -1,6 +1,8 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { log } from '@/lib/observability/logger'
+import { metricsApp } from '@/lib/observability/metrics'
 
 export type UserWithProfile = {
     id: string
@@ -167,9 +169,10 @@ export async function createUser(
         }).select('id').single()
 
         if (processError) {
-            console.error("Error al crear el proceso de selección:", processError)
+            log.db.error('Error al crear el proceso de selección', processError, { email });
             return { success: false, error: `Error creando proceso: ${processError.message}` }
         } else if (processData) {
+            log.info('Proceso de selección creado exitosamente', { email, processId: processData.id });
             // Also create the Draft Evaluation tied to this process
             await admin.from('evaluations').insert({
                 candidate_id: userId,
@@ -179,6 +182,7 @@ export async function createUser(
         }
     }
 
+    log.info('Usuario creado/actualizado exitosamente', { email, role });
     return { success: true }
 }
 
@@ -193,9 +197,11 @@ export async function closeSelectionProcess(processId: string): Promise<{ succes
         .eq('id', processId)
         
     if (error) {
-        console.error('Error closing selection process:', error)
+        log.db.error('Error cerrando proceso de selección', error, { processId });
         return { success: false, error: `Error cerrando proceso: ${error.message}` }
     }
+    
+    log.info('Proceso de selección cerrado manualmente', { processId });
     return { success: true }
 }
 
@@ -250,9 +256,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
 
     // 3. Delete auth user (profile cascades via FK, but we clean up just in case)
     const { error } = await admin.auth.admin.deleteUser(userId)
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        log.db.error('Error eliminando usuario (Auth)', error, { userId, userEmail });
+        return { success: false, error: error.message }
+    }
 
     await admin.from('profiles').delete().eq('id', userId)
+    log.info('Usuario y perfil eliminados exitosamente', { userId, userEmail });
 
     return { success: true }
 }
@@ -393,10 +403,11 @@ export async function reopenEvaluation(evaluationId: string): Promise<{ success:
             .eq('id', evaluation.selection_process_id)
         
         if (procUpdateError) {
-            console.error('Error al reabrir proceso de selección:', procUpdateError)
+            log.db.error('Error al reabrir proceso de selección', procUpdateError, { evaluationId, processId: evaluation.selection_process_id });
             // No fallamos aquí porque la evaluación ya se reabrió exitosamente
         }
     }
 
+    log.info('Evaluación reabierta exitosamente', { evaluationId });
     return { success: true }
 }

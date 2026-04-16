@@ -8,6 +8,8 @@ Plataforma de evaluación de talento técnico para equipos de infraestructura y 
 - **UI**: React 19.2.3, Tailwind CSS v4, Shadcn UI v4 (Base UI)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
 - **IA**: Google Gemini (Gemma 3, Gemma 4 + Gemini 2.5 Flash Lite) con fallback automático y estrategia de respaldo manual
+- **📊 Observability Full Stack**: Instrumentación con OpenTelemetry (OTel) para Trazas, Métricas y Logs (Integrado con Grafana/Loki/Alloy).
+- **🛡️ AI Resilience Strategy**: Cadena de fallback automática (Gemma 3 -> Gemini 2.5) con backup manual.
 - **Animaciones**: Framer Motion v12.35
 - **Despliegue**: Vercel (auto-deploy desde `main`)
 
@@ -131,6 +133,25 @@ src/
 - Especificación de duración (60 min): [`docs/specs/duracion-evaluacion-60min.md`](docs/specs/duracion-evaluacion-60min.md)
 - Términos y Condiciones: [`docs/specs/terminosCondiciones.md`](docs/specs/terminosCondiciones.md)
 - Política de Tratamiento de Datos: [`docs/specs/tratamientoDatosPersonales.md`](docs/specs/tratamientoDatosPersonales.md)
+
+## 📊 Observability (OpenTelemetry)
+
+El proyecto está instrumentado con **OpenTelemetry** para monitorear el rendimiento de la IA, el estado de la base de datos y logs de sistema.
+
+### Configuración en Vercel
+
+Para habilitar la observabilidad completa en producción, configura las siguientes variables de entorno en el panel de Vercel:
+
+| Variable | Valor Recomendado | Descripción |
+|---|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `https://tu-collector.com` | El endpoint de tu OTLP Collector (Grafana Alloy, Honeycomb, etc). |
+| `OTEL_SERVICE_NAME` | `opera_eval_app` | Nombre del servicio para identificación en el dashboard. |
+| `OTEL_LOG_INFO_ENABLED` | `true` | Habilita el envío de logs de nivel INFO al collector. |
+| `OTEL_LOG_DEBUG_ENABLED` | `false` | (Opcional) Habilita logs detallados (usar solo para debugging). |
+| `OTEL_GENAI_CAPTURE_CONTENT` | `true` | Captura los prompts y completions de la IA en los Spans (Auditado). |
+
+> [!TIP]
+> En desarrollo local, los logs también se emiten a la consola en formato JSON estructurado para facilitar la depuración sin necesidad de un collector externo.
 
 ## Scripts
 

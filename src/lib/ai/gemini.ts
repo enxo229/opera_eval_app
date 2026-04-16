@@ -1,4 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { log } from '@/lib/observability/logger'
+import { metricsApp } from '@/lib/observability/metrics'
+
+// Initialize the OTel tracer for this module
+const tracer = trace.getTracer('ai.gemini')
 
 // Initialize the Gemini API client
 const apiKey = process.env.APP_GEMINI_API_KEY || ''
@@ -48,40 +54,91 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * Wrapper genérico para llamar a Gemini con Exponential Backoff y Model Fallback
  */
 async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 3): Promise<string> {
-    let attempt = 0
-    const baseDelayMs = 2000
+    return tracer.startActiveSpan('gemini.generateContent', async (span) => {
+        let attempt = 0
+        const baseDelayMs = 2000
 
-    while (attempt < maxRetries) {
-        // Seleccionamos el modelo según el intento.
-        // Si attempt >= longitud de la cadena, nos quedamos con el último modelo de la cadena.
-        const modelId = modelChain[Math.min(attempt, modelChain.length - 1)]
-        const model = genAI.getGenerativeModel({ model: modelId })
+        span.setAttribute('gen_ai.system', 'gemini')
+        span.setAttribute('gen_ai.operation.name', 'chat')
+        
+        if (process.env.OTEL_GENAI_CAPTURE_CONTENT === 'true') {
+            span.setAttribute('gen_ai.prompt', prompt)
+        }
 
-        try {
-            const result = await model.generateContent(prompt)
-            return result.response.text()
-        } catch (error: any) {
-            // Manejar errores de Límites o Indisponibilidad de Servicio
-            const isRateLimitOrUnavailable =
-                error?.status === 429 || error?.message?.includes('429') ||
-                error?.status === 503 || error?.message?.includes('503') ||
-                error?.status === 500 || error?.message?.includes('500');
+        while (attempt < maxRetries) {
+            // Seleccionamos el modelo según el intento.
+            const modelId = modelChain[Math.min(attempt, modelChain.length - 1)]
+            const model = genAI.getGenerativeModel({ model: modelId })
 
-            if (isRateLimitOrUnavailable) {
-                attempt++
-                if (attempt >= maxRetries) {
-                    throw new Error(`Rate limit exceeded or service unavailable after ${maxRetries} attempts. Last model tried: ${modelId}`)
+            span.setAttribute('gen_ai.request.model', modelId)
+            span.setAttribute('otp.ai.is_fallback', attempt > 0)
+            span.setAttribute('otp.ai.attempt', attempt)
+
+            const startTime = Date.now()
+            try {
+                const result = await model.generateContent(prompt)
+                const text = result.response.text()
+                
+                const duration = Date.now() - startTime
+                metricsApp.recordAiRequest(duration, { 
+                    model_id: modelId, 
+                    status: 'success', 
+                    is_fallback: attempt > 0 
+                });
+
+                if (process.env.OTEL_GENAI_CAPTURE_CONTENT === 'true') {
+                    span.setAttribute('gen_ai.completion', text) // Caution: Potential PII
                 }
-                const waitTime = baseDelayMs * Math.pow(2, attempt - 1)
-                console.warn(`[Gemini] Error (429/500/503) con modelo ${modelId}. Fallback/Reintento en ${waitTime}ms (Intento ${attempt} de ${maxRetries})...`)
-                await delay(waitTime)
-            } else {
-                throw error
+                
+                span.setStatus({ code: SpanStatusCode.OK })
+                span.end()
+                return text
+            } catch (error: any) {
+                const duration = Date.now() - startTime
+                metricsApp.recordAiRequest(duration, { 
+                    model_id: modelId, 
+                    status: 'error', 
+                    is_fallback: attempt > 0 
+                });
+
+                span.recordException(error)
+                // Manejar errores de Límites o Indisponibilidad de Servicio
+                const isRateLimitOrUnavailable =
+                    error?.status === 429 || error?.message?.includes('429') ||
+                    error?.status === 503 || error?.message?.includes('503') ||
+                    error?.status === 500 || error?.message?.includes('500');
+
+                if (isRateLimitOrUnavailable) {
+                    attempt++
+                    log.ai.warn(`Error (429/500/503) con modelo ${modelId}. Fallback/Reintento en curso...`, {
+                        'otp.ai.model': modelId,
+                        'otp.ai.attempt': attempt,
+                        'otp.ai.status': error?.status || 'unknown'
+                    });
+
+                    if (attempt >= maxRetries) {
+                        const finalMsg = `Rate limit exceeded or service unavailable after ${maxRetries} attempts. Last model tried: ${modelId}`;
+                        log.ai.error(finalMsg, error, { 'otp.ai.model': modelId });
+                        span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
+                        span.end()
+                        throw new Error(finalMsg)
+                    }
+                    const waitTime = baseDelayMs * Math.pow(2, attempt - 1)
+                    await delay(waitTime)
+                } else {
+                    log.ai.error(`Error no recuperable en Gemini (${modelId})`, error, { 'otp.ai.model': modelId });
+                    span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
+                    span.end()
+                    throw error
+                }
             }
         }
-    }
 
-    throw new Error('Failed to generate content after maximum retries.')
+        const finalError = new Error('Failed to generate content after maximum retries.')
+        span.setStatus({ code: SpanStatusCode.ERROR, message: finalError.message })
+        span.end()
+        throw finalError
+    })
 }
 
 /**
