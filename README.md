@@ -7,9 +7,9 @@ Plataforma de evaluación de talento técnico para equipos de infraestructura y 
 - **Framework**: Next.js 16.1.6 (App Router, Turbopack)
 - **UI**: React 19.2.3, Tailwind CSS v4, Shadcn UI v4 (Base UI)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **IA**: Google Gemini (Gemma 3, Gemma 4 + Gemini 2.5 Flash Lite) con fallback automático y estrategia de respaldo manual
+- **IA**: Google Gemini (Gemma 4 + Gemini 2.5 Flash Lite) con fallback automático y estrategia de respaldo manual
 - **📊 Observability Full Stack**: Instrumentación con OpenTelemetry (OTel) para Trazas, Métricas y Logs (Integrado con Grafana/Loki/Alloy).
-- **🛡️ AI Resilience Strategy**: Cadena de fallback automática (Gemma 3 -> Gemini 2.5) con backup manual.
+- **🛡️ AI Resilience Strategy**: Cadena de fallback automática (Gemma 4 -> Gemini 2.5) con backup manual.
 - **Animaciones**: Framer Motion v12.35
 - **Despliegue**: Vercel (auto-deploy desde `main`)
 

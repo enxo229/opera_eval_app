@@ -14,7 +14,7 @@
 | UI | React + Tailwind CSS v4 + Shadcn UI v4 (base-ui) | React 19.2.3 |
 | Lenguaje | TypeScript | ^5 |
 | Base de datos | Supabase (PostgreSQL + Auth + RLS) | SDK 2.98 |
-| IA Generativa | Google Gemini (Gemma 3 & Gemini 2.5) | SDK 0.24.1 |
+| IA Generativa | Google Gemini (Gemma 4 & Gemini 2.5) | SDK 0.24.1 |
 | Gráficos | Recharts | ^3.8 |
 | Animaciones | Framer Motion | ^12.35 |
 | Iconos | Lucide React | ^0.577 |
@@ -29,8 +29,8 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 | Tipo de Tarea | Modelo Principal (Intento 1) | Fallback 1 (Intento 2) | Fallback 2 (Intento 3) |
 |---|---|---|---|
-| **Generación** | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
-| **Evaluación** (JSON) | `gemma-3-27b-it` | `gemma-3-12b-it` | `gemini-2.5-flash-lite` |
+| **Generación** | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
+| **Evaluación** (JSON) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
 | **Reportes** (Narrativa) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
 
 - **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
