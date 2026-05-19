@@ -25,15 +25,15 @@ const genAI = new GoogleGenerativeAI(apiKey)
 
 // Cadena de prioridad (Primary -> Fallback) para generación de contenido
 const GENERATION_MODEL_CHAIN = [
-    'gemma-3-27b-it',        // 1. Principal: Gratuito, mejor razonativo.
-    'gemma-3-12b-it',        // 2. Fallback: Gratuito, ultra-rápido.
+    'gemma-4-31b-it',        // 1. Principal: Gratuito, mejor razonativo.
+    'gemma-4-26b-a4b-it',    // 2. Fallback: Gratuito, consistente.
     'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico, muy resistente.
 ]
 
 // Cadena de prioridad para evaluación (scoring estricto en JSON)
 const EVALUATION_MODEL_CHAIN = [
-    'gemma-3-27b-it',        // 1. Principal: Altísima capacidad analítica, gratuito.
-    'gemma-3-12b-it',        // 2. Fallback: Gratuito, rápido, buen análisis.
+    'gemma-4-31b-it',        // 1. Principal: Altísima capacidad analítica, gratuito.
+    'gemma-4-26b-a4b-it',    // 2. Fallback: Gratuito, rápido, buen análisis.
     'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente.
 ]
 
@@ -102,15 +102,17 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
                 });
 
                 span.recordException(error)
-                // Manejar errores de Límites o Indisponibilidad de Servicio
-                const isRateLimitOrUnavailable =
+                // Manejar errores de Límites, Indisponibilidad de Servicio o Modelo No Encontrado (404/400)
+                const isRecoverableError =
                     error?.status === 429 || error?.message?.includes('429') ||
                     error?.status === 503 || error?.message?.includes('503') ||
-                    error?.status === 500 || error?.message?.includes('500');
+                    error?.status === 500 || error?.message?.includes('500') ||
+                    error?.status === 404 || error?.message?.includes('404') ||
+                    error?.status === 400 || error?.message?.includes('400');
 
-                if (isRateLimitOrUnavailable) {
+                if (isRecoverableError) {
                     attempt++
-                    log.ai.warn(`Error (429/500/503) con modelo ${modelId}. Fallback/Reintento en curso...`, {
+                    log.ai.warn(`Error (4xx/5xx) con modelo ${modelId}. Fallback/Reintento en curso...`, {
                         'otp.ai.model': modelId,
                         'otp.ai.attempt': attempt,
                         'otp.ai.status': error?.status || 'unknown'
