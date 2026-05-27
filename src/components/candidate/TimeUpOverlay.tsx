@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion'
 import { Hourglass, AlertCircle, Home, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 
 export function TimeUpOverlay() {
     return (
@@ -45,11 +44,11 @@ export function TimeUpOverlay() {
                     </div>
 
                     <div className="flex flex-col w-full gap-3">
-                        <Link href="/" className="w-full">
-                            <Button className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-xl shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                        <form action="/auth/signout" method="post" className="w-full">
+                            <Button type="submit" className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-xl shadow-slate-900/10 transition-all hover:scale-[1.02]">
                                 <Home className="h-5 w-5 mr-3" /> Salir de la Prueba
                             </Button>
-                        </Link>
+                        </form>
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Plataforma SETI SAS / CoE Observabilidad</p>
                     </div>
                 </div>
