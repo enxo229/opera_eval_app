@@ -165,7 +165,8 @@ Responde ÚNICAMENTE con un JSON array de 3 objetos:
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Evaluación A4 Chat completada');
@@ -214,10 +215,11 @@ Contexto: El candidato viene de un rol de soporte (NOC/Soporte Nivel 1). NO es u
 Se evalúa comprensión conceptual y capacidad de explicar, no resolución de problemas avanzados.
 
 Reglas:
-- Cada pregunta debe poder responderse en 2-4 oraciones
-- Las preguntas deben ser justas para el nivel ${educationLevel}
-- Usa variación (seed: ${seed}) para generar preguntas diferentes cada vez
-- Responde ÚNICAMENTE con un JSON array de 5 objetos
+- Cada pregunta debe poder responderse en 2-4 oraciones.
+- Las preguntas deben ser justas para el nivel ${educationLevel}.
+- Cada pregunta debe plantear una situación o problema práctico del mundo real en infraestructura (ej: "Tienes que buscar un log de error en el directorio X...", "Un servidor reporta lentitud..."). Evita preguntas directas de definición teórica (como "¿Qué es X?").
+- Usa variación (seed: ${seed}) para generar preguntas diferentes cada vez.
+- Responde ÚNICAMENTE con un JSON array de 5 objetos.
 
 Formato exacto:
 [
@@ -229,7 +231,8 @@ Formato exacto:
 ]`
 
     const raw = await generateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Preguntas A1 generadas exitosamente');
@@ -286,7 +289,8 @@ Responde ÚNICAMENTE con un JSON array de 5 objetos:
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Evaluación A1 completada');
@@ -327,10 +331,11 @@ Subcategorías:
 La alerta de A2.5 debe ser realista, técnica pero comprensible para un junior.
 
 Reglas:
-- Cada pregunta debe poder responderse en 2-4 oraciones
-- Las preguntas deben ser justas para nivel entry-level
-- Usa variación (seed: ${seed})
-- Responde ÚNICAMENTE con un JSON array de 5 objetos
+- Cada pregunta debe poder responderse en 2-4 oraciones.
+- Las preguntas deben ser justas para nivel entry-level.
+- Cada pregunta debe plantear una situación o problema práctico del mundo real en observabilidad de sistemas (ej: "Tienes que investigar un bajón de tráfico en el dashboard X...", "Un servidor reporta uso de memoria Y..."). Evita preguntas directas de definición teórica (como "¿Qué es X?" o "¿Cuál es la diferencia entre A y B?").
+- Usa variación (seed: ${seed}).
+- Responde ÚNICAMENTE con un JSON array de 5 objetos.
 
 Formato exacto:
 [
@@ -342,7 +347,8 @@ Formato exacto:
 ]`
 
     const raw = await generateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Preguntas A2 generadas exitosamente');
@@ -398,7 +404,8 @@ Responde ÚNICAMENTE con un JSON array de 5 objetos:
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         return JSON.parse(cleaned)
     } catch {
@@ -435,6 +442,7 @@ Subcategorías y Tareas:
 
 Reglas:
 - Nivel Junior/Entry (escolaridad: ${educationLevel}).
+- Cada pregunta debe ser práctica y basada en escenarios (ej: "Tienes que subir una corrección de bug en Git...", "Revisa el siguiente código del script..."). Evita preguntas abstractas o definiciones genéricas.
 - A3.3 NO debe ser aleatoria, usa el problema del Error 502.
 - A3.4 debe estar correlacionada con A3.3.
 - Responde ÚNICAMENTE con un JSON array de 4 objetos:
@@ -446,7 +454,8 @@ Reglas:
 ]`
 
     const raw = await generateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Preguntas A3 generadas exitosamente');
@@ -508,7 +517,8 @@ Responde ÚNICAMENTE con un JSON array de 4 objetos:
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         return JSON.parse(cleaned)
     } catch {
@@ -616,7 +626,8 @@ Donde puntaje_total = suma de los 4 criterios (max 16).
 Donde puntaje_normalizado = (puntaje_total / 16) * 7, redondeado a 1 decimal.`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Evaluación detallada B1 completada');
@@ -690,7 +701,8 @@ Donde puntaje_total = suma de los 3 criterios (max 12).
 Donde puntaje_normalizado = (puntaje_total / 12) * 4, redondeado a 1 decimal.`
 
     const raw = await evaluateContentWithRetry(prompt)
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
         log.ai.info('Evaluación detallada B6 completada');

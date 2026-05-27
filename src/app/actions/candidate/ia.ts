@@ -15,7 +15,8 @@ export async function saveIA2Prompt(evaluationId: string, promptText: string): P
         const aiResponse = await evaluateIA2Prompt(promptText)
         let parsedResult: any = {}
         try {
-            const cleaned = aiResponse.replace(/```json/ig, '').replace(/```/g, '').trim()
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
+            const cleaned = jsonMatch ? jsonMatch[0] : aiResponse.replace(/```json/ig, '').replace(/```/g, '').trim()
             parsedResult = JSON.parse(cleaned)
         } catch (e) {
             console.error('Failed to parse Gemini JSON for IA-2:', aiResponse)

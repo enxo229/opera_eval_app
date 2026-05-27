@@ -53,7 +53,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 /**
  * Wrapper genérico para llamar a Gemini con Exponential Backoff y Model Fallback
  */
-async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 3): Promise<string> {
+async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 3, temperature?: number): Promise<string> {
     return tracer.startActiveSpan('gemini.generateContent', async (span) => {
         let attempt = 0
         const baseDelayMs = 2000
@@ -68,7 +68,10 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
         while (attempt < maxRetries) {
             // Seleccionamos el modelo según el intento.
             const modelId = modelChain[Math.min(attempt, modelChain.length - 1)]
-            const model = genAI.getGenerativeModel({ model: modelId })
+            const model = genAI.getGenerativeModel({ 
+                model: modelId,
+                generationConfig: typeof temperature === 'number' ? { temperature } : undefined
+            })
 
             span.setAttribute('gen_ai.request.model', modelId)
             span.setAttribute('otp.ai.is_fallback', attempt > 0)
@@ -146,32 +149,35 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
 /**
  * Genera contenido (preguntas, casos, chat)
  * Usa la cadena de modelos de generación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
+ * Usa una temperatura alta de 0.85 para propiciar creatividad y dinamismo
  */
-export async function generateContentWithRetry(prompt: string, maxRetries = 3): Promise<string> {
-    return callWithRetry(GENERATION_MODEL_CHAIN, prompt, maxRetries)
+export async function generateContentWithRetry(prompt: string, maxRetries = 3, temperature = 0.85): Promise<string> {
+    return callWithRetry(GENERATION_MODEL_CHAIN, prompt, maxRetries, temperature)
 }
 
 /**
  * Evalúa/analiza contenido (scoring, rúbricas, JSON estricto)
  * Usa la cadena de modelos de evaluación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
+ * Usa una temperatura baja de 0.15 para precisión y consistencia estrictas
  */
-export async function evaluateContentWithRetry(prompt: string, maxRetries = 3): Promise<string> {
-    return callWithRetry(EVALUATION_MODEL_CHAIN, prompt, maxRetries)
+export async function evaluateContentWithRetry(prompt: string, maxRetries = 3, temperature = 0.15): Promise<string> {
+    return callWithRetry(EVALUATION_MODEL_CHAIN, prompt, maxRetries, temperature)
 }
 
 /**
  * Genera feedback narrativo para reportes ejecutivos.
  * Usa la cadena de modelos de reporte (Gemma 4 31B -> Gemma 4 26B -> Gemini 2.5 Flash Lite)
+ * Usa una temperatura media de 0.70 para fluidez narrativa y formalidad
  */
-export async function generateReportFeedbackWithRetry(prompt: string, maxRetries = 3): Promise<string> {
-    return callWithRetry(REPORT_MODEL_CHAIN, prompt, maxRetries)
+export async function generateReportFeedbackWithRetry(prompt: string, maxRetries = 3, temperature = 0.7): Promise<string> {
+    return callWithRetry(REPORT_MODEL_CHAIN, prompt, maxRetries, temperature)
 }
 
 /**
  * Fuerza la generación usando exclusivamente Gemini 2.5 Flash Lite (Estrategia de respaldo manual).
  */
 export async function generateReportFeedbackLite(prompt: string): Promise<string> {
-    return callWithRetry(['gemini-2.5-flash-lite'], prompt, 2)
+    return callWithRetry(['gemini-2.5-flash-lite'], prompt, 2, 0.7)
 }
 
 /**
