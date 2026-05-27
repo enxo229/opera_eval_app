@@ -25,16 +25,18 @@ const genAI = new GoogleGenerativeAI(apiKey)
 
 // Cadena de prioridad (Primary -> Fallback) para generación de contenido
 const GENERATION_MODEL_CHAIN = [
-    'gemma-4-31b-it',        // 1. Principal: Gratuito, mejor razonativo.
-    'gemma-4-26b-a4b-it',    // 2. Fallback: Gratuito, consistente.
-    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico, muy resistente.
+    'gemini-2.5-flash',      // 1. Principal: Ultra-rápido, creativo y estable.
+    'gemma-4-31b-it',        // 2. Fallback: Gratuito, razonativo.
+    'gemma-4-26b-a4b-it',    // 3. Fallback: Consistente.
+    'gemini-2.5-flash-lite'  // 4. Fallback Universal: Económico, resistente.
 ]
 
 // Cadena de prioridad para evaluación (scoring estricto en JSON)
 const EVALUATION_MODEL_CHAIN = [
-    'gemma-4-31b-it',        // 1. Principal: Altísima capacidad analítica, gratuito.
-    'gemma-4-26b-a4b-it',    // 2. Fallback: Gratuito, rápido, buen análisis.
-    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente.
+    'gemini-2.5-flash',      // 1. Principal: Calificación e interpretación en milisegundos.
+    'gemma-4-31b-it',        // 2. Fallback: Alta capacidad analítica.
+    'gemma-4-26b-a4b-it',    // 3. Fallback: Rápido.
+    'gemini-2.5-flash-lite'  // 4. Fallback Universal: Resistente.
 ]
 
 // Cadena de prioridad para Reportes Ejecutivos (Narrativa de alta calidad)
