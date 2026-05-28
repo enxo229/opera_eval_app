@@ -611,35 +611,60 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                                                     )}
                                                 </div>
 
-                                                {/* Textual Feedback based on level */}
-                                                <p className={`text-sm font-medium ${color.text} min-h-[1.5rem] italic`}>
-                                                    "{subItem.levels[currentScore - 1]}"
-                                                </p>
+                                                {/* Textual Feedback based on level — Redesigned as clickable list with Dimension C aesthetic */}
+                                                <div className="space-y-2 pt-1">
+                                                    {subItem.levels.map((levelDesc, idx) => {
+                                                        const scoreVal = idx + 1
+                                                        const isActive = currentScore === scoreVal
+                                                        
+                                                        let rowColor = 'bg-white text-slate-700 border-transparent border'
+                                                        if (scoreVal >= 3) {
+                                                            rowColor = 'bg-emerald-50/60 text-emerald-800 border-emerald-100/50 border hover:bg-emerald-50'
+                                                        } else if (scoreVal === 2) {
+                                                            rowColor = 'bg-orange-50/60 text-orange-800 border-orange-100/50 border hover:bg-orange-50'
+                                                        } else {
+                                                            rowColor = 'bg-red-50/60 text-red-800 border-red-100/50 border hover:bg-red-50'
+                                                        }
 
-                                                {/* Interactive Slider Bar */}
-                                                <div className="flex items-center gap-4 pt-2">
+                                                        return (
+                                                            <div
+                                                                key={idx}
+                                                                onClick={() => !readOnly && setSubScores(prev => ({ ...prev, [subItem.id]: scoreVal }))}
+                                                                className={`flex gap-3 text-sm items-center p-2.5 rounded-lg transition-all ${
+                                                                    !readOnly ? 'cursor-pointer hover:shadow-sm' : ''
+                                                                } ${
+                                                                    isActive 
+                                                                        ? 'ring-2 ring-primary ring-offset-1 scale-[1.01] shadow-md z-10 font-semibold bg-primary/5' 
+                                                                        : rowColor
+                                                                }`}
+                                                            >
+                                                                <span className={`font-black shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-xs transition-all ${
+                                                                    isActive 
+                                                                        ? 'bg-primary text-primary-foreground' 
+                                                                        : 'bg-background/80 shadow-sm text-muted-foreground'
+                                                                }`}>
+                                                                    {scoreVal}
+                                                                </span>
+                                                                <span className="leading-snug text-xs md:text-sm">{levelDesc}</span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+
+                                                {/* Interactive Progress Bar */}
+                                                <div className="flex items-center gap-4 pt-2 border-t border-dashed border-border/50">
                                                     <span className="text-xs text-muted-foreground font-bold shrink-0">Tu calificación:</span>
 
                                                     {/* Visual Bar */}
-                                                    <div className={`flex-1 h-3 rounded-full ${color.barBg} overflow-hidden flex`}>
+                                                    <div className={`flex-1 h-2 rounded-full ${color.barBg} overflow-hidden flex`}>
                                                         <div className={`h-full rounded-full ${color.bg} transition-all duration-300 ease-out`}
                                                             style={{ width: `${(currentScore / 4) * 100}%` }} />
                                                     </div>
 
-                                                    {/* Buttons 1-4 */}
-                                                    <div className="flex gap-1.5 shrink-0">
-                                                        {[1, 2, 3, 4].map(v => (
-                                                            <button key={v} disabled={readOnly}
-                                                                onClick={() => setSubScores(prev => ({ ...prev, [subItem.id]: v }))}
-                                                                className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold text-sm transition-all shadow-sm
-                                                                    ${currentScore === v
-                                                                        ? `${SCORE_COLORS[v].bg} text-white ring-2 ${SCORE_COLORS[v].ring} scale-110` // Active state
-                                                                        : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80' // Inactive state
-                                                                    }`}>
-                                                                {v}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                    {/* Quick View Button (Dimension A style) */}
+                                                    <span className={`font-black text-sm font-mono w-7 h-7 flex items-center justify-center rounded-md ${color.bg} text-white`}>
+                                                        {currentScore}
+                                                    </span>
                                                 </div>
                                             </div>
                                         )
