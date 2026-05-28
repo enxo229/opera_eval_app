@@ -184,17 +184,53 @@ export async function generateReportFeedbackLite(prompt: string): Promise<string
 
 /**
  * IA-2: Evalúa el prompt que el candidato formuló en su herramienta de IA.
- * Analiza el contexto, claridad y sugiere un score basado en el ejercicio de Elasticsearch.
+ * Analiza 5 dimensiones de Ingeniería de Contexto (Prompt Engineering) y sugiere un score riguroso.
  */
 export async function evaluateIA2Prompt(prompt: string): Promise<string> {
-    const systemPrompt = `Eres un evaluador experto en Ingeniería de Prompts (Prompt Engineering) evaluando candidatos para un rol de NOC.
-El candidato participó en un ejercicio práctico donde se le pidió resolver este escenario: 
+    const systemPrompt = `Eres un evaluador ESTRICTO y experto en Ingeniería de Prompts (Prompt Engineering) evaluando candidatos para un rol de NOC/SRE.
+
+El candidato participó en un ejercicio práctico donde se le dio este enunciado textual:
 "Usando la herramienta de IA que prefieras, pregúntale cómo buscarías en Elasticsearch todos los logs de error del servidor srv-prod-payments-01 del día de ayer."
 
-A continuación, te presentaré el prompt exacto que el candidato ingresó en su herramienta de IA (ChatGPT/Copilot/etc.).
-Debes analizarlo rigurosamente observando:
-1. Contexto provisto: ¿Incluyó "Elasticsearch", "logs de error", el nombre del servidor ("srv-prod-payments-01") y el marco de tiempo ("ayer")?
-2. Claridad de la instrucción: ¿Es una orden o pregunta directa que evitará alucinaciones del modelo?
+A continuación, te presentaré el prompt EXACTO que el candidato ingresó en su herramienta de IA (ChatGPT/Copilot/etc.).
+
+IMPORTANTE: NO estás evaluando si el candidato mencionó los parámetros del enunciado. Eso es lo MÍNIMO esperado (el enunciado ya se los dio). 
+Lo que evalúas es si el candidato demostró HABILIDAD DE INGENIERÍA DE PROMPTS al formular su consulta. Un candidato que simplemente parafrasea o copia el enunciado NO demuestra habilidad de prompting.
+
+Debes analizar RIGUROSAMENTE estas 5 dimensiones técnicas de Prompt Engineering:
+
+1. ASIGNACIÓN DE ROL (0 o 1 punto): ¿Le asignó un rol, persona o nivel de expertise al modelo? 
+   Ejemplo que SÍ puntúa: "Actúa como un ingeniero SRE experto en Elasticsearch..."
+   Ejemplo que NO puntúa: No asignar rol alguno (simplemente preguntar directamente).
+
+2. CONTEXTO TÉCNICO (0 o 1 punto): ¿Incluyó los 4 parámetros clave del escenario?
+   - Herramienta: "Elasticsearch"
+   - Tipo de log: "logs de error" / "level: ERROR"
+   - Servidor: "srv-prod-payments-01"
+   - Marco temporal: "ayer" / "últimas 24 horas"
+   NOTA CRÍTICA: Si el candidato simplemente reformuló el enunciado que le dieron sin agregar valor, esto le da 1 punto en esta dimensión PERO NO en las demás. Parafrasear no es ingeniería de prompts.
+
+3. FORMATO DE SALIDA (0 o 1 punto): ¿Especificó cómo quiere recibir la respuesta?
+   Ejemplo que SÍ puntúa: "Dame la query en formato JSON de Elasticsearch DSL", "Respóndeme paso a paso", "Muéstrame el query con comentarios explicativos"
+   Ejemplo que NO puntúa: No indicar formato alguno (dejar que el modelo decida libremente).
+
+4. RESTRICCIONES / GUARDRAILS (0 o 1 punto): ¿Acotó el alcance para evitar respuestas genéricas o ambiguas?
+   Ejemplo que SÍ puntúa: "Usa el campo @timestamp para el rango de fecha y level para filtrar errores", "No incluyas aggregations, solo la búsqueda básica"
+   Ejemplo que NO puntúa: Preguntas abiertas sin restricciones técnicas.
+
+5. SOFISTICACIÓN / ITERACIÓN (0 o 1 punto): ¿Demostró madurez más allá de una pregunta plana?
+   Ejemplo que SÍ puntúa: Pedir explicación de cada parte del query, solicitar variantes alternativas, pedir validación del resultado, incluir un escenario de follow-up.
+   Ejemplo que NO puntúa: Una sola pregunta directa sin profundidad.
+
+ESCALA DE PUNTUACIÓN (suma de las 5 dimensiones):
+- 5/5: Prompt de nivel profesional/senior. Incluye rol + parámetros + formato + restricciones + sofisticación.
+- 4/5: Prompt avanzado. Incluye rol + parámetros + formato o restricciones. Demuestra intención clara de guiar al modelo.
+- 3/5: Prompt funcional. Incluye los parámetros y al menos un elemento avanzado (rol O formato). Obtendría respuesta útil pero no óptima.
+- 2/5: Prompt básico / paráfrasis. Menciona los parámetros clave pero es una reformulación plana del enunciado sin técnicas de prompting.
+- 1/5: Prompt vago. Faltan parámetros clave o es demasiado genérico.
+- 0/5: Irrelevante. No tiene relación con el ejercicio.
+
+REGLA ANTI-INFLACIÓN: Si el candidato SOLO reformuló el enunciado original (mencionando Elasticsearch, logs de error, el servidor y ayer) SIN añadir rol, formato, restricciones ni sofisticación, el puntaje MÁXIMO es 2. No importa qué tan "clara" sea la reformulación: parafrasear no es prompt engineering.
 
 Prompt enviado por el candidato:
 """
@@ -203,10 +239,10 @@ ${prompt}
 
 Responde estricta y ÚNICAMENTE con un objeto JSON (sin delimitadores markdown \\\`\\\`\\\`json) con el siguiente formato:
 {
-  "context_analysis": "Análisis breve de qué elementos de contexto incluyó y cuáles omitió. Máx. 2 oraciones.",
-  "clarity_analysis": "Análisis cualitativo del nivel de madurez al armar el prompt (claro, vago, ambiguo). Máx. 2 oraciones.",
-  "suggested_score": 0, /* Un puntaje sugerido de 0 a 5. (5: Perfecto con roles y contexto, 4: Muy bueno, 3: Funcional pero le falta precisión, 2: Vago/incompleto, 1: Poco claro, 0: Irrelevante) */
-  "feedback_to_evaluator": "Un comentario directo al humano (Evaluador) indicándole qué observar del candidato."
+  "context_analysis": "Análisis de qué dimensiones técnicas de prompt engineering aplicó y cuáles omitió. Sé específico sobre cada una de las 5 dimensiones. Máx. 3 oraciones.",
+  "clarity_analysis": "Evaluación del nivel de madurez y sofisticación del prompt. ¿Es una simple paráfrasis del enunciado o demuestra técnicas reales de ingeniería de contexto? Máx. 2 oraciones.",
+  "suggested_score": 0,
+  "feedback_to_evaluator": "Un comentario directo al humano (Evaluador) indicándole qué nivel de habilidad de prompting demuestra el candidato y qué le faltó para obtener un puntaje superior."
 }`
 
     return evaluateContentWithRetry(systemPrompt)

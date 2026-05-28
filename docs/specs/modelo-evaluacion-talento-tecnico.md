@@ -506,16 +506,23 @@ Entrega al candidato el siguiente enunciado y permítele usar cualquier herramie
 1. Si sabe cómo interactuar con una IA para obtener algo útil (cómo formula la pregunta)
 2. Si tiene criterio básico para evaluar la respuesta recibida
 
-**Guía de puntuación IA-2:**
+**Guía de puntuación IA-2 (Basada en Ingeniería de Contexto / Prompt Engineering):**
+
+Se evalúan 5 dimensiones técnicas del prompt formulado por el candidato:
+1. **Asignación de Rol**: ¿Le asignó un rol o persona al modelo? (ej: "Actúa como un ingeniero SRE experto en Elasticsearch...")
+2. **Contexto Técnico**: ¿Incluyó los 4 parámetros clave? (Elasticsearch, logs de error, srv-prod-payments-01, ayer)
+3. **Formato de Salida**: ¿Especificó cómo quiere la respuesta? (ej: "Dame la query en formato JSON de Elasticsearch DSL")
+4. **Restricciones / Guardrails**: ¿Acotó el alcance para evitar respuestas genéricas? (ej: "Solo usa el campo @timestamp y level: ERROR")
+5. **Sofisticación / Iteración**: ¿Demostró madurez más allá de una pregunta plana? (ej: pedir explicación, variantes, o validación)
 
 | Puntaje | Descripción concreta |
 |---|---|
-| **5** | Formula una pregunta clara y con contexto. Evalúa la respuesta críticamente: identifica qué es correcto, qué le falta o qué ajustaría. No acepta la respuesta a ciegas. |
-| **4** | Formula bien la pregunta y entiende la respuesta, pero la acepta sin cuestionarla o con poca reflexión crítica. |
-| **3** | Usa la herramienta pero la pregunta es vaga. La respuesta que obtiene es genérica y no lo nota. |
-| **2** | Ha usado IA antes pero le cuesta formular la pregunta en este contexto. Necesita orientación para empezar. |
-| **1** | Nunca ha usado una herramienta de IA. Lo intenta pero sin resultado útil. |
-| **0** | Se niega a usar la herramienta o no sabe cómo acceder a ninguna. |
+| **5** | Prompt de nivel profesional/senior. Incluye rol + los 4 parámetros + formato de salida explícito + restricciones técnicas + sofisticación. |
+| **4** | Prompt avanzado. Incluye rol + parámetros + formato de salida o restricciones. Demuestra intención clara de guiar al modelo. |
+| **3** | Prompt funcional. Incluye los parámetros técnicos y al menos un elemento avanzado (rol O formato). Obtendría una respuesta útil pero no óptima. |
+| **2** | Prompt básico / paráfrasis. Menciona los parámetros clave pero es una reformulación plana del enunciado sin técnicas de prompting. |
+| **1** | Prompt vago. Faltan parámetros clave o es demasiado genérico para generar una respuesta precisa. |
+| **0** | Irrelevante. No tiene relación con el ejercicio o se niega a participar. |
 
 **Puntaje IA-2:** _______ / 5
 
