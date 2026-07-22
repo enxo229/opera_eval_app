@@ -197,17 +197,17 @@ export async function generateQuestionsA1(educationLevel: string, profileTrack?:
 
     if (profileTrack === 'otel_expert') {
         const prompt = `Eres un evaluador técnico senior de SRE y Observabilidad.
-Genera exactamente 4 preguntas avanzadas en español de RESPUESTA ABIERTA Y JUSTIFICADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
+Genera exactamente 4 preguntas en español de RESPUESTA ABIERTA Y SINTETIZADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
 
 Subcategorías:
-1. A1.1 — Arquitectura OTel: API vs. SDK & Propagación de Contexto (W3C Trace Context, B3, inyección HTTP/gRPC)
-2. A1.2 — Topología OTel Collector: Receivers, Processors (batch, memory_limiter, transform/OTTL), Exporters y Extensions
-3. A1.3 — Protocolo OTLP: Estructura de paquetes gRPC vs HTTP/JSON, serialización Protobuf, reintentos y backoff
-4. A1.4 — Telemetry Profiling: OpenTelemetry eBPF profiling y perfiles de rendimiento contínuos
+1. A1.1 — Arquitectura OTel: Concepto de API vs SDK (cuándo usar cada uno) y propagación de contexto en microservicios.
+2. A1.2 — OTel Collector: Qué componente de pipeline (Receiver, Processor, Exporter) usarías para filtrar logs y reducir cardinalidad.
+3. A1.3 — Protocolo OTLP: Ventajas conceptuales de OTLP/gRPC frente a HTTP/JSON y manejo de reintentos.
+4. A1.4 — Profiling eBPF: Ventajas de la instrumentación sin código (eBPF) frente a la tradicional en observabilidad.
 
 REGLAS CRÍTICAS:
-- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA Y JUSTIFICADA. NINGUNA opción múltiple.
-- Cada pregunta debe plantear un problema o trade-off real de arquitectura de observabilidad.
+- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA. NINGUNA opción múltiple.
+- Las preguntas deben ser conceptuales y de análisis rápido. NO pidas diseñar archivos de configuración completos ni bloques de código YAML extensos. El candidato debe poder responderlas en 2-3 minutos con 2-4 oraciones.
 - Responde ÚNICAMENTE con un JSON array de 4 objetos.
 
 Formato exacto:
@@ -228,10 +228,10 @@ Formato exacto:
         } catch (e) {
             log.ai.error('Error parseando preguntas A1 OTel Expert', e as Error, { raw });
             return [
-                { subcategory: 'A1.1', label: 'Arquitectura OTel & Contexto', question: 'Explique la diferencia fundamental entre la API y el SDK de OpenTelemetry y cómo se gestiona la propagación de contexto en llamadas HTTP distribuidas.' },
-                { subcategory: 'A1.2', label: 'Collector & OTTL Pipelines', question: 'Describa la arquitectura de pipelines de un OTel Collector y el rol del Transform Processor (OTTL) en el procesamiento de telemetría.' },
-                { subcategory: 'A1.3', label: 'Protocolo OTLP & Transportes', question: 'Compare el comportamiento de OTLP/gRPC frente a OTLP/HTTP-JSON en términos de rendimiento, serialización Protobuf y reintentos.' },
-                { subcategory: 'A1.4', label: 'Profiling & eBPF Telemetry', question: 'Explique qué ventajas aporta la integración de profiling eBPF en OpenTelemetry frente a la instrumentación tradicional por código.' }
+                { subcategory: 'A1.1', label: 'Arquitectura OTel & Contexto', question: '¿Cuál es la diferencia conceptual entre la API y el SDK de OpenTelemetry y cuándo interactúa tu aplicación con cada uno?' },
+                { subcategory: 'A1.2', label: 'Collector & OTTL Pipelines', question: '¿Cómo configurarías conceptualmente un pipeline en el OTel Collector para procesar únicamente logs que contengan la palabra "error"?' },
+                { subcategory: 'A1.3', label: 'Protocolo OTLP & Transportes', question: '¿Qué ventajas tiene gRPC sobre HTTP/JSON al enviar datos de telemetría a través del protocolo OTLP?' },
+                { subcategory: 'A1.4', label: 'Profiling & eBPF Telemetry', question: '¿Cómo ayuda eBPF a recolectar métricas de CPU y memoria sin alterar el código de una aplicación?' }
             ]
         }
     }
@@ -388,16 +388,16 @@ export async function generateQuestionsA2(tool: string, educationLevel: string, 
 
     if (profileTrack === 'otel_expert') {
         const prompt = `Eres un evaluador técnico senior de SRE y Observabilidad.
-Genera exactamente 3 preguntas avanzadas en español de RESPUESTA ABIERTA Y JUSTIFICADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
+Genera exactamente 3 preguntas en español de RESPUESTA ABIERTA Y SINTETIZADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
 
 Subcategorías:
-1. A2.1 — Grafana Alloy & Agent Flow Mode (Arquitectura por componentes, pipelines declarativos y reutilización de componentes)
-2. A2.2 — Grafana Mimir & Loki (PromQL avanzado rate/agregación sobre tiempo y LogQL parsing json/logfmt/unwrap con métricas derivadas)
-3. A2.3 — Grafana Tempo & Pyroscope (Búsqueda TraceQL, Span Metrics/Service Graphs y lectura de Flamegraphs en Pyroscope)
+1. A2.1 — Grafana Alloy: Concepto de Alloy en modo Flow (por qué componentes declarativos) y despliegue básico.
+2. A2.2 — Grafana Mimir & Loki: Cuándo calcular la tasa de error por segundo en PromQL y la diferencia conceptual entre LogQL y SQL para consultar logs.
+3. A2.3 — Grafana Tempo & Pyroscope: Concepto de Span Metrics (trazas a métricas) y cómo ayuda el profiling contínuo a reducir costes cloud.
 
 REGLAS CRÍTICAS:
-- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA Y JUSTIFICADA. NINGUNA opción múltiple.
-- Plantea situaciones prácticas de diagnóstico y consulta técnica real.
+- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA. NINGUNA opción múltiple.
+- Las preguntas deben ser conceptuales y de análisis rápido. NO pidas diseñar archivos de configuración completos ni bloques de código YAML extensos. El candidato debe poder responderlas en 2-3 minutos con 2-4 oraciones.
 - Responde ÚNICAMENTE con un JSON array de 3 objetos.
 
 Formato exacto:
@@ -417,9 +417,9 @@ Formato exacto:
         } catch (e) {
             log.ai.error('Error parseando preguntas A2 OTel Expert', e as Error, { raw });
             return [
-                { subcategory: 'A2.1', label: 'Grafana Alloy Flow Mode', question: 'Explique la arquitectura orientada a componentes de Grafana Alloy (Flow mode) y cómo difiere del esquema de configuración estático del Grafana Agent tradicional.' },
-                { subcategory: 'A2.2', label: 'Mimir & Loki (PromQL/LogQL)', question: 'Escriba y explique una consulta LogQL que filtre logs de error en formato JSON, extraiga la latencia y genere una métrica de percentil 95 (p95).' },
-                { subcategory: 'A2.3', label: 'Tempo & Pyroscope (TraceQL/Profiling)', question: 'Describa cómo utilizaría una consulta TraceQL en Tempo en combinación con un Flamegraph de Pyroscope para identificar un bloqueo de mutex en producción.' }
+                { subcategory: 'A2.1', label: 'Grafana Alloy Flow Mode', question: '¿Cuál es la ventaja principal del modo de configuración Flow en Grafana Alloy frente a las configuraciones estáticas tradicionales?' },
+                { subcategory: 'A2.2', label: 'Mimir & Loki (PromQL/LogQL)', question: 'Explica conceptualmente cómo calcularías la tasa de peticiones por segundo utilizando una métrica de contador en PromQL.' },
+                { subcategory: 'A2.3', label: 'Tempo & Pyroscope (TraceQL/Profiling)', question: '¿Cómo se utiliza un Flamegraph en Pyroscope para identificar qué función está consumiendo la mayor cantidad de CPU?' }
             ]
         }
     }

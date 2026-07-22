@@ -40,21 +40,33 @@ export function A1Tab({
         ctx.incrementBypassCount()
     }
 
+    const isOtelExpert = ctx.profileTrack === 'otel_expert'
+
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <Terminal className="h-5 w-5 text-primary" />
                 A1. Fundamentos de Infraestructura y Observabilidad
             </h2>
-            <p className="text-muted-foreground text-sm mb-4">
-                Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
-                Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
-            </p>
-            <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
-            <div className="mt-6">
+            
+            {!isOtelExpert && (
+                <>
+                    <p className="text-muted-foreground text-sm mb-4">
+                        Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
+                        Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
+                    </p>
+                    <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
+                </>
+            )}
+
+            <div className={isOtelExpert ? "mt-2" : "mt-6"}>
                 {!a1QuestionsGenerated ? (
-                    <div className="text-center py-4 border border-border rounded-xl mt-4">
-                        <p className="text-muted-foreground mb-4">Cuando termines con la terminal, genera las preguntas para completar la sección A1.</p>
+                    <div className="text-center py-6 border border-border rounded-xl mt-4">
+                        <p className="text-muted-foreground mb-4">
+                            {isOtelExpert 
+                                ? 'Genera las preguntas técnicas para comenzar la sección A1.' 
+                                : 'Cuando termines con la terminal, genera las preguntas para completar la sección A1.'}
+                        </p>
                         <Button onClick={handleGenerateA1Questions} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             Generar Preguntas A1
                         </Button>

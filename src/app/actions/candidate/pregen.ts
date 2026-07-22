@@ -1,0 +1,71 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { generateQuestionsA1, generateQuestionsA2 } from '@/app/actions/ai'
+import { saveA1QuestionsOnly } from '@/app/actions/candidate/a1'
+import { saveA2QuestionsOnly } from '@/app/actions/candidate/a2'
+import { log } from '@/lib/observability/logger'
+
+/**
+ * Pre-generates evaluation questions for the specialized track (OTel Expert)
+ * when the candidate accepts the T&C / chooses education level.
+ * Prevents 10-second wait times during the active exam.
+ */
+export async function pregenerateTrackQuestions(evaluationId: string, educationLevel: string) {
+    const supabase = await createClient()
+
+    try {
+        // 1. Fetch selection process profile track
+        const { data: evaluation, error: evalErr } = await supabase
+            .from('evaluations')
+            .select(`
+                id,
+                selection_processes (profile_track)
+            `)
+            .eq('id', evaluationId)
+            .single()
+
+        if (evalErr || !evaluation) {
+            log.error('Could not find evaluation for pre-generation', evalErr)
+            return { success: false, error: 'Evaluación no encontrada' }
+        }
+
+        const profileTrack = (evaluation.selection_processes as any)?.profile_track || 'general'
+        log.info(`Pregenerating questions for track: ${profileTrack}, educationLevel: ${educationLevel}`)
+
+        if (profileTrack === 'otel_expert') {
+            // A1 Questions pre-generation
+            const { data: existingA1 } = await supabase
+                .from('dynamic_tests')
+                .select('id')
+                .eq('evaluation_id', evaluationId)
+                .eq('test_type', 'QUESTIONS_A1')
+                .limit(1)
+
+            if (!existingA1 || existingA1.length === 0) {
+                log.info('Pre-generating A1 questions (OTel Expert)')
+                const a1Questions = await generateQuestionsA1(educationLevel, 'otel_expert')
+                await saveA1QuestionsOnly(evaluationId, a1Questions)
+            }
+
+            // A2 Questions pre-generation (pre-selecting Grafana)
+            const { data: existingA2 } = await supabase
+                .from('dynamic_tests')
+                .select('id')
+                .eq('evaluation_id', evaluationId)
+                .eq('test_type', 'QUESTIONS_A2')
+                .limit(1)
+
+            if (!existingA2 || existingA2.length === 0) {
+                log.info('Pre-generating A2 questions with tool Grafana (OTel Expert)')
+                const a2Questions = await generateQuestionsA2('Grafana', educationLevel, 'otel_expert')
+                await saveA2QuestionsOnly(evaluationId, 'Grafana', a2Questions)
+            }
+        }
+
+        return { success: true }
+    } catch (err) {
+        log.error('Error in pre-generating questions', err as Error)
+        return { success: false, error: (err as Error).message }
+    }
+}

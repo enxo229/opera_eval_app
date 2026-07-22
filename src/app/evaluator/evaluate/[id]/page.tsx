@@ -41,7 +41,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
     // Try finding via active process first
     const { data: activeProcess } = await supabase
         .from('selection_processes')
-        .select('id, evaluations(*)')
+        .select('id, profile_track, evaluations(*)')
         .eq('candidate_email', candidateEmail)
         .eq('status', 'active')
         .limit(1)
@@ -49,16 +49,20 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
     if (activeProcess?.evaluations && activeProcess.evaluations.length > 0) {
         evaluation = activeProcess.evaluations[0]
+        evaluation.profile_track = activeProcess.profile_track
     } else {
         // Fallback: look up by candidate_id in case it's a legacy record without process
         const { data: legacyEval } = await supabase
             .from('evaluations')
-            .select('*')
+            .select('*, selection_processes(profile_track)')
             .eq('candidate_id', candidate.id)
             .order('id', { ascending: false })
             .limit(1)
-            .maybeSingle()
+            .maybeSingle() as any
         evaluation = legacyEval
+        if (evaluation) {
+            evaluation.profile_track = evaluation.selection_processes?.profile_track || 'general'
+        }
     }
 
     if (!evaluation) {
@@ -73,7 +77,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                     evaluator_id: authCtx.user.id,
                     status: 'active'
                 })
-                .select('id')
+                .select('id, profile_track')
                 .single()
 
             const { data: newEval } = await supabase
@@ -87,6 +91,9 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 .select('*')
                 .single<any>()
             evaluation = newEval
+            if (evaluation) {
+                evaluation.profile_track = newProc?.profile_track || 'general'
+            }
         }
     }
 
@@ -169,13 +176,14 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 <div className="lg:col-span-2 space-y-6">
                     <Tabs defaultValue="overview" className="w-full">
                         {(() => {
+                            const isOtel = evaluation.profile_track === 'otel_expert'
                             const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
                             const hasB = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
                             const hasC = ['C1', 'C2', 'C3', 'C4'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
                             const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => s.dimension === 'D' && s.category === cat))
 
                             return (
-                                <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 mb-8">
+                                <TabsList className={`grid w-full ${isOtel ? 'grid-cols-4' : 'grid-cols-5'} h-12 bg-muted/50 p-1 mb-8`}>
                                     <TabsTrigger value="overview" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">Resumen</TabsTrigger>
                                     <TabsTrigger value="dimA" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
                                         Dim. A (Técnica) {hasA && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
@@ -186,9 +194,11 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                     <TabsTrigger value="dimC" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
                                         Dim. C (Cultural) {hasC && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                                     </TabsTrigger>
-                                    <TabsTrigger value="dimD" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
-                                        Dim. D (Uso IA) {hasD && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                                    </TabsTrigger>
+                                    {!isOtel && (
+                                        <TabsTrigger value="dimD" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
+                                            Dim. D (Uso IA) {hasD && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                                        </TabsTrigger>
+                                    )}
                                 </TabsList>
                             )
                         })()}
@@ -293,11 +303,13 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="dimD" className="m-0">
-                            <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionDEvaluation evaluationId={evaluation.id} existingScores={existingScores} readOnly={evaluation.status === 'completed'} />
-                            </div>
-                        </TabsContent>
+                        {evaluation.profile_track !== 'otel_expert' && (
+                            <TabsContent value="dimD" className="m-0">
+                                <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
+                                    <DimensionDEvaluation evaluationId={evaluation.id} existingScores={existingScores} readOnly={evaluation.status === 'completed'} />
+                                </div>
+                            </TabsContent>
+                        )}
                     </Tabs>
                 </div>
 

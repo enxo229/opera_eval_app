@@ -48,6 +48,13 @@ export function useA2State(educationLevel: string, evaluationId: string | null, 
         }
     }, [educationLevel, evaluationId])
 
+    // Auto-select Grafana for otel_expert track
+    useEffect(() => {
+        if (profileTrack === 'otel_expert' && !a2SelectedTool && !a2QuestionsLoading && !a2QuestionsGenerated) {
+            handleSelectTool('Grafana')
+        }
+    }, [profileTrack, a2SelectedTool, a2QuestionsLoading, a2QuestionsGenerated, handleSelectTool])
+
     const handleSubmitA2 = useCallback(async () => {
         if (!evaluationId || !a2SelectedTool) return
         setA2Submitting(true)

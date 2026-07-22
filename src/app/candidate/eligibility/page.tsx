@@ -17,6 +17,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useCandidateContext } from '@/context/CandidateContext'
+import { pregenerateTrackQuestions } from '@/app/actions/candidate/pregen'
 
 const EDUCATION_LEVELS = [
     { 
@@ -46,9 +47,10 @@ const EDUCATION_LEVELS = [
 ]
 
 export default function EligibilityPage() {
-    const { evaluationId, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation } = useCandidateContext()
+    const { evaluationId, profileTrack, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation } = useCandidateContext()
     const [selected, setSelected] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [pregenText, setPregenText] = useState('Guardando Perfil...')
     const router = useRouter()
 
     // Legal Guard
@@ -75,6 +77,15 @@ export default function EligibilityPage() {
             await supabase.from('profiles').update({ education_level: selected }).eq('id', user.id)
         }
         ctxSetEducation(selected)
+
+        // Pre-generate track questions to avoid active test generation delay
+        if (evaluationId) {
+            if (profileTrack === 'otel_expert') {
+                setPregenText('Generando preguntas personalizadas de OTel & Grafana Cloud (esto puede tomar unos segundos)...')
+            }
+            await pregenerateTrackQuestions(evaluationId, selected)
+        }
+
         router.push('/candidate')
     }
 
@@ -155,9 +166,9 @@ export default function EligibilityPage() {
                             }`}
                         >
                             {saving ? (
-                                <span className="flex items-center gap-2">
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    Guardando Perfil...
+                                <span className="flex items-center gap-2 max-w-full text-center text-sm px-2">
+                                    <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+                                    <span>{pregenText}</span>
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-2">

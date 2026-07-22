@@ -61,8 +61,8 @@ export function FinalScoreCard({ evaluation }: { evaluation: any }) {
                         <span className="text-xl font-black text-primary font-mono">{evaluation.final_score !== null ? evaluation.final_score : '-'} / 100</span>
                     </div>
 
-                    {/* AI Score distinct box */}
-                    {evaluation.score_ia !== null && (
+                    {/* AI Score distinct box (general track only) */}
+                    {evaluation.profile_track !== 'otel_expert' && evaluation.score_ia !== null && (
                         <div className="mt-6">
                             <h4 className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2">Habilidad Transversal Requerida</h4>
                             <div className="flex justify-between items-center bg-indigo-50 p-3 rounded-lg border border-indigo-200">
