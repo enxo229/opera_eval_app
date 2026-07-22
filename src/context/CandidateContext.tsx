@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getA1Results } from '@/app/actions/candidate/a1'
 import { getA2Results } from '@/app/actions/candidate/a2'
@@ -57,6 +57,9 @@ interface CandidateContextType {
     pauseCount: number
     setPauseCount: React.Dispatch<React.SetStateAction<number>>
     isPaused: boolean
+    // Security Bypass Audit Counter
+    bypassPasteCount: number
+    incrementBypassCount: () => void
 }
 
 const CandidateContext = createContext<CandidateContextType | undefined>(undefined)
@@ -82,6 +85,12 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [pausedAt, setPausedAt] = useState<string | null>(null)
     const [totalPausedMs, setTotalPausedMs] = useState<number>(0)
     const [pauseCount, setPauseCount] = useState<number>(0)
+
+    // Security Bypass Audit Counter
+    const [bypassPasteCount, setBypassPasteCount] = useState<number>(0)
+    const incrementBypassCount = useCallback(() => {
+        setBypassPasteCount(prev => prev + 1)
+    }, [])
 
     useEffect(() => {
         async function loadContext() {
@@ -238,7 +247,8 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
             restoredA1, restoredA2, restoredA3,
             startedAt, setStartedAt, testDuration, remainingSeconds, isTimeUp, 
             pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, pauseCount, setPauseCount,
-            isPaused: !!pausedAt
+            isPaused: !!pausedAt,
+            bypassPasteCount, incrementBypassCount
         }}>
             {children}
         </CandidateContext.Provider>

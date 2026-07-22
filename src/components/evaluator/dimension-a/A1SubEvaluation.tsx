@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import NextImage from 'next/image'
 import { RefreshCw, RotateCcw, Loader2, Sparkles } from 'lucide-react'
 import { A1_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A1SubEvaluationProps {
     a1QuestionsData: any[]
@@ -116,16 +117,22 @@ export function A1SubEvaluation({
                                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                                         <p className="text-xs text-slate-500 font-semibold uppercase">Pregunta:</p>
                                         <p className="text-xs text-slate-700">{questionData.prompt_context}</p>
+
                                         {questionData.candidate_response && (
                                             <>
                                                 <p className="text-xs text-slate-500 font-semibold uppercase mt-2">Respuesta del candidato:</p>
                                                 <p className="text-xs text-slate-800 font-mono bg-white/50 p-2 rounded">{questionData.candidate_response}</p>
+                                                <AiLikelihoodBadge
+                                                    percentage={questionData.ai_likelihood_score ?? questionData.ai_likelihood}
+                                                    riskLevel={questionData.ai_likelihood_risk}
+                                                    indicators={questionData.ai_likelihood_indicators}
+                                                />
                                             </>
                                         )}
                                         {questionData.ai_justification && (
                                             <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-2">
                                                 <p className="text-xs text-amber-800 flex items-center gap-1">
-                                                    <NextImage src="/icons/AIAgent.png" alt="IA" width={28} height={28} className="inline mr-1" /> <strong>IA ({questionData.ai_score}/3):</strong> {questionData.ai_justification}
+                                                    <NextImage src="/icons/AIAgent.png" alt="IA" width={28} height={28} className="inline mr-1 text-xs" /> <strong>IA ({questionData.ai_score}/3):</strong> {questionData.ai_justification}
                                                 </p>
                                             </div>
                                         )}

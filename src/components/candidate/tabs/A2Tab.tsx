@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { HelpCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { A2Question } from '@/app/actions/ai'
 import { TOOL_OPTIONS } from '@/lib/constants'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 interface A2TabProps {
     a2SelectedTool: string | null
@@ -30,7 +31,13 @@ export function A2Tab({
     handleSelectTool,
     handleSubmitA2
 }: A2TabProps) {
+    const ctx = useCandidateContext()
     const allA2Answered = a2Questions.length > 0 && a2Questions.every(q => (a2Answers[q.subcategory] || '').trim().length > 0)
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        ctx.incrementBypassCount()
+    }
 
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
@@ -69,22 +76,23 @@ export function A2Tab({
                     ) : a2QuestionsGenerated && a2Questions.length > 0 ? (
                         <div className="space-y-4">
                             {a2Questions.map(q => (
-                                <div key={q.subcategory} className="space-y-2 bg-secondary/30 border border-border rounded-lg p-4">
+                                <div key={q.subcategory} className="space-y-2 bg-secondary/30 border border-border rounded-lg p-4 select-none">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                         <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{q.question}</p>
+                                    <p className="text-sm text-muted-foreground select-none pointer-events-none">{q.question}</p>
                                     <textarea
                                         value={a2Answers[q.subcategory] || ''}
                                         onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                        onPaste={(e) => e.preventDefault()}
-                                        onCopy={(e) => e.preventDefault()}
-                                        onContextMenu={(e) => e.preventDefault()}
+                                        onPaste={handleBypassAttempt}
+                                        onCopy={handleBypassAttempt}
+                                        onCut={handleBypassAttempt}
+                                        onContextMenu={handleBypassAttempt}
                                         disabled={a2Submitted}
-                                        placeholder="Escribe tu respuesta aquí..."
+                                        placeholder="Escribe tu respuesta justificada aquí..."
                                         name={`answer-${q.subcategory}`}
-                                        className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                                        className="w-full min-h-[90px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 select-text"
                                     />
                                 </div>
                             ))}

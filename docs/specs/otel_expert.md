@@ -31,37 +31,52 @@ El conocimiento técnico de este perfil se organiza en 4 dominios interconectado
 
 ---
 
-## 3. Mapeo a la Estructura de Evaluación de OTP (Dimensiones A, B, C, D)
+## 3. Estrategia de Evaluación, Dimensiones (A, B, C) y Presupuesto de Tiempo (60 min)
 
-Para mantener coherencia con el motor de calificación de OTP, las temáticas de OTel & Grafana Cloud se distribuyen en las 4 dimensiones de la plataforma:
+La evaluación se completa en un tiempo exacto de **60 minutos**, consta **únicamente de preguntas con respuesta abierta / justificada** (0 selección múltiple) y omite la Dimensión D (IA) para concentrarse en las 3 dimensiones principales:
 
-### Dimensión A — Evaluación Técnica (50 Puntos Máx.)
-
-| Módulo OTP | Formato de Evaluación | Temáticas OTel / Grafana Cloud Evaluadas | Puntaje |
-|---|---|---|---|
-| **A1: Fundamentos OTel & Grafana** | 5 Preguntas Q&A dinámicas asistidas por IA | Conceptos API vs SDK, W3C Trace Context, Componentes Collector, PromQL/LogQL sintáctico | 15 pts |
-| **A2: Herramientas de Ecosistema** | Preguntas sobre stack seleccionado | Configuración de Grafana Alloy, Mimir, Loki, Tempo y Pyroscope | 15 pts |
-| **A3: Configuración & CLI simulada** | Editor de código / YAML + Terminal CLI | Pipeline OTTL (Transform Processor), configuración `tail_sampling`, reglas de relabeling y PromQL/TraceQL queries | 10 pts (raw 12) |
-| **A4: Caso Práctico de Incidente** | Chat interactivo de investigación de causa raíz | Incidente distribuido con trazas rotas/incompletas, alta cardinalidad o picos de latencia intermitentes | 10 pts (raw 9) |
-
-### Dimensión B — Competencias Blandas & Incidentes (30 Puntos Máx.)
-
-| Módulo OTP | Formato | Enfoque SRE | Puntaje |
-|---|---|---|---|
-| **B1: Ticket de Incidente SRE** | Redacción de Ticket & Handoff | Gestión de incidente crítico de observabilidad, reporte de impacto en SLO y plan de mitigación | 7 pts (raw 16) |
-| **B2 - B6: Gestión de Incidentes** | Evaluación de Handoff & Colaboración | Asertividad, colaboración asíncrona, gestión de bloqueos en producción | 23 pts |
-
-### Dimensión C — Fit Cultural & Filosofía SRE (20 Puntos Máx.)
-
-- **C1 - C4**: Cultura Blameless Post-mortem, orientación a SLOs/Error Budgets, automatización y reducción de Toill.
-
-### Dimensión D — Competencia en Inteligencia Artificial (10 Puntos Desempate)
-
-- **IA-1 e IA-2**: Capacidad del candidato para construir prompts estructurados (Role, Context, Constraints, Format) aplicados al diagnóstico de telemetría distribuida.
+### Ponderación de Dimensiones (100 Puntos Totales)
+- **Dimensión A — Evaluación Técnica (50 Puntos / 50%)**: Módulos A1, A2, A3, A4.
+- **Dimensión B — Competencias Blandas & Incidentes (30 Puntos / 30%)**: Módulos B1-B6.
+- **Dimensión C — Fit Cultural & Filosofía SRE (20 Puntos / 20%)**: Módulos C1-C4.
 
 ---
 
-## 4. Matriz Detallada de Temáticas por Dominio
+### Presupuesto de Tiempo Humano Realista (60 Minutos)
+
+Basado en la tasa estándar de redacción técnica (~35 palabras/minuto), un ingeniero humano redacta una respuesta justificada (~60–90 palabras) en ~3.5 a 4.0 minutos. El tiempo se distribuye así:
+
+| Módulo OTP | Formato de Evaluación | Cantidad / Ítems | Tiempo Sugerido | Justificación Humana |
+|---|---|---|---|---|
+| **A1: Fundamentos OTel & Grafana** | Respuestas abiertas redactadas | 4 preguntas abiertas | 14 min | ~3.5 min/pregunta (API vs SDK, W3C, Collector). |
+| **A2: Herramientas Grafana Stack** | Respuestas abiertas situacionales | 3 preguntas abiertas | 12 min | ~4 min/pregunta (PromQL, LogQL, TraceQL, Alloy). |
+| **A3: Configuración & CLI** | Análisis YAML / OTTL + CLI | 1 ejercicio con 2 preguntas | 10 min | Inspección de pipeline `tail_sampling` / OTTL en editor. |
+| **A4: Caso Práctico Incidente** | Chat interactivo de causa raíz | 1 caso con chatbot | 10 min | Lectura de telemetría y diagnóstico conversacional. |
+| **B1: Ticket de Incidente SRE** | Redacción de Ticket & Handoff | 1 formulario de ticket | 7 min | Impacto en SLO, causa raíz y mitigación. |
+| **B2-B6 & C1-C4** | Fit Cultural & Colaboración | Secciones de validación | 5 min | Colaboración Blameless y cultura de SLOs. |
+| **Margen Inicial / Setup** | Onboarding & Instrucciones | — | 2 min | Inicio del examen. |
+| **TOTAL** | **Respuestas 100% Abiertas** | **~10 Actividades** | **60 MINUTOS** | **~5.8 min/ítem principal**, garantizando finalización humana holgada. |
+
+---
+
+## 4. Detección de Contenido Generado por IA y Seguridad Anti-Copiar/Pegar
+
+### 4.1 Motor de Probabilidad de IA (AI Likelihood 0% - 100%)
+- Cada respuesta abierta del candidato es analizada en segundo plano por el motor de evaluación para calcular el porcentaje de probabilidad (`0% a 100%`) de que la respuesta haya sido redactada por un modelo de lenguaje (LLM).
+- **Regla de Presentación**: El puntaje de probabilidad de IA se renderizará **exclusivamente en la interfaz gráfica del Dashboard del Evaluador** con insignias (*Badges*):
+  - `0% - 29%`: **Probabilidad IA Baja** (Verde)
+  - `30% - 69%`: **Probabilidad IA Media** (Amarillo)
+  - `70% - 100%`: **⚠️ Probabilidad IA Alta** (Rojo animado)
+- **Exclusión**: Este puntaje **NO** se incluye en el reporte ejecutivo oficial en PDF.
+
+### 4.2 Restricciones de Seguridad & Contador de Bypass (`bypass_paste_count`)
+- Las tarjetas con enunciados de preguntas aplican la clase CSS `select-none` y bloquean la copia.
+- Los campos de texto del candidato bloquean los eventos `onPaste`, `onCopy`, `onCut` y `onContextMenu`.
+- Cada intento de pegar o usar combinaciones de teclado bloqueadas incrementa un contador de advertencias (`bypass_paste_count`), el cual se muestra en el panel del evaluador para auditar la conducta del candidato.
+
+---
+
+## 5. Matriz Detallada de Temáticas por Dominio
 
 ### Dominio 1: Estándar OpenTelemetry (OTel) [Ponderación: 30%]
 - **1.1 API vs. SDK**: Separación conceptual, inyección de dependencias, instrumentación automática vs. manual.
@@ -75,7 +90,7 @@ Para mantener coherencia con el motor de calificación de OTP, las temáticas de
 - **2.2 Motor de Métricas (Grafana Mimir / Prometheus)**: PromQL avanzado (rate, irate, vector instantáneo vs. rango, agregación temporal), Remote Write v1/v2.
 - **2.3 Motor de Logs (Grafana Loki)**: LogQL (label filters, parsers `json`/`logfmt`, unwrap, métricas derivadas), estrategias de indexación.
 - **2.4 Motor de Trazas (Grafana Tempo)**: TraceQL, generación de métricas desde trazas (Span Metrics / Service Graphs).
-- **2.5 Profiling Continuo (Grafana Pyroscope)**: Lectura e interpretation de Flamegraphs (CPU, Allocations, Mutex).
+- **2.5 Profiling Continuo (Grafana Pyroscope)**: Lectura e interpretación de Flamegraphs (CPU, Allocations, Mutex).
 
 ### Dominio 3: Arquitectura, Muestreo y Gestión de Cardinalidad [Ponderación: 20%]
 - **3.1 Control de Cardinalidad**: Identificación de etiquetas de alta cardinalidad, relabeling y drop de métricas en Collector/Mimir.
@@ -92,7 +107,7 @@ Para mantener coherencia con el motor de calificación de OTP, las temáticas de
 
 ---
 
-## 5. Rúbrica Global de Clasificación Técnica
+## 6. Rúbrica Global de Clasificación Técnica
 
 | Rango de Puntaje | Clasificación Final | Descripción del Perfil Técnico |
 |---|---|---|
@@ -103,7 +118,7 @@ Para mantener coherencia con el motor de calificación de OTP, las temáticas de
 
 ---
 
-## 6. Rúbrica Detallada por Criterio de Dominio
+## 7. Rúbrica Detallada por Criterio de Dominio
 
 | Criterio | Insuficiente (<60%) | Junior (60%-74%) | Senior (75%-89%) | Arquitecto (90%-100%) |
 |---|---|---|---|---|
@@ -111,63 +126,3 @@ Para mantener coherencia con el motor de calificación de OTP, las temáticas de
 | **Grafana Cloud** | Paneles estáticos únicamente. No conoce PromQL ni LogQL. | Dashboards funcionales. PromQL básico y filtrados simples en LogQL. | Usa TraceQL para correlación. Crea Span Metrics desde trazas. | Optimiza la indexación en Loki/Mimir y reduce costos reestructurando pipelines. |
 | **Cardinalidad y Muestreo** | Ignora el impacto de alta cardinalidad en etiquetas. | Entiende el concepto de alta cardinalidad pero no sabe mitigarla en colectores. | Aplica reglas de relabeling/drop. Implementa Head y Tail sampling. | Diseña políticas globales de retención y agregación en borde antes de ingesta. |
 | **SRE y Diagnóstico** | Confunde SLI con SLO. Alertas estáticas simples. | Configura SLOs básicos y entiende el concepto de Error Budget. | Alertas Burn Rate multi-ventana. Correlación fluida con Data Links. | Define la estrategia global de observabilidad integrando RUM, Sintéticos y Profiling. |
-
----
-
-## 7. Ejemplos de Preguntas y Evaluación por Nivel
-
-### Ejemplo 1: Nivel 1 (Fundacional)
-> **Pregunta**: ¿En qué componente de una arquitectura de observabilidad basada en OpenTelemetry se ejecuta típicamente el Tail-based Sampling?  
-> - A) En el SDK de OpenTelemetry dentro de la aplicación.  
-> - B) En el balanceador de carga de la infraestructura Cloud.  
-> - C) En el OpenTelemetry Collector (modo Gateway). *(Correcta)*  
-> - D) En el motor de almacenamiento (Grafana Tempo).  
->
-> **Evaluación**: Valida la comprensión teórica de la ubicación del componente dentro de la arquitectura de telemetría.
-
----
-
-### Ejemplo 2: Nivel 2 (Operativo / Diagnóstico)
-> **Escenario**: Un microservicio crítico presenta un pico de latencia en el 1% de sus peticiones HTTP. La aplicación está instrumentada con un SDK de OTel usando `TraceIdRatioBasedSampler(0.1)` (10%). Al revisar Grafana Tempo, el equipo no encuentra las trazas asociadas a las peticiones lentas.  
->
-> **Pregunta**: ¿Por qué ocurre este problema y cuál es la solución operativa recomendada?  
-> - A) Grafana Tempo descarta trazas por falta de memoria; se debe aumentar el buffer.  
-> - B) El muestreo Head-based en el SDK tomó la decisión de descarte al inicio de la petición sin saber que sería lenta. Se debe migrar a Tail-based Sampling en el OTel Collector evaluando la duración del span. *(Correcta)*  
-> - C) El protocolo OTLP/gRPC perdió paquetes por saturación de red; se debe cambiar a HTTP/JSON.  
-> - D) El SDK no propagó el encabezado `traceparent`; se debe forzar el uso de B3.  
->
-> **Evaluación**: Valida la capacidad de diagnosticar fallos causados por decisiones de sampling inadecuadas en producción.
-
----
-
-### Ejemplo 3: Nivel 3 (Arquitectura y Optimización)
-> **Escenario**: Dada la siguiente configuración del procesador `tail_sampling` en un OpenTelemetry Collector:
-```yaml
-processors:
-  tail_sampling:
-    decision_wait: 10s
-    num_traces: 10000
-    expected_new_traces_per_sec: 2000
-    policies:
-      [
-        {
-          name: drop_healthchecks,
-          type: string_attribute,
-          string_attribute: { key: http.target, values: [ "/health", "/metrics" ], enabled_regex_matching: false, invert_match: true }
-        },
-        {
-          name: sample_errors,
-          type: status_code,
-          status_code: { status_codes: [ ERROR ] }
-        }
-      ]
-```
-> Al desplegar esta configuración en un clúster de Kubernetes con 5 réplicas del OTel Collector colocadas detrás de un Service K8s (Round-Robin), el equipo observa que las trazas distribuidas entre múltiples microservicios aparecen incompletas o fragmentadas en Grafana Tempo.  
->
-> **Pregunta**: Identifique la falla arquitectónica fundamental y la solución requerida para corregir el pipeline.  
-> - A) El parámetro `num_traces` es muy bajo; debe incrementarse a 100,000.  
-> - B) El procesador `tail_sampling` no evalúa `status_code`; se debe usar OTTL.  
-> - C) Las peticiones se distribuyen aleatoriamente entre los 5 Collectors. Como un único Collector no recibe todos los spans de una misma traza, el Tail-based Sampling toma decisiones con información incompleta. Se debe implementar un Load-balancing Exporter previo que enrute las trazas por `trace_id` hacia el mismo Collector. *(Correcta)*  
-> - D) La política `drop_healthchecks` tiene `invert_match: true`, lo cual descarta todo excepto `/health`.  
->
-> **Evaluación**: Evalúa la capacidad de comprender la naturaleza con estado (*stateful*) del Tail-based Sampling y escalar topologías distribuidas de colectores.

@@ -3,7 +3,7 @@ import { A1Question, generateQuestionsA1 } from '@/app/actions/ai'
 import { saveA1QuestionsOnly, saveA1Responses } from '@/app/actions/candidate/a1'
 import { useCandidateContext, RestoredA1 } from '@/context/CandidateContext'
 
-export function useA1State(educationLevel: string, evaluationId: string | null, restored: RestoredA1 | null) {
+export function useA1State(educationLevel: string, evaluationId: string | null, restored: RestoredA1 | null, profileTrack?: string) {
     const [a1Commands, setA1Commands] = useState<string[]>([])
     const [a1Questions, setA1Questions] = useState<A1Question[]>([])
     const [a1Answers, setA1Answers] = useState<Record<string, string>>({})
@@ -28,7 +28,7 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
         setA1QuestionsLoading(true)
         setA1QuestionsGenerated(true)
         try {
-            const questions = await generateQuestionsA1(educationLevel)
+            const questions = await generateQuestionsA1(educationLevel, profileTrack)
             setA1Questions(questions)
             
             const initialAnswers: Record<string, string> = {}

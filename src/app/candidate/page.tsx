@@ -34,8 +34,8 @@ export default function CandidateEvaluationFlow() {
     // States for local "Starting" animation
     const [isStartingTimer, setIsStartingTimer] = useState(false)
 
-    const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1)
-    const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2)
+    const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1, ctx.profileTrack)
+    const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2, ctx.profileTrack)
     const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3)
 
     // Completion states for tabs that don't export them via hooks
@@ -187,7 +187,7 @@ export default function CandidateEvaluationFlow() {
                 </div>
 
                 <Tabs defaultValue="a1" className="w-full">
-                    <TabsList className="grid w-full grid-cols-8 h-12 bg-muted/50 p-1 mb-6">
+                    <TabsList className={`grid w-full ${ctx.profileTrack === 'otel_expert' ? 'grid-cols-7' : 'grid-cols-8'} h-12 bg-muted/50 p-1 mb-6`}>
                         <TabsTrigger value="a1" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
                             <Terminal className="h-4 w-4 hidden sm:block" /> <span className="hidden sm:inline">A1</span><span className="sm:hidden">A1</span>
                             {a1.a1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
@@ -216,10 +216,12 @@ export default function CandidateEvaluationFlow() {
                             C
                             {cSubmitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
-                        <TabsTrigger value="d" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
-                            <Sparkles className="h-4 w-4 hidden sm:block text-indigo-500 group-data-[state=active]:text-indigo-200" /> Dim. D
-                            {d2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
-                        </TabsTrigger>
+                        {ctx.profileTrack !== 'otel_expert' && (
+                            <TabsTrigger value="d" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
+                                <Sparkles className="h-4 w-4 hidden sm:block text-indigo-500 group-data-[state=active]:text-indigo-200" /> Dim. D
+                                {d2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                            </TabsTrigger>
+                        )}
                     </TabsList>
 
                     {/* ===== A1: Linux Terminal + 5 Per-Subcategory Questions ===== */}
@@ -356,28 +358,30 @@ export default function CandidateEvaluationFlow() {
                         </Card>
                     </TabsContent>
 
-                    {/* ===== Dimensión D: IA ===== */}
-                    <TabsContent value="d" className="space-y-6">
-                        {/* Indicación para D1 */}
-                        <Card className="border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6">
-                            <CardContent className="p-4 flex items-start gap-4">
-                                <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
-                                    <Bot className="w-5 h-5 text-amber-700 dark:text-amber-400" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-amber-900 dark:text-amber-100">D1: Comprensión de IA (Sincrónica)</h3>
-                                    <p className="text-sm text-amber-800/80 dark:text-amber-200/80 mt-1">
-                                        Antes de hacer el ejercicio escrito a continuación, el evaluador te hará un par de preguntas conceptuales rápidas sobre Inteligencia Artificial. Infórmale que estás listo.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                    {/* ===== Dimensión D: IA (Solo para perfil general) ===== */}
+                    {ctx.profileTrack !== 'otel_expert' && (
+                        <TabsContent value="d" className="space-y-6">
+                            {/* Indicación para D1 */}
+                            <Card className="border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6">
+                                <CardContent className="p-4 flex items-start gap-4">
+                                    <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                                        <Bot className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-amber-900 dark:text-amber-100">D1: Comprensión de IA (Sincrónica)</h3>
+                                        <p className="text-sm text-amber-800/80 dark:text-amber-200/80 mt-1">
+                                            Antes de hacer el ejercicio escrito a continuación, el evaluador te hará un par de preguntas conceptuales rápidas sobre Inteligencia Artificial. Infórmale que estás listo.
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                        {/* Implementación real de D2 */}
-                        <div className="space-y-4">
-                            {ctx.evaluationId && <PromptEditorIA2 evaluationId={ctx.evaluationId} onStatusChange={setD2Submitted} />}
-                        </div>
-                    </TabsContent>
+                            {/* Implementación real de D2 */}
+                            <div className="space-y-4">
+                                {ctx.evaluationId && <PromptEditorIA2 evaluationId={ctx.evaluationId} onStatusChange={setD2Submitted} />}
+                            </div>
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
         </div>

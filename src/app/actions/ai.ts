@@ -2,6 +2,7 @@
 
 import { generateContentWithRetry, evaluateContentWithRetry } from '@/lib/ai/gemini'
 import { log } from '@/lib/observability/logger'
+import { analyzeAiLikelihood } from '@/app/actions/ai-detector'
 
 /**
  * Fuerza la generación de feedback usando el modelo Lite.
@@ -191,8 +192,50 @@ Responde ÚNICAMENTE con un JSON array de 3 objetos:
  */
 export type A1Question = { subcategory: string; label: string; question: string }
 
-export async function generateQuestionsA1(educationLevel: string): Promise<A1Question[]> {
+export async function generateQuestionsA1(educationLevel: string, profileTrack?: string): Promise<A1Question[]> {
     const seed = Math.floor(Math.random() * 10000)
+
+    if (profileTrack === 'otel_expert') {
+        const prompt = `Eres un evaluador técnico senior de SRE y Observabilidad.
+Genera exactamente 4 preguntas avanzadas en español de RESPUESTA ABIERTA Y JUSTIFICADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
+
+Subcategorías:
+1. A1.1 — Arquitectura OTel: API vs. SDK & Propagación de Contexto (W3C Trace Context, B3, inyección HTTP/gRPC)
+2. A1.2 — Topología OTel Collector: Receivers, Processors (batch, memory_limiter, transform/OTTL), Exporters y Extensions
+3. A1.3 — Protocolo OTLP: Estructura de paquetes gRPC vs HTTP/JSON, serialización Protobuf, reintentos y backoff
+4. A1.4 — Telemetry Profiling: OpenTelemetry eBPF profiling y perfiles de rendimiento contínuos
+
+REGLAS CRÍTICAS:
+- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA Y JUSTIFICADA. NINGUNA opción múltiple.
+- Cada pregunta debe plantear un problema o trade-off real de arquitectura de observabilidad.
+- Responde ÚNICAMENTE con un JSON array de 4 objetos.
+
+Formato exacto:
+[
+  {"subcategory": "A1.1", "label": "Arquitectura OTel & Contexto", "question": "..."},
+  {"subcategory": "A1.2", "label": "Collector & OTTL Pipelines", "question": "..."},
+  {"subcategory": "A1.3", "label": "Protocolo OTLP & Transportes", "question": "..."},
+  {"subcategory": "A1.4", "label": "Profiling & eBPF Telemetry", "question": "..."}
+]`
+
+        const raw = await generateContentWithRetry(prompt)
+        const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+        const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+        try {
+            const parsed = JSON.parse(cleaned)
+            log.ai.info('Preguntas A1 (OTel Expert) generadas exitosamente');
+            return parsed
+        } catch (e) {
+            log.ai.error('Error parseando preguntas A1 OTel Expert', e as Error, { raw });
+            return [
+                { subcategory: 'A1.1', label: 'Arquitectura OTel & Contexto', question: 'Explique la diferencia fundamental entre la API y el SDK de OpenTelemetry y cómo se gestiona la propagación de contexto en llamadas HTTP distribuidas.' },
+                { subcategory: 'A1.2', label: 'Collector & OTTL Pipelines', question: 'Describa la arquitectura de pipelines de un OTel Collector y el rol del Transform Processor (OTTL) en el procesamiento de telemetría.' },
+                { subcategory: 'A1.3', label: 'Protocolo OTLP & Transportes', question: 'Compare el comportamiento de OTLP/gRPC frente a OTLP/HTTP-JSON en términos de rendimiento, serialización Protobuf y reintentos.' },
+                { subcategory: 'A1.4', label: 'Profiling & eBPF Telemetry', question: 'Explique qué ventajas aporta la integración de profiling eBPF en OpenTelemetry frente a la instrumentación tradicional por código.' }
+            ]
+        }
+    }
+
     const isTecnico = educationLevel === 'tecnico_sena' || educationLevel === 'bachiller'
 
     const questionStyle = isTecnico
@@ -250,14 +293,16 @@ Formato exacto:
 }
 
 /**
- * Evalúa las 5 respuestas de A1 usando la escala 0-3.
- * Retorna un score y justificación para cada subcategoría.
+ * Evalúa las respuestas de A1 usando la escala 0-3 e incluye detección de probabilidad IA.
  */
 export type A1EvaluationResult = {
     subcategory: string
     label: string
     score: number      // 0-3
     justification: string
+    aiLikelihoodScore?: number // 0-100%
+    aiLikelihoodRisk?: 'LOW' | 'MEDIUM' | 'HIGH'
+    aiLikelihoodIndicators?: string[]
 }
 
 export async function evaluateAnswersA1(
@@ -267,43 +312,69 @@ export async function evaluateAnswersA1(
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de infraestructura TI. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior.
+    const prompt = `Eres un evaluador técnico senior de infraestructura y observabilidad. Evalúa las siguientes respuestas del candidato.
 
 ESCALA DE VALORACIÓN (aplica estrictamente):
 - 0 (Sin conocimiento): No conoce el concepto ni ha tenido contacto. Respuesta vacía, irrelevante o incorrecta.
 - 1 (Básico): Ha escuchado el concepto, puede describirlo vagamente pero no lo ha aplicado. Respuesta parcial.
-- 2 (Funcional): Lo ha aplicado en contexto real con supervisión. Respuesta correcta con comprensión básica.
-- 3 (Autónomo): Lo aplica sin supervisión y puede explicarlo a otros. Respuesta completa y bien articulada.
-
-IMPORTANTE: NO es un examen de ingeniería. Es una evaluación de comprensión conceptual para soporte NOC.
-Sé justo y proporcional. Un candidato que explica correctamente un concepto básico merece al menos un 2.
+- 2 (Funcional): Lo ha aplicado en contexto real con supervisión. Respuesta correcta con comprensión técnica.
+- 3 (Autónomo / Experto): Lo aplica sin supervisión, demuestra profundidad y puede justificar trade-offs. Respuesta completa y articulada.
 
 RESPUESTAS A EVALUAR:
 
 ${qaBlock}
 
-Responde ÚNICAMENTE con un JSON array de 5 objetos:
+Responde ÚNICAMENTE con un JSON array de objetos:
 [
-  {"subcategory": "A1.1", "label": "Linux", "score": 2, "justification": "Explica correctamente la navegación..."},
+  {"subcategory": "A1.1", "label": "Linux", "score": 2, "justification": "Explica correctamente la arquitectura..."},
   ...
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
     const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
     const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    let parsed: any[] = []
     try {
-        const parsed = JSON.parse(cleaned)
+        parsed = JSON.parse(cleaned)
         log.ai.info('Evaluación A1 completada');
-        return parsed
     } catch (e) {
         log.ai.error('Error parseando evaluación A1', e as Error, { raw });
-        return questionsAndAnswers.map(qa => ({
+        parsed = questionsAndAnswers.map(qa => ({
             subcategory: qa.subcategory,
             label: qa.label,
             score: 0,
             justification: 'Error al procesar la evaluación. Intente nuevamente.',
         }))
     }
+
+    // Attach AI Likelihood Detection to each answer
+    const results: A1EvaluationResult[] = await Promise.all(parsed.map(async (item: any) => {
+        const matchingQA = questionsAndAnswers.find(qa => qa.subcategory === item.subcategory)
+        let aiDetection = { likelihoodPercentage: 0, riskLevel: 'LOW' as 'LOW' | 'MEDIUM' | 'HIGH', indicators: [] as string[] }
+        if (matchingQA && matchingQA.answer) {
+            try {
+                const det = await analyzeAiLikelihood(matchingQA.answer, matchingQA.question)
+                aiDetection = {
+                    likelihoodPercentage: det.likelihoodPercentage,
+                    riskLevel: det.riskLevel,
+                    indicators: det.indicators
+                }
+            } catch (err) {
+                console.error('Error calculating AI likelihood for A1:', err)
+            }
+        }
+        return {
+            subcategory: item.subcategory,
+            label: item.label || item.subcategory,
+            score: typeof item.score === 'number' ? item.score : 0,
+            justification: item.justification || '',
+            aiLikelihoodScore: aiDetection.likelihoodPercentage,
+            aiLikelihoodRisk: aiDetection.riskLevel,
+            aiLikelihoodIndicators: aiDetection.indicators
+        }
+    }))
+
+    return results
 }
 
 /**
@@ -312,8 +383,46 @@ Responde ÚNICAMENTE con un JSON array de 5 objetos:
  */
 export type A2Question = { subcategory: string; label: string; question: string }
 
-export async function generateQuestionsA2(tool: string, educationLevel: string): Promise<A2Question[]> {
+export async function generateQuestionsA2(tool: string, educationLevel: string, profileTrack?: string): Promise<A2Question[]> {
     const seed = Math.floor(Math.random() * 10000)
+
+    if (profileTrack === 'otel_expert') {
+        const prompt = `Eres un evaluador técnico senior de SRE y Observabilidad.
+Genera exactamente 3 preguntas avanzadas en español de RESPUESTA ABIERTA Y JUSTIFICADA para el perfil "SRE Experto en OpenTelemetry & Grafana Cloud".
+
+Subcategorías:
+1. A2.1 — Grafana Alloy & Agent Flow Mode (Arquitectura por componentes, pipelines declarativos y reutilización de componentes)
+2. A2.2 — Grafana Mimir & Loki (PromQL avanzado rate/agregación sobre tiempo y LogQL parsing json/logfmt/unwrap con métricas derivadas)
+3. A2.3 — Grafana Tempo & Pyroscope (Búsqueda TraceQL, Span Metrics/Service Graphs y lectura de Flamegraphs en Pyroscope)
+
+REGLAS CRÍTICAS:
+- TODAS las preguntas DEBEN SER DE RESPUESTA ABIERTA Y JUSTIFICADA. NINGUNA opción múltiple.
+- Plantea situaciones prácticas de diagnóstico y consulta técnica real.
+- Responde ÚNICAMENTE con un JSON array de 3 objetos.
+
+Formato exacto:
+[
+  {"subcategory": "A2.1", "label": "Grafana Alloy Flow Mode", "question": "..."},
+  {"subcategory": "A2.2", "label": "Mimir & Loki (PromQL/LogQL)", "question": "..."},
+  {"subcategory": "A2.3", "label": "Tempo & Pyroscope (TraceQL/Profiling)", "question": "..."}
+]`
+
+        const raw = await generateContentWithRetry(prompt)
+        const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+        const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+        try {
+            const parsed = JSON.parse(cleaned)
+            log.ai.info('Preguntas A2 (OTel Expert) generadas exitosamente');
+            return parsed
+        } catch (e) {
+            log.ai.error('Error parseando preguntas A2 OTel Expert', e as Error, { raw });
+            return [
+                { subcategory: 'A2.1', label: 'Grafana Alloy Flow Mode', question: 'Explique la arquitectura orientada a componentes de Grafana Alloy (Flow mode) y cómo difiere del esquema de configuración estático del Grafana Agent tradicional.' },
+                { subcategory: 'A2.2', label: 'Mimir & Loki (PromQL/LogQL)', question: 'Escriba y explique una consulta LogQL que filtre logs de error en formato JSON, extraiga la latencia y genere una métrica de percentil 95 (p95).' },
+                { subcategory: 'A2.3', label: 'Tempo & Pyroscope (TraceQL/Profiling)', question: 'Describa cómo utilizaría una consulta TraceQL en Tempo en combinación con un Flamegraph de Pyroscope para identificar un bloqueo de mutex en producción.' }
+            ]
+        }
+    }
 
     const prompt = `Eres un evaluador técnico de observabilidad para Analistas Junior (entry-level).
 Genera exactamente 5 preguntas en español, una por cada subcategoría de A2, adaptadas a la herramienta "${tool}".
@@ -366,13 +475,16 @@ Formato exacto:
 }
 
 /**
- * Evalúa las 5 respuestas de A2 usando la escala 0-3.
+ * Evalúa las respuestas de A2 usando la escala 0-3 e incluye probabilidad IA.
  */
 export type A2EvaluationResult = {
     subcategory: string
     label: string
     score: number      // 0-3
     justification: string
+    aiLikelihoodScore?: number
+    aiLikelihoodRisk?: 'LOW' | 'MEDIUM' | 'HIGH'
+    aiLikelihoodIndicators?: string[]
 }
 
 export async function evaluateAnswersA2(
@@ -382,22 +494,19 @@ export async function evaluateAnswersA2(
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de observabilidad. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior.
+    const prompt = `Eres un evaluador técnico senior de observabilidad. Evalúa las siguientes respuestas del candidato.
 
-ESCALA DE VALORACIÓN (aplica estrictamente):
-- 0 (Sin conocimiento): No conoce el concepto ni ha tenido contacto. Respuesta vacía, irrelevante o incorrecta.
-- 1 (Básico): Ha escuchado el concepto, puede describirlo vagamente pero no lo ha aplicado. Respuesta parcial.
-- 2 (Funcional): Lo ha aplicado en contexto real con supervisión. Respuesta correcta con comprensión básica.
-- 3 (Autónomo): Lo aplica sin supervisión y puede explicarlo a otros. Respuesta completa y bien articulada.
-
-IMPORTANTE: Es evaluación entry-level / junior. Sé justo y proporcional.
-Un candidato que explica correctamente un concepto básico merece al menos un 2.
+ESCALA DE VALORACIÓN (aplica strictly):
+- 0 (Sin conocimiento): Respuesta vacía, irrelevante o incorrecta.
+- 1 (Básico): Conocimiento conceptual parcial sin aplicación profunda.
+- 2 (Funcional): Comprensión técnica adecuada y aplicación correcta.
+- 3 (Autónomo / Experto): Excelente articulación técnica, profundidad y justificación.
 
 RESPUESTAS A EVALUAR:
 
 ${qaBlock}
 
-Responde ÚNICAMENTE con un JSON array de 5 objetos:
+Responde ÚNICAMENTE con un JSON array de objetos:
 [
   {"subcategory": "A2.1", "label": "Monitoreo vs Observabilidad", "score": 2, "justification": "..."},
   ...
@@ -406,16 +515,45 @@ Responde ÚNICAMENTE con un JSON array de 5 objetos:
     const raw = await evaluateContentWithRetry(prompt)
     const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
     const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    let parsed: any[] = []
     try {
-        return JSON.parse(cleaned)
+        parsed = JSON.parse(cleaned)
     } catch {
-        return questionsAndAnswers.map(qa => ({
+        parsed = questionsAndAnswers.map(qa => ({
             subcategory: qa.subcategory,
             label: qa.label,
             score: 0,
             justification: 'Error al procesar la evaluación. Intente nuevamente.',
         }))
     }
+
+    const results: A2EvaluationResult[] = await Promise.all(parsed.map(async (item: any) => {
+        const matchingQA = questionsAndAnswers.find(qa => qa.subcategory === item.subcategory)
+        let aiDetection = { likelihoodPercentage: 0, riskLevel: 'LOW' as 'LOW' | 'MEDIUM' | 'HIGH', indicators: [] as string[] }
+        if (matchingQA && matchingQA.answer) {
+            try {
+                const det = await analyzeAiLikelihood(matchingQA.answer, matchingQA.question)
+                aiDetection = {
+                    likelihoodPercentage: det.likelihoodPercentage,
+                    riskLevel: det.riskLevel,
+                    indicators: det.indicators
+                }
+            } catch (err) {
+                console.error('Error calculating AI likelihood for A2:', err)
+            }
+        }
+        return {
+            subcategory: item.subcategory,
+            label: item.label || item.subcategory,
+            score: typeof item.score === 'number' ? item.score : 0,
+            justification: item.justification || '',
+            aiLikelihoodScore: aiDetection.likelihoodPercentage,
+            aiLikelihoodRisk: aiDetection.riskLevel,
+            aiLikelihoodIndicators: aiDetection.indicators
+        }
+    }))
+
+    return results
 }
 
 /**

@@ -2,6 +2,7 @@ import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
 import { Terminal, Sparkles, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
 import { A1Question } from '@/app/actions/ai'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 interface A1TabProps {
     a1QuestionsGenerated: boolean
@@ -32,11 +33,18 @@ export function A1Tab({
     handleGenerateA1Questions,
     handleSubmitA1
 }: A1TabProps) {
+    const ctx = useCandidateContext()
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        ctx.incrementBypassCount()
+    }
+
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <Terminal className="h-5 w-5 text-primary" />
-                A1. Fundamentos de Infraestructura y Sistemas
+                A1. Fundamentos de Infraestructura y Observabilidad
             </h2>
             <p className="text-muted-foreground text-sm mb-4">
                 Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
@@ -59,28 +67,29 @@ export function A1Tab({
                 ) : (
                     <div className="space-y-5 border border-border rounded-xl p-6 mt-4">
                         <h3 className="font-bold text-foreground flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-primary" /> Preguntas — Infraestructura y Sistemas
+                            <Sparkles className="h-4 w-4 text-primary" /> Preguntas de Respuesta Abierta Justificada
                             {a1Submitted && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                         </h3>
 
-                        {a1Questions.map((q) => (
-                            <div key={q.subcategory} className="bg-secondary/30 border border-border rounded-lg p-4 space-y-2">
+                        {a1Questions.map((q: A1Question) => (
+                            <div key={q.subcategory} className="bg-secondary/30 border border-border rounded-lg p-4 space-y-2 select-none">
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                         {q.subcategory}
                                     </span>
                                     <span className="text-xs font-semibold text-muted-foreground">{q.label}</span>
                                 </div>
-                                <p className="text-sm text-foreground">{q.question}</p>
+                                <p className="text-sm text-foreground select-none pointer-events-none">{q.question}</p>
                                 <textarea
                                     value={a1Answers[q.subcategory] || ''}
-                                    onChange={(e) => setA1Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                    onPaste={(e) => e.preventDefault()}
-                                    onCopy={(e) => e.preventDefault()}
-                                    onContextMenu={(e) => e.preventDefault()}
+                                    onChange={(e) => setA1Answers((prev: Record<string, string>) => ({ ...prev, [q.subcategory]: e.target.value }))}
+                                    onPaste={handleBypassAttempt}
+                                    onCopy={handleBypassAttempt}
+                                    onCut={handleBypassAttempt}
+                                    onContextMenu={handleBypassAttempt}
                                     disabled={a1Submitted}
-                                    placeholder="Escribe tu respuesta aquí..."
-                                    className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                                    placeholder="Escribe tu respuesta justificada aquí..."
+                                    className="w-full min-h-[90px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 select-text"
                                 />
                             </div>
                         ))}

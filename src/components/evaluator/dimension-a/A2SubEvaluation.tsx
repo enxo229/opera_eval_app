@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Wrench, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { A2_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A2SubEvaluationProps {
     a2QData: any[]
@@ -86,6 +87,11 @@ export function A2SubEvaluation({
                                     <p className="text-sm text-foreground">{qData.prompt_context}</p>
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
+                                    <AiLikelihoodBadge
+                                        percentage={qData.ai_likelihood_score ?? qData.ai_likelihood}
+                                        riskLevel={qData.ai_likelihood_risk}
+                                        indicators={qData.ai_likelihood_indicators}
+                                    />
                                     {qData.ai_score !== null && (
                                         <div className="flex items-center gap-3 mt-2 p-2 rounded bg-violet-50 border border-violet-200">
                                             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
