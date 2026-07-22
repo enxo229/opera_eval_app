@@ -152,13 +152,22 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                         getA3Results(evaluation.id)
                     ])
 
+                    const track = activeProcess?.profile_track || 'general'
+
                     if (rA1 && rA1.length > 0) {
                         const questions: A1Question[] = rA1.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A1.1' ? 'Linux' :
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A1.1' ? 'Arquitectura OTel & Contexto' :
+                                r.subcategory === 'A1.2' ? 'Collector & OTTL Pipelines' :
+                                r.subcategory === 'A1.3' ? 'Protocolo OTLP & Transportes' :
+                                r.subcategory === 'A1.4' ? 'Profiling & eBPF Telemetry' : 'Cloud'
+                            ) : (
+                                r.subcategory === 'A1.1' ? 'Linux' :
                                 r.subcategory === 'A1.2' ? 'Windows Server' :
                                 r.subcategory === 'A1.3' ? 'Redes' :
-                                r.subcategory === 'A1.4' ? 'Contenedores' : 'Cloud',
+                                r.subcategory === 'A1.4' ? 'Contenedores' : 'Cloud'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA1.forEach(r => answers[r.subcategory] = r.answer)
@@ -169,10 +178,17 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                     if (rA2 && rA2.length > 0) {
                         const questions: A2Question[] = rA2.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A2.1' ? 'Monitoreo vs Observabilidad' :
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A2.1' ? 'Grafana Alloy Flow Mode' :
+                                r.subcategory === 'A2.2' ? 'Mimir & Loki (PromQL/LogQL)' :
+                                r.subcategory === 'A2.3' ? 'Tempo & Pyroscope (TraceQL/Profiling)' :
+                                r.subcategory === 'A2.4' ? 'Búsqueda de Logs' : 'Interpretación de Alertas'
+                            ) : (
+                                r.subcategory === 'A2.1' ? 'Monitoreo vs Observabilidad' :
                                 r.subcategory === 'A2.2' ? 'Tres Pilares' :
                                 r.subcategory === 'A2.3' ? `Dashboards` :
-                                r.subcategory === 'A2.4' ? 'Búsqueda de Logs' : 'Interpretación de Alertas',
+                                r.subcategory === 'A2.4' ? 'Búsqueda de Logs' : 'Interpretación de Alertas'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA2.forEach(r => answers[r.subcategory] = r.answer)

@@ -287,7 +287,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
                         <TabsContent value="dimA" className="m-0">
                             <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionAEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} />
+                                <DimensionAEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} profileTrack={evaluation.profile_track || 'general'} />
                             </div>
                         </TabsContent>
 

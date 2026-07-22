@@ -27,12 +27,25 @@ export const A1_SUBS = [
     { id: 'A1.5', name: 'Conocimiento de Cloud' },
 ]
 
+export const A1_SUBS_OTEL = [
+    { id: 'A1.1', name: 'Arquitectura OTel & Contexto' },
+    { id: 'A1.2', name: 'Collector & OTTL Pipelines' },
+    { id: 'A1.3', name: 'Protocolo OTLP & Transportes' },
+    { id: 'A1.4', name: 'Profiling & eBPF Telemetry' },
+]
+
 export const A2_SUBS = [
     { id: 'A2.1', name: 'Monitoreo vs Observabilidad', desc: 'Diferencia entre monitoreo reactivo y observabilidad proactiva' },
     { id: 'A2.2', name: 'Tres Pilares', desc: 'Métricas, Logs y Trazas' },
     { id: 'A2.3', name: 'Dashboards', desc: 'Navegación, lectura de dashboards, filtros básicos' },
     { id: 'A2.4', name: 'Búsqueda de Logs', desc: 'Filtros por campo y rango de tiempo' },
     { id: 'A2.5', name: 'Interpretación de Alertas', desc: 'Interpretar una alerta y proponer primeros pasos' },
+]
+
+export const A2_SUBS_OTEL = [
+    { id: 'A2.1', name: 'Grafana Alloy Flow Mode', desc: 'Arquitectura por componentes y pipelines declarativos' },
+    { id: 'A2.2', name: 'Mimir & Loki (PromQL/LogQL)', desc: 'Agregaciones PromQL y parseo de logs con LogQL' },
+    { id: 'A2.3', name: 'Tempo & Pyroscope (TraceQL/Profiling)', desc: 'Búsqueda TraceQL y visualización de Flamegraphs en Pyroscope' },
 ]
 
 export const A3_SUBS = [

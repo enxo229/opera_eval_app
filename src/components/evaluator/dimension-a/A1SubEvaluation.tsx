@@ -17,6 +17,7 @@ interface A1SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a1Subs?: any[]
 }
 
 export function A1SubEvaluation({
@@ -30,7 +31,8 @@ export function A1SubEvaluation({
     a1Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a1Subs
 }: A1SubEvaluationProps) {
     return (
         <Card className="border-border border-2 border-primary/20">
@@ -88,7 +90,7 @@ export function A1SubEvaluation({
                 </div>
 
                 {/* Per-subcategory scoring */}
-                {A1_SUBS.map(sub => {
+                {(a1Subs || A1_SUBS).map(sub => {
                     const questionData = a1QuestionsData.find(q => q.subcategory === sub.id)
                     const hasAIScore = questionData?.ai_score !== null && questionData?.ai_score !== undefined
 

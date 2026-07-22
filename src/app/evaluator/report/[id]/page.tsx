@@ -42,7 +42,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
         .select(`
             *,
             profiles:candidate_id (full_name, national_id, national_id_type, education_level, created_at),
-            selection_processes (team, observations),
+            selection_processes (team, observations, profile_track),
             dimension_scores (*),
             dynamic_tests (*)
         `)
@@ -61,6 +61,39 @@ export default async function EvaluationReportPage({ params }: { params: Promise
     // Fetch candidate email from auth.users via RPC
     const { data: emailData } = await supabase.rpc('get_user_email', { user_id: evaluation.candidate_id })
     const candidateEmail = emailData || 'N/A'
+
+    const track = evaluation.selection_processes?.profile_track || 'general'
+    const getSubcategoryName = (cat: string) => {
+        if (track === 'otel_expert') {
+            if (cat === 'A1.1') return 'A1.1 — Arquitectura OTel & Contexto'
+            if (cat === 'A1.2') return 'A1.2 — Collector & OTTL Pipelines'
+            if (cat === 'A1.3') return 'A1.3 — Protocolo OTLP & Transportes'
+            if (cat === 'A1.4') return 'A1.4 — Profiling & eBPF Telemetry'
+            if (cat === 'A2.1') return 'A2.1 — Grafana Alloy Flow Mode'
+            if (cat === 'A2.2') return 'A2.2 — Mimir & Loki (PromQL/LogQL)'
+            if (cat === 'A2.3') return 'A2.3 — Tempo & Pyroscope (TraceQL/Profiling)'
+        }
+        
+        // Default general track
+        if (cat === 'A1.1') return 'A1.1 — Administración básica de Linux'
+        if (cat === 'A1.2') return 'A1.2 — Administración básica de Windows Server'
+        if (cat === 'A1.3') return 'A1.3 — Fundamentos de redes'
+        if (cat === 'A1.4') return 'A1.4 — Conocimiento de contenedores'
+        if (cat === 'A1.5') return 'A1.5 — Conocimiento de Cloud'
+        if (cat === 'A2.1') return 'A2.1 — Monitoreo vs Observabilidad'
+        if (cat === 'A2.2') return 'A2.2 — Tres Pilares'
+        if (cat === 'A2.3') return 'A2.3 — Dashboards'
+        if (cat === 'A2.4') return 'A2.4 — Búsqueda de Logs'
+        if (cat === 'A2.5') return 'A2.5 — Interpretación de Alertas'
+        if (cat === 'A3.1') return 'A3.1 — Git Básico'
+        if (cat === 'A3.2') return 'A3.2 — Scripting'
+        if (cat === 'A3.3') return 'A3.3 — Gestión ITSM'
+        if (cat === 'A3.4') return 'A3.4 — Documentación'
+        if (cat === 'A4.1') return 'A4.1 — Identificación de Fuentes'
+        if (cat === 'A4.2') return 'A4.2 — Lógica de Investigación'
+        if (cat === 'A4.3') return 'A4.3 — Diagnóstico y Resolución'
+        return cat
+    }
 
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -228,7 +261,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                     ))}
                                     {scores.filter((s:any) => s.category.includes('.') || s.category.startsWith('IA-')).map((s:any) => (
                                         <tr key={s.id} className="hover:bg-muted/20 transition-colors">
-                                            <td className="px-8 py-3 text-muted-foreground font-medium">{s.category}</td>
+                                            <td className="px-8 py-3 text-muted-foreground font-medium">{getSubcategoryName(s.category)}</td>
                                             <td className="px-6 py-3 text-center font-mono opacity-80">{s.raw_score}</td>
                                             <td className="px-6 py-3 text-xs leading-relaxed max-w-sm">{s.comments || '-'}</td>
                                         </tr>

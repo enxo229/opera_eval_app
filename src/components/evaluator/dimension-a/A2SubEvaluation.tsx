@@ -17,6 +17,7 @@ interface A2SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a2Subs?: any[]
 }
 
 export function A2SubEvaluation({
@@ -31,7 +32,8 @@ export function A2SubEvaluation({
     a2Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a2Subs
 }: A2SubEvaluationProps) {
     return (
         <Card className="border-border border-2 border-primary/20">
@@ -69,7 +71,7 @@ export function A2SubEvaluation({
                     </div>
                 ) : null}
 
-                {A2_SUBS.map(sub => {
+                {(a2Subs || A2_SUBS).map(sub => {
                     const qData = a2QData.find(q => q.subcategory === sub.id)
                     return (
                         <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
