@@ -27,6 +27,7 @@ export default function AdminPage() {
     const [nationalId, setNationalId] = useState('')
     const [team, setTeam] = useState('')
     const [observations, setObservations] = useState('')
+    const [profileTrack, setProfileTrack] = useState<'general' | 'otel_expert'>('general')
     const [formError, setFormError] = useState<string | null>(null)
     const [formSuccess, setFormSuccess] = useState<string | null>(null)
     const [formWarning, setFormWarning] = useState<string | null>(null)
@@ -77,7 +78,7 @@ export default function AdminPage() {
         setCreating(true)
 
         try {
-            const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses)
+            const result = await createUser(email, password, fullName, role, nationalIdType, nationalId, team, observations, confirmPreviousProcesses, profileTrack)
 
             if (result.success) {
                 setFormSuccess(`✅ Usuario ${email} creado como ${role}. Proceso activo iniciado.`)
@@ -281,6 +282,14 @@ export default function AdminPage() {
                             
                             {role === 'candidate' && (
                                 <>
+                                    <div className="space-y-2 col-span-1 md:col-span-2">
+                                        <label className="text-sm font-semibold text-foreground">Perfil Evaluativo / Track *</label>
+                                        <select value={profileTrack} onChange={e => setProfileTrack(e.target.value as 'general' | 'otel_expert')} required
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                                            <option value="general">NOC / SRE General (Evaluación Estándar)</option>
+                                            <option value="otel_expert">⚡ SRE Experto en OpenTelemetry & Grafana Cloud</option>
+                                        </select>
+                                    </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-foreground">Tipo de Identificación *</label>
                                         <select value={nationalIdType} onChange={e => setNationalIdType(e.target.value)} required

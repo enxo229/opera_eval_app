@@ -35,6 +35,7 @@ interface CandidateContextType {
     educationLevel: string
     setEducationLevel: (val: string) => void
     evaluationId: string | null
+    profileTrack: 'general' | 'otel_expert'
     contextLoaded: boolean
     candidateName: string
     candidateEmail: string
@@ -63,6 +64,7 @@ const CandidateContext = createContext<CandidateContextType | undefined>(undefin
 export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [educationLevel, setEducationLevel] = useState<string>('')
     const [evaluationId, setEvaluationId] = useState<string | null>(null)
+    const [profileTrack, setProfileTrack] = useState<'general' | 'otel_expert'>('general')
     const [contextLoaded, setContextLoaded] = useState(false)
     const [candidateName, setCandidateName] = useState<string>('')
     const [candidateEmail, setCandidateEmail] = useState<string>('')
@@ -97,13 +99,16 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                 // Get active evaluation
                 const { data: activeProcess, error: procError } = await supabase
                     .from('selection_processes')
-                    .select('id')
+                    .select('id, profile_track')
                     .eq('candidate_email', user.email)
                     .eq('status', 'active')
                     .limit(1)
                     .maybeSingle()
                 
                 if (procError) console.error('Selection process error:', procError)
+                if (activeProcess?.profile_track) {
+                    setProfileTrack((activeProcess.profile_track as 'general' | 'otel_expert') || 'general')
+                }
 
                 let evaluation: { id: string } | undefined
                 if (activeProcess) {
@@ -229,7 +234,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <CandidateContext.Provider value={{
-            educationLevel, setEducationLevel, evaluationId, contextLoaded, candidateName, candidateEmail, legalAccepted, setLegalAccepted,
+            educationLevel, setEducationLevel, evaluationId, profileTrack, contextLoaded, candidateName, candidateEmail, legalAccepted, setLegalAccepted,
             restoredA1, restoredA2, restoredA3,
             startedAt, setStartedAt, testDuration, remainingSeconds, isTimeUp, 
             pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, pauseCount, setPauseCount,

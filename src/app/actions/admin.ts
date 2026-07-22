@@ -21,6 +21,7 @@ export type SelectionProcessWithStatus = {
     candidate_national_id: string | null
     team: string | null
     observations: string | null
+    profile_track?: string | null
     status: string
     created_at: string
     evaluation_id?: string
@@ -66,7 +67,8 @@ export async function createUser(
     nationalId?: string,
     team?: string,
     observations?: string,
-    confirmPreviousProcesses?: boolean
+    confirmPreviousProcesses?: boolean,
+    profileTrack?: 'general' | 'otel_expert'
 ): Promise<{ success: boolean; error?: string; warning?: string }> {
     const admin = createAdminClient()
 
@@ -165,6 +167,7 @@ export async function createUser(
             candidate_national_id: nationalId || null,
             team: team || null,
             observations: observations || null,
+            profile_track: profileTrack || 'general',
             status: 'active'
         }).select('id').single()
 
@@ -227,6 +230,7 @@ export async function getSelectionProcessHistory(email: string): Promise<Selecti
         candidate_national_id: p.candidate_national_id,
         team: p.team,
         observations: p.observations,
+        profile_track: p.profile_track,
         status: p.status,
         created_at: p.created_at,
         evaluation_id: p.evaluations?.[0]?.id,

@@ -61,6 +61,7 @@ export interface Database {
           evaluator_id: string | null
           team: string | null
           observations: string | null
+          profile_track: 'general' | 'otel_expert'
           status: 'active' | 'completed' | 'archived'
           created_at: string
         }
@@ -71,6 +72,7 @@ export interface Database {
           evaluator_id?: string | null
           team?: string | null
           observations?: string | null
+          profile_track?: 'general' | 'otel_expert'
           status?: 'active' | 'completed' | 'archived'
           created_at?: string
         }
@@ -81,6 +83,7 @@ export interface Database {
           evaluator_id?: string | null
           team?: string | null
           observations?: string | null
+          profile_track?: 'general' | 'otel_expert'
           status?: 'active' | 'completed' | 'archived'
           created_at?: string
         }

@@ -52,6 +52,7 @@ create table public.selection_processes (
   evaluator_id uuid references public.profiles(id) on delete set null,
   team text,
   observations text,
+  profile_track text default 'general',
   status text default 'active' check (status in ('active', 'completed', 'archived')),
   created_at timestamptz default now()
 );
