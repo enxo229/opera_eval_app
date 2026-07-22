@@ -1,155 +1,148 @@
-Marco Metodológico y Estructura de Examen de Certificación
+# ESPECIFICACIÓN TÉCNICA Y MARCO METODOLÓGICO: TRACK SRE EXPERTO EN OPENTELEMETRY & GRAFANA CLOUD
 
-Observabilidad Avanzada: OpenTelemetry y Grafana Cloud
+> **Proyecto**: OTP (Observability Talent Pivot)  
+> **Perfil Evaluativo**: `otel_expert`  
+> **Área**: SRE, Observabilidad Enterprise & Telemetría Distribuida  
+> **Fuente de Verdad**: `docs/specs/otel_expert.md`
 
-1. Niveles de Profundidad y Taxonomía de Evaluación
+---
 
-Para evitar un examen meramente memorístico, la evaluación se basa en la Taxonomía de Bloom adaptada a la Ingeniería de Sistemas. El nivel del candidato no se define por las preguntas que acierta, sino por el tipo de problema que es capaz de resolver y justificar.
+## 1. Propósito y Enfoque de Evaluación
 
-Nivel	Categoría	Tipo de Capacidad Evaluada	Formato de Pregunta
-Nivel 1	Fundacional	Identificación de conceptos, sintaxis básica, diferencia entre métricas, logs y trazas.	Opción múltiple directa, emparejamiento de conceptos.
-Nivel 2	Operativo / Diagnóstico	Análisis de causa raíz, depuración de pipelines, configuración de componentes y lectura de trazas/dashboards.	Análisis de snippets de código/YAML, casos de estudio breves con logs/trazas adjuntos.
-Nivel 3	Arquitectura y Optimización	Diseño de sistemas de telemetría a escala, mitigación de costos/cardinalidad, estrategias de muestreo (sampling) y cumplimiento de SLOs.	Escenarios de arquitectura compleja, evaluación de trade-offs, optimización de pipelines.
+Este documento establece la estructura metodológica, rúbricas y matriz de contenidos para el track de evaluación **"SRE Experto en OpenTelemetry & Grafana Cloud"** dentro de la plataforma OTP.
 
-2. Dominios de Conocimiento y Ponderación
+La evaluación se basa en la **Taxonomía de Bloom** adaptada a la ingeniería de sistemas:
+- **Nivel 1 (Fundacional)**: Identificación de conceptos clave, arquitectura básica y sintaxis.
+- **Nivel 2 (Operativo / Diagnóstico)**: Análisis de causa raíz, depuración de pipelines OTel, sintaxis PromQL/LogQL/TraceQL y lectura de dashboards.
+- **Nivel 3 (Arquitectura y Optimización)**: Diseño de pipelines a escala, estrategias de sampling (Head vs. Tail), control de cardinalidad, optimización de costos en Grafana Cloud y gestión de SLOs/Error Budgets.
 
-El examen se divide en 4 dominios interconectados:
+---
 
-+-------------------------------------------------------------------------+
-|                    DOMINIOS DE LA CERTIFICACIÓN                         |
-+-------------------------------------------------------------------------+
-| [D1] Estándar OpenTelemetry (OTel)                    | 30% del examen  |
-| [D2] Plataforma y Ecosistema Grafana Cloud            | 30% del examen  |
-| [D3] Arquitectura de Telemetría, Cardinalidad y Costos| 20% del examen  |
-| [D4] Prácticas SRE: SLOs, Alertas y Diagnóstico       | 20% del examen  |
-+-------------------------------------------------------------------------+
+## 2. Dominios de Conocimiento y Ponderación Metodológica
 
+El conocimiento técnico de este perfil se organiza en 4 dominios interconectados:
 
-3. Matriz Detallada de Temáticas por Dominio
+| Dominio | Ponderación | Temáticas Clave |
+|---|---|---|
+| **[D1] Estándar OpenTelemetry (OTel)** | 30% | API vs. SDK, W3C Trace Context, OTel Collector (Receivers, Processors, Exporters), OTLP, Profiling eBPF |
+| **[D2] Plataforma y Ecosistema Grafana Cloud** | 30% | Grafana Alloy (Flow mode), Mimir (PromQL), Loki (LogQL), Tempo (TraceQL), Pyroscope (Flamegraphs) |
+| **[D3] Arquitectura, Muestreo y Cardinalidad** | 20% | High-cardinality relabeling, Head vs. Tail Sampling, OTTL (Transform Processor), Optimización de costos Cloud |
+| **[D4] Prácticas SRE, SLOs y Alertas** | 20% | SLI/SLO/SLA, Error Budget Burn Rate multi-ventana, Grafana Alerting, Correlación cruzada (Metric-Log-Trace-Profile) |
 
-Dominio 1: Estándar OpenTelemetry (OTel) — [Ponderación: 30%]
+---
 
-• 1.1 API vs. SDK: Separación de conceptos, inyección de dependencias, instrumentación automática vs. manual.
+## 3. Mapeo a la Estructura de Evaluación de OTP (Dimensiones A, B, C, D)
 
-• 1.2 Propagación de Contexto: Formatos W3C Trace Context, B3, propagación in-process e inter-process, inyección y extracción de encabezados HTTP/gRPC.
+Para mantener coherencia con el motor de calificación de OTP, las temáticas de OTel & Grafana Cloud se distribuyen en las 4 dimensiones de la plataforma:
 
-• 1.3 Arquitectura de OTel Collector:
+### Dimensión A — Evaluación Técnica (50 Puntos Máx.)
 
-	• Componentes: Receivers, Processors, Exporters, Extensions.
+| Módulo OTP | Formato de Evaluación | Temáticas OTel / Grafana Cloud Evaluadas | Puntaje |
+|---|---|---|---|
+| **A1: Fundamentos OTel & Grafana** | 5 Preguntas Q&A dinámicas asistidas por IA | Conceptos API vs SDK, W3C Trace Context, Componentes Collector, PromQL/LogQL sintáctico | 15 pts |
+| **A2: Herramientas de Ecosistema** | Preguntas sobre stack seleccionado | Configuración de Grafana Alloy, Mimir, Loki, Tempo y Pyroscope | 15 pts |
+| **A3: Configuración & CLI simulada** | Editor de código / YAML + Terminal CLI | Pipeline OTTL (Transform Processor), configuración `tail_sampling`, reglas de relabeling y PromQL/TraceQL queries | 10 pts (raw 12) |
+| **A4: Caso Práctico de Incidente** | Chat interactivo de investigación de causa raíz | Incidente distribuido con trazas rotas/incompletas, alta cardinalidad o picos de latencia intermitentes | 10 pts (raw 9) |
 
-	• Pipelines de datos (métricas, trazas, logs).
+### Dimensión B — Competencias Blandas & Incidentes (30 Puntos Máx.)
 
-	• Processors clave: batch, memory_limiter, transform (OTTL), attributes, tail_sampling.
+| Módulo OTP | Formato | Enfoque SRE | Puntaje |
+|---|---|---|---|
+| **B1: Ticket de Incidente SRE** | Redacción de Ticket & Handoff | Gestión de incidente crítico de observabilidad, reporte de impacto en SLO y plan de mitigación | 7 pts (raw 16) |
+| **B2 - B6: Gestión de Incidentes** | Evaluación de Handoff & Colaboración | Asertividad, colaboración asíncrona, gestión de bloqueos en producción | 23 pts |
 
-• 1.4 Protocolo OTLP: Estructura de paquetes gRPC vs. HTTP/JSON, serialización Protobuf, reintentos y backoff.
+### Dimensión C — Fit Cultural & Filosofía SRE (20 Puntos Máx.)
 
-• 1.5 Perfiles de Telemetría (Profiling): Integración de OpenTelemetry eebpf/profiling (OpenProfile).
+- **C1 - C4**: Cultura Blameless Post-mortem, orientación a SLOs/Error Budgets, automatización y reducción de Toill.
 
-Dominio 2: Ecosistema Grafana Cloud — [Ponderación: 30%]
+### Dimensión D — Competencia en Inteligencia Artificial (10 Puntos Desempate)
 
-• 2.1 Grafana Alloy / Grafana Agent: Arquitectura orientada a componentes, flujo de datos (Flow mode), integración con OTel y Prometheus.
+- **IA-1 e IA-2**: Capacidad del candidato para construir prompts estructurados (Role, Context, Constraints, Format) aplicados al diagnóstico de telemetría distribuida.
 
-• 2.2 Motor de Métricas (Grafana Mimir / Prometheus):
+---
 
-	• PromQL avanzado (funciones de tasa, agregación sobre tiempo, vectores instantáneos vs. de rango).
+## 4. Matriz Detallada de Temáticas por Dominio
 
-	• Prometheus Remote Write (v1 y v2).
+### Dominio 1: Estándar OpenTelemetry (OTel) [Ponderación: 30%]
+- **1.1 API vs. SDK**: Separación conceptual, inyección de dependencias, instrumentación automática vs. manual.
+- **1.2 Propagación de Contexto**: Formatos W3C Trace Context, B3, propagación in-process e inter-process, encabezados HTTP/gRPC.
+- **1.3 Arquitectura de OTel Collector**: Receivers, Processors (`batch`, `memory_limiter`, `transform`/OTTL, `attributes`, `tail_sampling`), Exporters, Extensions.
+- **1.4 Protocolo OTLP**: gRPC vs. HTTP/JSON, serialización Protobuf, reintentos y backoff exponencial.
+- **1.5 Perfiles de Telemetría (Profiling)**: OpenTelemetry eBPF profiling (OpenProfile).
 
-• 2.3 Motor de Logs (Grafana Loki):
+### Dominio 2: Ecosistema Grafana Cloud [Ponderación: 30%]
+- **2.1 Grafana Alloy / Agent**: Arquitectura orientada a componentes (Flow mode), integración OTel/Prometheus.
+- **2.2 Motor de Métricas (Grafana Mimir / Prometheus)**: PromQL avanzado (rate, irate, vector instantáneo vs. rango, agregación temporal), Remote Write v1/v2.
+- **2.3 Motor de Logs (Grafana Loki)**: LogQL (label filters, parsers `json`/`logfmt`, unwrap, métricas derivadas), estrategias de indexación.
+- **2.4 Motor de Trazas (Grafana Tempo)**: TraceQL, generación de métricas desde trazas (Span Metrics / Service Graphs).
+- **2.5 Profiling Continuo (Grafana Pyroscope)**: Lectura e interpretation de Flamegraphs (CPU, Allocations, Mutex).
 
-	• LogQL (filtros de etiquetas, parsing JSON/Logfmt, métricas derivadas de logs).
+### Dominio 3: Arquitectura, Muestreo y Gestión de Cardinalidad [Ponderación: 20%]
+- **3.1 Control de Cardinalidad**: Identificación de etiquetas de alta cardinalidad, relabeling y drop de métricas en Collector/Mimir.
+- **3.2 Estrategias de Muestreo (Sampling)**:
+  - *Head-based Sampling (SDK)*: Algoritmos probabilísticos y rate limiting.
+  - *Tail-based Sampling (Collector)*: Aglutinamiento de trazas completas (trace ID routing), evaluación de decisiones por latencia/error.
+- **3.3 Optimización de Costos Cloud**: Políticas de retención, métricas sintéticas y compresión.
 
-	• Modelo de indexación (labels vs. texto plano) y su impacto en rendimiento.
+### Dominio 4: Prácticas SRE, SLOs y Respuesta a Incidentes [Ponderación: 20%]
+- **4.1 Métricas de Servicio**: SLI, SLO, SLA y Error Budgets.
+- **4.2 Cálculo de Burn Rate**: Alertas por consumo de error budget (Multi-window, Multi-burn-rate).
+- **4.3 Alertas Unificadas**: Grafana Alerting, Alertmanager, agrupamiento, silencios y enrutamiento.
+- **4.4 Diagnóstico Cruzado**: Navegación fluida Trace → Log → Metric → Flamegraph mediante Derived Fields / Data Links.
 
-• 2.4 Motor de Trazas (Grafana Tempo):
+---
 
-	• Búsqueda mediante TraceQL.
+## 5. Rúbrica Global de Clasificación Técnica
 
-	• Ingesta masiva, generación de métricas desde trazas (Span Metrics / Service Graphs).
-
-• 2.5 Profiling Continuo (Grafana Pyroscope): Lectura e interpretación de Flamegraphs (CPU, Allocations, Mutex).
-
-Dominio 3: Arquitectura, Muestreo y Gestión de Cardinalidad — [Ponderación: 20%]
-
-• 3.1 Control de Cardinalidad de Métricas:
-
-	• Identificación de etiquetas explosivas (high-cardinality metrics).
-
-	• Reglas de agregación y filtrado en OTel Collector y Mimir (Relabeling).
-
-• 3.2 Estrategias de Muestreo de Trazas (Sampling):
-
-	• Head-based Sampling (SDK): Ventajas, limitaciones y algoritmos (Probabilistic, Rate Limiting).
-
-	• Tail-based Sampling (Collector): Configuración, aglutinamiento de trazas completas (trace ID routing), reglas complejas por error/latencia.
-
-• 3.3 Optimización de Costos en Cloud: Estrategias de retención de logs, métricas sintéticas y compresión de datos.
-
-Dominio 4: SRE, SLOs y Respuesta a Incidentes — [Ponderación: 20%]
-
-• 4.1 Métricas de Servicio: SLI (Indicadores), SLO (Objetivos), SLA (Acuerdos) y Error Budgets.
-
-• 4.2 Cálculo de Burn Rate: Alertas basadas en la velocidad de consumo del presupuesto de error (Multi-window, Multi-burn-rate).
-
-• 4.3 Alertas Unificadas en Grafana: Integración de Grafana Alerting con Alertmanager, agrupamiento, silencio, enrutamiento de notificaciones.
-
-• 4.4 Diagnóstico Cruzado (Correlación): Navegación fluida Trace -> Log -> Metric -> Flamegraph utilizando derivados y vínculos (Data Links / Derived Fields).
-
-4. Rúbrica Global de Evaluación de Candidatos
-
-La calificación final no solo otorga un puntaje porcentual, sino una clasificación de perfil técnico:
-
-[0% - 59%]   ---> No Acreditado (Carece de fundamentos teóricos o prácticos básicos)
-[60% - 74%]  ---> Nivel Junior / Asociado (Ejecuta configuraciones guiadas, opera dashboards)
-[75% - 89%]  ---> Nivel Especialista / Senior (Diseña pipelines, depura problemas complejos, gestiona SLOs)
-[90% - 100%] ---> Nivel Arquitecto / Principal (Optimiza arquitectura global, controla costos a gran escala, escala OTel/Grafana)
-
-
-Rúbrica Detallada por Criterio de Dominio:
-
-Criterio / Nivel	Insuficiente (<60%)	Junior (60%-74%)	Senior (75%-89%)	Arquitecto (90%-100%)
-OpenTelemetry (OTel)	Confunde la API con el SDK. No comprende la estructura de un pipeline en OTel Collector.	Configura receivers y exporters básicos. Entiende la propagación de contexto pero le cuesta depurar pérdidas de trazas.	Escribe reglas complejas de OTTL (Transform Processor). Configura Tail Sampling distribuido correctamente.	Diseña la topología de desplegado de Collectors (Agent vs. Gateway) para soportar millones de eventos/seg.
-Grafana Cloud	Solo crea paneles estáticos. No comprende la sintaxis de PromQL o LogQL.	Construye dashboards funcionales. Escribe consultas PromQL básicas y filtrados simples en LogQL.	Utiliza TraceQL para correlacionar problemas. Construye métricas a partir de logs y trazas (Span Metrics).	Optimiza la estructura de indexación en Loki/Mimir. Reduce costos reestructurando ingestion pipelines.
-Cardinalidad y Muestreo	Desconoce el impacto de agregar variables de alta cardinalidad como etiquetas.	Entiende qué es la alta cardinalidad pero no sabe cómo mitigarla técnicamente en los colectores.	Aplica reglas de relabeling y drop de métricas. Implementa Head-based y Tail-based sampling.	Diseña políticas globales de retención, muestreo dinámico y agregación de métricas en borde antes de la ingesta.
-SRE y Diagnóstico	Confunde SLI con SLO. Crea alertas basadas únicamente en umbrales estáticos simples.	Configura SLOs básicos. Entiende el concepto de Error Budget.	Configura alertas de Burn Rate multi-ventana. Crea correlaciones complejas mediante Data Links.	Define la estrategia global de observabilidad de la organización, integrando monitoreo sintético, RUM y profiling.
-
-5. Ejemplos de Preguntas Diseñadas por Nivel de Profundidad
-
-Para ilustrar cómo se diferencia la profundidad del conocimiento, se presenta el siguiente problema evaluado en tres niveles:
-
-Temática: Muestreo de Trazas (Tail-based Sampling vs. Head-based Sampling)
-
-Pregunta Nivel 1 (Fundacional)
-
-> ¿En qué componente de una arquitectura de observabilidad basada en OpenTelemetry se ejecuta típicamente el Tail-based Sampling?
-
-> A) En el SDK de OpenTelemetry dentro de la aplicación.
-B) En el balanceador de carga de la infraestructura Cloud.
-C) En el OpenTelemetry Collector (modo Gateway).
-D) En el motor de almacenamiento (Grafana Tempo).
-
-> Respuesta correcta: C
-Evaluación: Mide la comprensión teórica de la ubicación del componente dentro de la arquitectura.
-
-Pregunta Nivel 2 (Operativo / Diagnóstico)
-
-> Un microservicio crítico experimenta un pico de latencia en el 1% de sus peticiones HTTP. La aplicación está configurada con un SDK de OTel usando TraceIdRatioBasedSampler(0.1) (10%). Al revisar Grafana Tempo, el equipo no logra encontrar las trazas asociadas a las peticiones lentas.
-
-> ¿Por qué ocurre este problema y cuál es la solución operativa recomendada?
-
-> A) El motor Grafana Tempo está descartando las trazas por falta de memoria; se debe aumentar el buffer de ingesta.
-B) El muestreo Head-based en el SDK tomó la decisión de descarte al inicio de la traza sin saber que la petición sería lenta. Se debe migrar a Tail-based Sampling en el OTel Collector evaluando la duración del span.
-C) El protocolo OTLP/gRPC perdió los paquetes por saturación de red; se debe cambiar la exportación a HTTP/JSON.
-D) El SDK no propagó el encabezado traceparent; se debe forzar el uso del formato B3.
-
-> Respuesta correcta: B
-Evaluación: Mide la capacidad de diagnosticar por qué una configuración de muestreo específica falla en un escenario real de fallos intermitentes.
-
-Pregunta Nivel 3 (Arquitectura y Optimización)
-
-> Dada la siguiente configuración del tail_sampling processor en un OpenTelemetry Collector:
-
-> [yaml]
+| Rango de Puntaje | Clasificación Final | Descripción del Perfil Técnico |
+|---|---|---|
+| **90% - 100%** | **Arquitecto / Principal** | Diseña topologías globales de telemetría (Agent/Gateway), optimiza pipelines en borde, controla costos masivos y define la estrategia de observabilidad enterprise. |
+| **75% - 89%** | **Especialista / Senior** | Construye consultas complejas (PromQL, LogQL, TraceQL), escribe reglas OTTL, configura Tail Sampling distribuido y gestiona alertas de Burn Rate. |
+| **60% - 74%** | **Junior / Asociado** | Opera dashboards, configura receivers/exporters básicos, entiende conceptos de propagación y SLOs básicos. |
+| **0% - 59%** | **No Acreditado** | Carece de fundamentos teóricos o prácticos sobre la arquitectura de OTel o el stack de Grafana Cloud. |
+
+---
+
+## 6. Rúbrica Detallada por Criterio de Dominio
+
+| Criterio | Insuficiente (<60%) | Junior (60%-74%) | Senior (75%-89%) | Arquitecto (90%-100%) |
+|---|---|---|---|---|
+| **OpenTelemetry (OTel)** | Confunde API con SDK. Desconoce la estructura de un pipeline OTel. | Configura receivers/exporters básicos. Entiende propagación de contexto. | Escribe reglas complejas en OTTL. Configura Tail Sampling distribuido. | Diseña la topología multi-cluster (Agent vs Gateway) para millones de eventos/seg. |
+| **Grafana Cloud** | Paneles estáticos únicamente. No conoce PromQL ni LogQL. | Dashboards funcionales. PromQL básico y filtrados simples en LogQL. | Usa TraceQL para correlación. Crea Span Metrics desde trazas. | Optimiza la indexación en Loki/Mimir y reduce costos reestructurando pipelines. |
+| **Cardinalidad y Muestreo** | Ignora el impacto de alta cardinalidad en etiquetas. | Entiende el concepto de alta cardinalidad pero no sabe mitigarla en colectores. | Aplica reglas de relabeling/drop. Implementa Head y Tail sampling. | Diseña políticas globales de retención y agregación en borde antes de ingesta. |
+| **SRE y Diagnóstico** | Confunde SLI con SLO. Alertas estáticas simples. | Configura SLOs básicos y entiende el concepto de Error Budget. | Alertas Burn Rate multi-ventana. Correlación fluida con Data Links. | Define la estrategia global de observabilidad integrando RUM, Sintéticos y Profiling. |
+
+---
+
+## 7. Ejemplos de Preguntas y Evaluación por Nivel
+
+### Ejemplo 1: Nivel 1 (Fundacional)
+> **Pregunta**: ¿En qué componente de una arquitectura de observabilidad basada en OpenTelemetry se ejecuta típicamente el Tail-based Sampling?  
+> - A) En el SDK de OpenTelemetry dentro de la aplicación.  
+> - B) En el balanceador de carga de la infraestructura Cloud.  
+> - C) En el OpenTelemetry Collector (modo Gateway). *(Correcta)*  
+> - D) En el motor de almacenamiento (Grafana Tempo).  
+>
+> **Evaluación**: Valida la comprensión teórica de la ubicación del componente dentro de la arquitectura de telemetría.
+
+---
+
+### Ejemplo 2: Nivel 2 (Operativo / Diagnóstico)
+> **Escenario**: Un microservicio crítico presenta un pico de latencia en el 1% de sus peticiones HTTP. La aplicación está instrumentada con un SDK de OTel usando `TraceIdRatioBasedSampler(0.1)` (10%). Al revisar Grafana Tempo, el equipo no encuentra las trazas asociadas a las peticiones lentas.  
+>
+> **Pregunta**: ¿Por qué ocurre este problema y cuál es la solución operativa recomendada?  
+> - A) Grafana Tempo descarta trazas por falta de memoria; se debe aumentar el buffer.  
+> - B) El muestreo Head-based en el SDK tomó la decisión de descarte al inicio de la petición sin saber que sería lenta. Se debe migrar a Tail-based Sampling en el OTel Collector evaluando la duración del span. *(Correcta)*  
+> - C) El protocolo OTLP/gRPC perdió paquetes por saturación de red; se debe cambiar a HTTP/JSON.  
+> - D) El SDK no propagó el encabezado `traceparent`; se debe forzar el uso de B3.  
+>
+> **Evaluación**: Valida la capacidad de diagnosticar fallos causados por decisiones de sampling inadecuadas en producción.
+
+---
+
+### Ejemplo 3: Nivel 3 (Arquitectura y Optimización)
+> **Escenario**: Dada la siguiente configuración del procesador `tail_sampling` en un OpenTelemetry Collector:
+```yaml
 processors:
   tail_sampling:
     decision_wait: 10s
@@ -168,16 +161,13 @@ processors:
           status_code: { status_codes: [ ERROR ] }
         }
       ]
-
-
-> Al desplegar esta configuración en un cluster de Kubernetes con 5 réplicas del OTel Collector colocadas detrás de un Service (Round-Robin), el equipo observa que las trazas distribuidas entre múltiples microservicios aparecen "incompletas" o "rotas" en Grafana Tempo.
-
-> Identifique la falla arquitectónica fundamental y la solución requerida para corregir el pipeline.
-
-> A) El parámetro num_traces es demasiado bajo para el volumen de datos; debe incrementarse a 100,000.
-B) El procesador tail_sampling no soporta la evaluación del atributo status_code; se debe usar un script en OTTL.
-C) Las peticiones se están distribuyendo aleatoriamente entre los 5 Collectors. Como un único Collector no recibe todos los spans de una misma traza, el Tail-based Sampling toma decisiones con información incompleta. Se debe implementar un Load-balancing Exporter previo que enrute las trazas por trace_id hacia el mismo Collector.
-D) La política drop_healthchecks tiene invert_match: true, lo que causa que se descarten todas las peticiones excepto las de salud. Se debe cambiar a false.
-
-> Respuesta correcta: C
-Evaluación: Mide la capacidad del candidato para entender las implicaciones de estado (stateful vs stateless) en arquitecturas distribuidas de telemetría y escalar correctamente un pipeline de OTel.
+```
+> Al desplegar esta configuración en un clúster de Kubernetes con 5 réplicas del OTel Collector colocadas detrás de un Service K8s (Round-Robin), el equipo observa que las trazas distribuidas entre múltiples microservicios aparecen incompletas o fragmentadas en Grafana Tempo.  
+>
+> **Pregunta**: Identifique la falla arquitectónica fundamental y la solución requerida para corregir el pipeline.  
+> - A) El parámetro `num_traces` es muy bajo; debe incrementarse a 100,000.  
+> - B) El procesador `tail_sampling` no evalúa `status_code`; se debe usar OTTL.  
+> - C) Las peticiones se distribuyen aleatoriamente entre los 5 Collectors. Como un único Collector no recibe todos los spans de una misma traza, el Tail-based Sampling toma decisiones con información incompleta. Se debe implementar un Load-balancing Exporter previo que enrute las trazas por `trace_id` hacia el mismo Collector. *(Correcta)*  
+> - D) La política `drop_healthchecks` tiene `invert_match: true`, lo cual descarta todo excepto `/health`.  
+>
+> **Evaluación**: Evalúa la capacidad de comprender la naturaleza con estado (*stateful*) del Tail-based Sampling y escalar topologías distribuidas de colectores.
