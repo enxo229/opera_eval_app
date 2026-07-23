@@ -260,12 +260,12 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
         try {
             // Save granular sub-scores
             const subScoresData = [
-                ...B1_SUBS.map(s => ({ category: s.id, score: b1SubScores[s.id], dimension: 'B' })),
-                ...B2_SUBS.map(s => ({ category: s.id, score: b2SubScores[s.id], dimension: 'B' })),
-                ...B3_SUBS.map(s => ({ category: s.id, score: b3SubScores[s.id], dimension: 'B' })),
-                ...B4_SUBS.map(s => ({ category: s.id, score: b4SubScores[s.id], dimension: 'B' })),
-                ...B5_SUBS.map(s => ({ category: s.id, score: b5SubScores[s.id], dimension: 'B' })),
-                ...B6_SUBS.map(s => ({ category: s.id, score: b6SubScores[s.id], dimension: 'B' })),
+                ...B1_SUBS.map(s => ({ category: s.id, score: b1SubScores[s.id] || 0, dimension: 'B' })),
+                ...B2_SUBS.map(s => ({ category: s.id, score: b2SubScores[s.id] || 0, dimension: 'B' })),
+                ...B3_SUBS.map(s => ({ category: s.id, score: b3SubScores[s.id] || 0, dimension: 'B' })),
+                ...B4_SUBS.map(s => ({ category: s.id, score: b4SubScores[s.id] || 0, dimension: 'B' })),
+                ...B5_SUBS.map(s => ({ category: s.id, score: b5SubScores[s.id] || 0, dimension: 'B' })),
+                ...B6_SUBS.map(s => ({ category: s.id, score: b6SubScores[s.id] || 0, dimension: 'B' })),
             ]
 
             for (const item of subScoresData) {
@@ -291,12 +291,12 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
             const b6TotalRaw = Object.values(b6SubScores).reduce((a, b) => a + b, 0)
 
             const totalScores = [
-                { category: 'B1', score: b1TotalRaw, comment: comments['B1'] },
-                { category: 'B2', score: b2TotalRaw, comment: comments['B2'] },
-                { category: 'B3', score: b3TotalRaw, comment: comments['B3'] },
-                { category: 'B4', score: b4TotalRaw, comment: comments['B4'] },
-                { category: 'B5', score: b5TotalRaw, comment: comments['B5'] },
-                { category: 'B6', score: b6TotalRaw, comment: comments['B6'] },
+                { category: 'B1', score: b1TotalRaw, comment: comments['B1'] || '' },
+                { category: 'B2', score: b2TotalRaw, comment: comments['B2'] || '' },
+                { category: 'B3', score: b3TotalRaw, comment: comments['B3'] || '' },
+                { category: 'B4', score: b4TotalRaw, comment: comments['B4'] || '' },
+                { category: 'B5', score: b5TotalRaw, comment: comments['B5'] || '' },
+                { category: 'B6', score: b6TotalRaw, comment: comments['B6'] || '' },
             ]
 
             for (const t of totalScores) {

@@ -349,8 +349,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             const subScoresData = [
                 ...a1Subs.map(s => ({ category: s.id, score: a1SubScores[s.id] || 0, comment: a1SubComments[s.id] || '' })),
                 ...a2Subs.map(s => ({ category: s.id, score: a2SubScores[s.id] || 0, comment: a2SubComments[s.id] || '' })),
-                ...a3Subs.map(s => ({ category: s.id, score: a3SubScores[s.id], comment: a3SubComments[s.id] })),
-                ...A4_SUBS.map(s => ({ category: s.id, score: a4SubScores[s.id], comment: a4SubComments[s.id] })),
+                ...a3Subs.map(s => ({ category: s.id, score: a3SubScores[s.id] || 0, comment: a3SubComments[s.id] || '' })),
+                ...A4_SUBS.map(s => ({ category: s.id, score: a4SubScores[s.id] || 0, comment: a4SubComments[s.id] || '' })),
             ]
 
             for (const item of subScoresData) {

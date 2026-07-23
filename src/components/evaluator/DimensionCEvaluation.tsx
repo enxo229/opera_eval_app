@@ -170,17 +170,26 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
-        for (const cat of CATEGORIES) {
-            const { data: existing } = await supabase.from('dimension_scores').select('id')
-                .eq('evaluation_id', evaluationId).eq('dimension', 'C').eq('category', cat.id).single()
-            if (existing) {
-                await supabase.from('dimension_scores').update({ raw_score: scores[cat.id], comments: comments[cat.id] }).eq('id', existing.id)
-            } else {
-                await supabase.from('dimension_scores').insert({ evaluation_id: evaluationId, dimension: 'C', category: cat.id, raw_score: scores[cat.id], comments: comments[cat.id] })
+        try {
+            for (const cat of CATEGORIES) {
+                const { data: existing } = await supabase.from('dimension_scores').select('id')
+                    .eq('evaluation_id', evaluationId).eq('dimension', 'C').eq('category', cat.id).single()
+                const scoreVal = scores[cat.id] || 0
+                const commentVal = comments[cat.id] || ''
+                if (existing) {
+                    await supabase.from('dimension_scores').update({ raw_score: scoreVal, comments: commentVal }).eq('id', existing.id)
+                } else {
+                    await supabase.from('dimension_scores').insert({ evaluation_id: evaluationId, dimension: 'C', category: cat.id, raw_score: scoreVal, comments: commentVal })
+                }
             }
+            alert('Dimensión C guardada exitosamente.')
+        } catch (e: any) {
+            console.error('Error saving Dim C:', e)
+            alert('Error guardando Dimensión C: ' + e.message)
+        } finally {
+            setIsSaving(false)
+            router.refresh()
         }
-        setIsSaving(false)
-        router.refresh()
     }
 
     return (
