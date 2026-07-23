@@ -60,6 +60,7 @@ interface CandidateContextType {
     // Security Bypass Audit Counter
     bypassPasteCount: number
     incrementBypassCount: () => void
+    reloadContext: () => void
 }
 
 const CandidateContext = createContext<CandidateContextType | undefined>(undefined)
@@ -90,6 +91,11 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [bypassPasteCount, setBypassPasteCount] = useState<number>(0)
     const incrementBypassCount = useCallback(() => {
         setBypassPasteCount(prev => prev + 1)
+    }, [])
+
+    const [reloadCounter, setReloadCounter] = useState(0)
+    const reloadContext = useCallback(() => {
+        setReloadCounter(prev => prev + 1)
     }, [])
 
     useEffect(() => {
@@ -224,7 +230,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
             }
         }
         loadContext()
-    }, [])
+    }, [reloadCounter])
 
     // Timer countdown
     useEffect(() => {
@@ -264,7 +270,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
             startedAt, setStartedAt, testDuration, remainingSeconds, isTimeUp, 
             pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, pauseCount, setPauseCount,
             isPaused: !!pausedAt,
-            bypassPasteCount, incrementBypassCount
+            bypassPasteCount, incrementBypassCount, reloadContext
         }}>
             {children}
         </CandidateContext.Provider>

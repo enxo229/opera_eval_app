@@ -47,7 +47,7 @@ const EDUCATION_LEVELS = [
 ]
 
 export default function EligibilityPage() {
-    const { evaluationId, profileTrack, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation } = useCandidateContext()
+    const { evaluationId, profileTrack, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation, reloadContext } = useCandidateContext()
     const [selected, setSelected] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [pregenText, setPregenText] = useState('Guardando Perfil...')
@@ -84,6 +84,7 @@ export default function EligibilityPage() {
                 setPregenText('Generando preguntas personalizadas de OTel & Grafana Cloud (esto puede tomar unos segundos)...')
             }
             await pregenerateTrackQuestions(evaluationId, selected)
+            reloadContext()
         }
 
         router.push('/candidate')

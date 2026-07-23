@@ -52,6 +52,11 @@ export default function CandidateEvaluationFlow() {
         }
     }, [ctx.contextLoaded, ctx.legalAccepted, router])
 
+    // Reload candidate context on mount to ensure fresh pre-generated questions are loaded
+    useEffect(() => {
+        ctx.reloadContext()
+    }, [])
+
     // Auto-Pause Logic (Network & Visibility)
     useEffect(() => {
         // Only trigger auto-pause if evaluation has started, isn't already paused, and hasn't ended
