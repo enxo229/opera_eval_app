@@ -37,62 +37,61 @@ export async function pregenerateTrackQuestions(evaluationId: string, educationL
         const profileTrack = (evaluation.selection_processes as any)?.profile_track || 'general'
         log.info(`Pregenerating questions for track: ${profileTrack}, educationLevel: ${educationLevel}`)
 
-        if (profileTrack === 'otel_expert') {
-            // A1 Questions pre-generation
-            const { data: existingA1 } = await supabase
-                .from('dynamic_tests')
-                .select('id')
-                .eq('evaluation_id', evaluationId)
-                .eq('test_type', 'QUESTIONS_A1')
-                .limit(1)
+        // A1 Questions pre-generation (All tracks)
+        const { data: existingA1 } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'QUESTIONS_A1')
+            .limit(1)
 
-            if (!existingA1 || existingA1.length === 0) {
-                log.info('Pre-generating A1 questions (OTel Expert)')
-                const a1Questions = await generateQuestionsA1(educationLevel, 'otel_expert')
-                await saveA1QuestionsOnly(evaluationId, a1Questions)
-            }
+        if (!existingA1 || existingA1.length === 0) {
+            log.info(`Pre-generating A1 questions (Track: ${profileTrack})`)
+            const a1Questions = await generateQuestionsA1(educationLevel, profileTrack)
+            await saveA1QuestionsOnly(evaluationId, a1Questions)
+        }
 
-            // A2 Questions pre-generation (pre-selecting Grafana)
-            const { data: existingA2 } = await supabase
-                .from('dynamic_tests')
-                .select('id')
-                .eq('evaluation_id', evaluationId)
-                .eq('test_type', 'QUESTIONS_A2')
-                .limit(1)
+        // A2 Questions pre-generation (All tracks)
+        const { data: existingA2 } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'QUESTIONS_A2')
+            .limit(1)
 
-            if (!existingA2 || existingA2.length === 0) {
-                log.info('Pre-generating A2 questions with tool Grafana (OTel Expert)')
-                const a2Questions = await generateQuestionsA2('Grafana', educationLevel, 'otel_expert')
-                await saveA2QuestionsOnly(evaluationId, 'Grafana', a2Questions)
-            }
+        if (!existingA2 || existingA2.length === 0) {
+            const defaultTool = profileTrack === 'otel_expert' ? 'Grafana' : 'Grafana'
+            log.info(`Pre-generating A2 questions with tool ${defaultTool} (Track: ${profileTrack})`)
+            const a2Questions = await generateQuestionsA2(defaultTool, educationLevel, profileTrack)
+            await saveA2QuestionsOnly(evaluationId, defaultTool, a2Questions)
+        }
 
-            // A3 Questions pre-generation (OTel Expert)
-            const { data: existingA3 } = await supabase
-                .from('dynamic_tests')
-                .select('id')
-                .eq('evaluation_id', evaluationId)
-                .eq('test_type', 'QUESTIONS_A3')
-                .limit(1)
+        // A3 Questions pre-generation (All tracks)
+        const { data: existingA3 } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'QUESTIONS_A3')
+            .limit(1)
 
-            if (!existingA3 || existingA3.length === 0) {
-                log.info('Pre-generating A3 questions (OTel Expert)')
-                const a3Questions = await generateQuestionsA3(educationLevel, 'otel_expert')
-                await saveA3QuestionsOnly(evaluationId, a3Questions, {})
-            }
+        if (!existingA3 || existingA3.length === 0) {
+            log.info(`Pre-generating A3 questions (Track: ${profileTrack})`)
+            const a3Questions = await generateQuestionsA3(educationLevel, profileTrack)
+            await saveA3QuestionsOnly(evaluationId, a3Questions, {})
+        }
 
-            // A4 Case pre-generation (OTel Expert)
-            const { data: existingA4 } = await supabase
-                .from('dynamic_tests')
-                .select('id')
-                .eq('evaluation_id', evaluationId)
-                .eq('test_type', 'CHATBOT_A4')
-                .limit(1)
+        // A4 Case pre-generation (All tracks)
+        const { data: existingA4 } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'CHATBOT_A4')
+            .limit(1)
 
-            if (!existingA4 || existingA4.length === 0) {
-                log.info('Pre-generating A4 case scenario (OTel Expert)')
-                const a4Case = await generateDynamicCaseA4('otel_expert')
-                await saveA4Case(evaluationId, a4Case)
-            }
+        if (!existingA4 || existingA4.length === 0) {
+            log.info(`Pre-generating A4 case scenario (Track: ${profileTrack})`)
+            const a4Case = await generateDynamicCaseA4(profileTrack)
+            await saveA4Case(evaluationId, a4Case)
         }
 
         // B2-B6 Questions pre-generation (All tracks)

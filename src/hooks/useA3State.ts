@@ -54,6 +54,13 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
         }
     }, [educationLevel, evaluationId, profileTrack])
 
+    // Auto-trigger question generation if not restored
+    useEffect(() => {
+        if (!restored && !a3QuestionsGenerated && !a3QuestionsLoading && (educationLevel || profileTrack)) {
+            handleGenerateA3Questions()
+        }
+    }, [restored, a3QuestionsGenerated, a3QuestionsLoading, educationLevel, profileTrack, handleGenerateA3Questions])
+
     const handleSubmitA3 = useCallback(async () => {
         if (!evaluationId) return
         setA3Submitting(true)

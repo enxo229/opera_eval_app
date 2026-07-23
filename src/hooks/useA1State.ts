@@ -44,7 +44,14 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
         } finally {
             setA1QuestionsLoading(false)
         }
-    }, [educationLevel, evaluationId])
+    }, [educationLevel, evaluationId, profileTrack])
+
+    // Auto-trigger question generation if not restored
+    useEffect(() => {
+        if (!restored && !a1QuestionsGenerated && !a1QuestionsLoading && (educationLevel || profileTrack)) {
+            handleGenerateA1Questions()
+        }
+    }, [restored, a1QuestionsGenerated, a1QuestionsLoading, educationLevel, profileTrack, handleGenerateA1Questions])
 
     const handleSubmitA1 = useCallback(async () => {
         if (!evaluationId) return
