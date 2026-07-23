@@ -566,16 +566,21 @@ export async function generateQuestionsA3(educationLevel: string, profileTrack?:
     const seed = Math.floor(Math.random() * 10000)
 
     if (profileTrack === 'otel_expert') {
-        const prompt = `Eres un evaluador técnico para ingenieros SRE Expertos en OpenTelemetry y observabilidad.
-Genera exactamente 2 preguntas de análisis en español basadas en una configuración de OpenTelemetry Collector que contiene un procesador transform con reglas OTTL y un procesador tail_sampling.
+        const prompt = `Eres un evaluador técnico para ingenieros SRE Expertos en OpenTelemetry.
+El candidato está viendo en pantalla un archivo YAML de OTel Collector (otel-collector-config.yaml) que incluye:
+- Receivers: OTLP (gRPC: 4317, HTTP: 4318)
+- Processors: batch, transform (reglas OTTL: set service.env, replace_pattern http.target, keep_keys), tail_sampling (filter_errors, filter_latency > 2000ms, probabilistic_sample 10%)
+- Exporters: OTLP (Tempo Grafana)
 
-Subcategorías y Tareas:
-1. A3.1 — Análisis de Pipeline & Muestreo: Pide al candidato analizar la lógica de tail_sampling del archivo (ej. latencias, códigos de estado, etc.) y explicar el impacto.
-2. A3.2 — Reglas OTTL & Procesamiento: Pide al candidato interpretar el procesador transform/OTTL y explicar qué atributos o campos se están renombrando o filtrando.
+Genera exactamente 2 preguntas CORTAS, CONCISAS Y DIRECTAS en español:
 
-Reglas:
-- Nivel Experto/Senior (escolaridad: ${educationLevel}).
-- Las preguntas deben requerir respuestas analíticas y de diagnóstico del archivo YAML.
+1. A3.1 — Análisis de Pipeline & Muestreo: Pide analizar la sección 'tail_sampling' del YAML en pantalla. ¿Qué trazas serán capturadas por las políticas de error y latencia, y cuál es el impacto de conservar un 10% probabilístico del resto?
+2. A3.2 — Reglas OTTL & Procesamiento: Pide analizar las sentencias OTTL del procesador 'transform' en el YAML. ¿Qué modificaciones realizan sobre los atributos 'service.env' y 'http.target', y qué beneficio aportan?
+
+REGLAS CRÍTICAS DE CONCISIÓN:
+- Cada pregunta debe tener MÁXIMO 35 a 45 palabras.
+- NUNCA inventes escenarios narrativos largos ni párrafos extensos. El candidato ya tiene el archivo YAML visible en pantalla.
+- Haz preguntas puntuales de análisis y diagnóstico técnico que se puedan responder rápidamente.
 - Responde ÚNICAMENTE con un JSON array de 2 objetos:
 [
   {"subcategory": "A3.1", "label": "Análisis de Pipeline & Muestreo", "question": "..."},
@@ -591,8 +596,8 @@ Reglas:
         } catch (e) {
             log.ai.error('Error parseando preguntas A3 (OTel Expert)', e as Error, { raw });
             return [
-                { subcategory: 'A3.1', label: 'Análisis de Pipeline & Muestreo', question: 'Analiza la sección processors.tail_sampling en el editor YAML. ¿Qué criterios de muestreo (sampling) se están aplicando y qué ocurrirá con las trazas que contengan spans de error?' },
-                { subcategory: 'A3.2', label: 'Reglas OTTL & Procesamiento', question: 'Identifica la regla OTTL (OpenTelemetry Transformation Language) definida en el procesador transform. ¿Qué campos de la telemetría modifica y cuál es el resultado esperado de esa transformación?' }
+                { subcategory: 'A3.1', label: 'Análisis de Pipeline & Muestreo', question: 'Analiza la sección tail_sampling en el YAML mostrado arriba. ¿Qué trazas serán capturadas por las políticas filter_errors y filter_latency, y cuál es el objetivo de mantener un 10% probabilístico del resto?' },
+                { subcategory: 'A3.2', label: 'Reglas OTTL & Procesamiento', question: 'Revisa las reglas OTTL en el procesador transform del YAML. ¿Qué cambios realizan sobre los atributos service.env y http.target, y qué beneficio aporta la sentencia keep_keys?' }
             ]
         }
     }

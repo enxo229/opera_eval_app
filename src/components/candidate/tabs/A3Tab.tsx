@@ -66,69 +66,71 @@ export function A3Tab({
             ) : a3Questions.length > 0 ? (
                 <div className="space-y-6">
                     {isOtelExpert ? (
-                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg space-y-3">
-                            <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-                                <FileText className="h-4 w-4" /> OpenTelemetry Collector Config (otel-collector-config.yaml)
-                            </h3>
-                            <div className="relative">
-                                <pre className="text-xs font-mono bg-zinc-950 text-emerald-400 p-5 rounded-lg overflow-x-auto border border-zinc-800 shadow-inner max-h-[350px] leading-relaxed">
-{`receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
-
-processors:
-  batch:
-    timeout: 1s
-    send_batch_size: 256
-
-  transform:
-    error_mode: ignore
-    trace_statements:
-      - context: span
-        statements:
-          - set(attributes["service.env"], "production")
-          - replace_pattern(attributes["http.target"], "^/api/v1/auth/.*", "/api/v1/auth/*")
-          - keep_keys(attributes, ["http.method", "http.status_code", "service.env", "http.target"])
-
-  tail_sampling:
-    decision_wait: 10s
-    num_traces: 10000
-    expected_new_traces_per_sec: 2000
-    policies:
-      - name: filter_errors
-        type: status_code
-        status_code:
-          status_codes: [ ERROR ]
-      - name: filter_latency
-        type: latency
-        latency:
-          threshold_ms: 2000
-      - name: probabilistic_sample
-        type: probabilistic
-        probabilistic:
-          sampling_percentage: 10.0
-
-exporters:
-  otlp:
-    endpoint: tempo-us-central.grafana.net:443
-    headers:
-      authorization: Basic Y2FuZGlkYXRlOnNlY3JldA==
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [transform, tail_sampling, batch]
-      exporters: [otlp]`}
-                                </pre>
-                                <div className="absolute top-2 right-2 bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono border border-zinc-700 select-none">
+                        <div className="p-4 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3 shadow-lg">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-sky-400" /> otel-collector-config.yaml
+                                </h3>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-sky-300 border border-slate-700 select-none">
                                     YAML (READ-ONLY)
-                                </div>
+                                </span>
                             </div>
+                            <pre className="text-xs font-mono p-5 rounded-lg overflow-x-auto border border-slate-800 shadow-inner max-h-[360px] leading-relaxed select-text" style={{ backgroundColor: '#090d16', color: '#f8fafc' }}>
+                                <code className="font-mono">
+                                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>receivers</span>:<br />
+                                    {'  '}<span style={{ color: '#38bdf8' }}>otlp</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>protocols</span>:<br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>grpc</span>:<br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>endpoint</span>: <span style={{ color: '#fbbf24' }}>"0.0.0.0:4317"</span><br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>http</span>:<br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>endpoint</span>: <span style={{ color: '#fbbf24' }}>"0.0.0.0:4318"</span><br /><br />
+
+                                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>processors</span>:<br />
+                                    {'  '}<span style={{ color: '#38bdf8' }}>batch</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>timeout</span>: <span style={{ color: '#c084fc' }}>1s</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>send_batch_size</span>: <span style={{ color: '#c084fc' }}>256</span><br /><br />
+
+                                    {'  '}<span style={{ color: '#38bdf8' }}>transform</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>error_mode</span>: <span style={{ color: '#fbbf24' }}>ignore</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>trace_statements</span>:<br />
+                                    {'      '}- <span style={{ color: '#38bdf8' }}>context</span>: <span style={{ color: '#fbbf24' }}>span</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>statements</span>:<br />
+                                    {'          '}- <span style={{ color: '#fbbf24' }}>'set(attributes["service.env"], "production")'</span><br />
+                                    {'          '}- <span style={{ color: '#fbbf24' }}>'replace_pattern(attributes["http.target"], "^/api/v1/auth/.*", "/api/v1/auth/*")'</span><br />
+                                    {'          '}- <span style={{ color: '#fbbf24' }}>'keep_keys(attributes, ["http.method", "http.status_code", "service.env", "http.target"])'</span><br /><br />
+
+                                    {'  '}<span style={{ color: '#38bdf8' }}>tail_sampling</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>decision_wait</span>: <span style={{ color: '#c084fc' }}>10s</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>num_traces</span>: <span style={{ color: '#c084fc' }}>10000</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>expected_new_traces_per_sec</span>: <span style={{ color: '#c084fc' }}>2000</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>policies</span>:<br />
+                                    {'      '}- <span style={{ color: '#38bdf8' }}>name</span>: <span style={{ color: '#fbbf24' }}>filter_errors</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>type</span>: <span style={{ color: '#fbbf24' }}>status_code</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>status_code</span>:<br />
+                                    {'          '}<span style={{ color: '#38bdf8' }}>status_codes</span>: [<span style={{ color: '#fbbf24' }}>ERROR</span>]<br />
+                                    {'      '}- <span style={{ color: '#38bdf8' }}>name</span>: <span style={{ color: '#fbbf24' }}>filter_latency</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>type</span>: <span style={{ color: '#fbbf24' }}>latency</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>latency</span>:<br />
+                                    {'          '}<span style={{ color: '#38bdf8' }}>threshold_ms</span>: <span style={{ color: '#c084fc' }}>2000</span><br />
+                                    {'      '}- <span style={{ color: '#38bdf8' }}>name</span>: <span style={{ color: '#fbbf24' }}>probabilistic_sample</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>type</span>: <span style={{ color: '#fbbf24' }}>probabilistic</span><br />
+                                    {'        '}<span style={{ color: '#38bdf8' }}>probabilistic</span>:<br />
+                                    {'          '}<span style={{ color: '#38bdf8' }}>sampling_percentage</span>: <span style={{ color: '#c084fc' }}>10.0</span><br /><br />
+
+                                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>exporters</span>:<br />
+                                    {'  '}<span style={{ color: '#38bdf8' }}>otlp</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>endpoint</span>: <span style={{ color: '#fbbf24' }}>"tempo-us-central.grafana.net:443"</span><br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>headers</span>:<br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>authorization</span>: <span style={{ color: '#fbbf24' }}>"Basic Y2FuZGlkYXRlOnNlY3JldA=="</span><br /><br />
+
+                                    <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>service</span>:<br />
+                                    {'  '}<span style={{ color: '#38bdf8' }}>pipelines</span>:<br />
+                                    {'    '}<span style={{ color: '#38bdf8' }}>traces</span>:<br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>receivers</span>: [<span style={{ color: '#fbbf24' }}>otlp</span>]<br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>processors</span>: [<span style={{ color: '#fbbf24' }}>transform</span>, <span style={{ color: '#fbbf24' }}>tail_sampling</span>, <span style={{ color: '#fbbf24' }}>batch</span>]<br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>exporters</span>: [<span style={{ color: '#fbbf24' }}>otlp</span>]<br />
+                                </code>
+                            </pre>
                         </div>
                     ) : (
                         <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
