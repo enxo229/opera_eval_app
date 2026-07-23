@@ -934,4 +934,143 @@ Donde puntaje_normalizado = (puntaje_total / 12) * 4, redondeado a 1 decimal.`
     }
 }
 
+// --- GENERADORES Y EVALUADORES PARA SECCIONES B & C (ASÍNCRONOS) ---
+
+export type BQuestion = {
+    subcategory: string
+    label: string
+    question: string
+}
+
+export type CQuestion = {
+    subcategory: string
+    label: string
+    question: string
+}
+
+export async function generateQuestionsB(educationLevel: string, profileTrack?: string): Promise<BQuestion[]> {
+    const isOtel = profileTrack === 'otel_expert'
+    const prompt = `Actúa como un evaluador senior de SRE y habilidades blandas en ingeniería.
+Genera exactamente 2 preguntas situacionales de respuesta abierta en español (máximo 35 a 45 palabras cada una) para evaluar la gestión de incidentes y colaboración:
+
+1. B2 — Adaptabilidad & Trabajo Bajo Presión: Pregunta sobre una situación de alta presión (ej. durante un corte activo de servicio, el equipo de desarrollo exige tomar acciones apresuradas. ¿Cómo negocias la preservación de telemetría y la restauración rápida?).
+2. B5 — Colaboración & Cultura Blameless: Pregunta sobre cómo reaccionarías ante un error humano recurrente de un miembro del equipo que ocasionó una caída de producción.
+
+Reglas:
+- Las preguntas deben requerir respuestas analíticas breves (~40-60 palabras).
+- Nivel de escolaridad: ${educationLevel}. ${isOtel ? 'Enfocado en entorno SRE / OpenTelemetry / Grafana.' : ''}
+- Responde ÚNICAMENTE con un JSON array de 2 objetos:
+[
+  {"subcategory": "B2", "label": "Adaptabilidad & Gestión de Presión", "question": "..."},
+  {"subcategory": "B5", "label": "Colaboración & Trabajo en Equipo", "question": "..."}
+]`
+
+    const raw = await generateContentWithRetry(prompt)
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    try {
+        return JSON.parse(cleaned)
+    } catch {
+        return [
+            { subcategory: 'B2', label: 'Adaptabilidad & Gestión de Presión', question: 'En medio de un incidente crítico activo con degradación de servicio, el equipo de desarrollo exige reiniciar inmediatamente los nodos sin guardar logs ni métricas. ¿Cómo manejas la situación para equilibrar la recuperación rápida sin perder la evidencia de observabilidad?' },
+            { subcategory: 'B5', label: 'Colaboración & Trabajo en Equipo', question: 'Detectas que una caída de producción fue ocasionada por un error de configuración de un compañero del equipo. ¿Cómo abordas el análisis de causa raíz y el post-mortem bajo una cultura Blameless?' }
+        ]
+    }
+}
+
+export async function generateQuestionsC(educationLevel: string, profileTrack?: string): Promise<CQuestion[]> {
+    const isOtel = profileTrack === 'otel_expert'
+    const prompt = `Actúa como un Consultor de Cultura SRE y Filosofía de Observabilidad.
+Genera exactamente 2 preguntas situacionales de respuesta abierta en español (máximo 35 a 45 palabras cada una) sobre filosofía SRE:
+
+1. C1 — Cultura Blameless & Post-mortems: Pregunta cómo estructurarías una cultura de aprendizaje continuo y post-mortems sin culpas después de un incidente grave.
+2. C2 — Mentalidad de SLOs & Error Budgets: Pregunta qué recomendación técnica le harías al líder de producto cuando el Error Budget de un servicio crítico se ha consumido en un 90% este mes y exigen desplegar nuevas funcionalidades.
+
+Reglas:
+- Preguntas situacionales directas de reflexión (~40-60 palabras).
+- Nivel de escolaridad: ${educationLevel}. ${isOtel ? 'Enfocado en entorno SRE / OpenTelemetry / Grafana.' : ''}
+- Responde ÚNICAMENTE con un JSON array de 2 objetos:
+[
+  {"subcategory": "C1", "label": "Cultura Blameless & Post-mortems", "question": "..."},
+  {"subcategory": "C2", "label": "Mentalidad de SLOs & Error Budgets", "question": "..."}
+]`
+
+    const raw = await generateContentWithRetry(prompt)
+    const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+    const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+    try {
+        return JSON.parse(cleaned)
+    } catch {
+        return [
+            { subcategory: 'C1', label: 'Cultura Blameless & Post-mortems', question: '¿Cómo garantizas que las reuniones de post-mortem y los reportes de incidentes se mantengan enfocados en la mejora sistémica y no en culpar a individuos cuando ocurre un falla humana?' },
+            { subcategory: 'C2', label: 'Mentalidad de SLOs & Error Budgets', question: 'Si el Error Budget de un servicio crítico ha consumido el 90% de su margen mensual debido a inestabilidad de infraestructura, ¿qué posición y recomendación técnica adoptas ante el Product Owner sobre el lanzamiento de nuevas características?' }
+        ]
+    }
+}
+
+export type SectionEvaluationWithAiDetection = {
+    score: number
+    justification: string
+    aiLikelihood: {
+        percentage: number
+        riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+        indicators: string[]
+    }
+}
+
+export async function evaluateQuestionGeneric(
+    subcategory: string,
+    questionContext: string,
+    candidateResponse: string
+): Promise<SectionEvaluationWithAiDetection> {
+    // 1. Evaluate score 0-3 using Gemini
+    const prompt = `Actúa como un evaluador senior de SRE. Evalúa la siguiente respuesta del candidato a una pregunta de la subcategoría ${subcategory}.
+
+PREGUNTA:
+"${questionContext}"
+
+RESPUESTA DEL CANDIDATO:
+"${candidateResponse}"
+
+Escala de Calificación (0 a 3):
+0 = No responde, respuesta irrelevante o evasiva.
+1 = Respuesta vaga, demuestra conocimiento básico pero carece de estructura o criterio práctico.
+2 = Respuesta clara, muestra buen criterio técnico/conductual y enfoque profesional.
+3 = Respuesta excelente, sólida argumentación, orientada a mejores prácticas de SRE/Observabilidad.
+
+Responde ÚNICAMENTE con un JSON:
+{
+  "score": N,
+  "justification": "Breve explicación en 1-2 oraciones del puntaje asignado."
+}`
+
+    let score = 1
+    let justification = 'Evaluación completada.'
+
+    try {
+        const raw = await evaluateContentWithRetry(prompt)
+        const jsonMatch = raw.match(/\{[\s\S]*\}/)
+        const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+        const parsed = JSON.parse(cleaned)
+        score = typeof parsed.score === 'number' ? Math.min(3, Math.max(0, parsed.score)) : 1
+        justification = parsed.justification || justification
+    } catch (e) {
+        log.ai.error(`Error evaluando subcategoría ${subcategory}`, e as Error)
+    }
+
+    // 2. Dual AI Likelihood Contra-Evaluation
+    const aiDetection = await analyzeAiLikelihood(candidateResponse, questionContext)
+
+    return {
+        score,
+        justification,
+        aiLikelihood: {
+            percentage: aiDetection.likelihoodPercentage,
+            riskLevel: aiDetection.riskLevel,
+            indicators: aiDetection.indicators
+        }
+    }
+}
+
+
 

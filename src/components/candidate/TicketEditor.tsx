@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
 import { AlertCircle, Loader2, FileText, CheckCircle2 } from 'lucide-react'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 interface TicketEditorProps {
     evaluationId: string | null
@@ -14,11 +15,17 @@ interface TicketEditorProps {
 }
 
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
+    const ctx = useCandidateContext()
     const [ticket, setTicket] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        ctx.incrementBypassCount()
+    }
 
     // Notify parent
     useEffect(() => {
@@ -140,9 +147,10 @@ Atención de alerta a las 02:47h..."
                             className="min-h-[300px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
                             value={ticket}
                             onChange={(e) => setTicket(e.target.value)}
-                            onPaste={(e) => e.preventDefault()}
-                            onCopy={(e) => e.preventDefault()}
-                            onContextMenu={(e) => e.preventDefault()}
+                            onPaste={handleBypassAttempt}
+                            onCopy={handleBypassAttempt}
+                            onCut={handleBypassAttempt}
+                            onContextMenu={handleBypassAttempt}
                             disabled={isSubmitting}
                         />
 

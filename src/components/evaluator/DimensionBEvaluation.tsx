@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Bot, MailCheck, ChevronDown, ChevronUp, MessageCircleQuestion, Eye, RotateCcw, Info, AlertTriangle, CheckCircle2, TrendingUp, Sparkles, Loader2, ArrowUp } from 'lucide-react'
 import { resetBResponses, triggerB1Evaluation } from '@/app/actions/candidate/b1'
+import { AiLikelihoodBadge } from './AiLikelihoodBadge'
 
 interface Props {
     evaluationId: string
@@ -542,25 +543,60 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                                 </div>
                             )}
 
-                            {/* B2-B6 Guides (Now deprecated in favor of integrated labels, keeping only the Description) */}
-                            {cat.id !== 'B1' && guide && (
-                                <div className="space-y-4">
-                                    <div className="bg-purple-500/5 p-4 rounded-lg border border-purple-500/10">
-                                        <p className="text-sm font-medium text-purple-900 flex items-start gap-2">
-                                            <MessageCircleQuestion className="h-4 w-4 mt-0.5" />
-                                            {guide.description}
-                                        </p>
-                                        <div className="mt-3">
-                                            <p className="text-xs font-bold text-purple-800 uppercase mb-1">Preguntas Sugeridas:</p>
-                                            <ul className="list-disc list-inside text-xs text-purple-900/80 space-y-1">
-                                                {guide.questions.map((q, i) => (
-                                                    <li key={i}>{q}</li>
-                                                ))}
-                                            </ul>
+                            {/* B2-B6 Written Response & AI Likelihood Evidence */}
+                            {cat.id !== 'B1' && (() => {
+                                const qData = dynamicTests.find(t => t.test_type === 'QUESTIONS_B2' && t.subcategory === cat.id)
+                                if (!qData) {
+                                    return guide ? (
+                                        <div className="space-y-4">
+                                            <div className="bg-purple-500/5 p-4 rounded-lg border border-purple-500/10">
+                                                <p className="text-sm font-medium text-purple-900 flex items-start gap-2">
+                                                    <MessageCircleQuestion className="h-4 w-4 mt-0.5" />
+                                                    {guide.description}
+                                                </p>
+                                            </div>
                                         </div>
+                                    ) : null
+                                }
+
+                                return (
+                                    <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                                Respuesta Asíncrona del Candidato ({qData.subcategory})
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Pregunta Presentada:</p>
+                                            <p className="text-sm font-semibold text-foreground">{qData.prompt_context}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Respuesta Escrita:</p>
+                                            <div className="p-3 bg-background border border-border rounded-lg text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                                {qData.candidate_response || <span className="italic opacity-60">Sin respuesta del candidato aún.</span>}
+                                            </div>
+                                        </div>
+                                        {qData.candidate_response && (
+                                            <AiLikelihoodBadge
+                                                percentage={qData.ai_likelihood}
+                                            />
+                                        )}
+                                        {qData.ai_score !== null && (
+                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs">
+                                                <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                                <div>
+                                                    <span className="font-bold text-violet-700 dark:text-violet-300">
+                                                        IA Sugiere Puntaje: {qData.ai_score}/3
+                                                    </span>
+                                                    {qData.ai_justification && (
+                                                        <p className="text-muted-foreground mt-0.5">{qData.ai_justification}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                )
+                            })()}
 
                             {/* Granular Control Area (Style: Dimension A matching) */}
                             <div className="pt-4 space-y-4">

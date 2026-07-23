@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronUp, MessageCircleQuestion, ArrowUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, MessageCircleQuestion, ArrowUp, Sparkles } from 'lucide-react'
+import { AiLikelihoodBadge } from './AiLikelihoodBadge'
 
 interface Props {
     evaluationId: string
     existingScores: any[]
+    dynamicTests?: any[]
     readOnly?: boolean
 }
 
@@ -142,7 +144,7 @@ const CATEGORIES = [
     { id: 'C4', name: 'Tolerancia a la Incertidumbre', max: 5 }
 ]
 
-export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }: Props) {
+export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTests = [], readOnly }: Props) {
     const router = useRouter()
     const [isSaving, setIsSaving] = useState(false)
     const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
@@ -245,6 +247,50 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
                         </CardHeader>
 
                         <CardContent className="p-5 space-y-4">
+                            {/* Candidate Written Response & AI Likelihood Evidence */}
+                            {(() => {
+                                const qData = dynamicTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
+                                if (!qData) return null
+
+                                return (
+                                    <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                                Respuesta Asíncrona del Candidato ({qData.subcategory})
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Pregunta Presentada:</p>
+                                            <p className="text-sm font-semibold text-foreground">{qData.prompt_context}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Respuesta Escrita:</p>
+                                            <div className="p-3 bg-background border border-border rounded-lg text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                                {qData.candidate_response || <span className="italic opacity-60">Sin respuesta del candidato aún.</span>}
+                                            </div>
+                                        </div>
+                                        {qData.candidate_response && (
+                                            <AiLikelihoodBadge
+                                                percentage={qData.ai_likelihood}
+                                            />
+                                        )}
+                                        {qData.ai_score !== null && (
+                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/10 border border-teal-500/20 text-xs">
+                                                <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                                                <div>
+                                                    <span className="font-bold text-teal-700 dark:text-teal-300">
+                                                        IA Sugiere Puntaje: {qData.ai_score}/3
+                                                    </span>
+                                                    {qData.ai_justification && (
+                                                        <p className="text-muted-foreground mt-0.5">{qData.ai_justification}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })()}
+
                             {/* Evaluator Guide Static Header */}
                             <div className="w-full flex items-center gap-2 font-bold text-purple-800 bg-purple-100/50 border border-purple-200 rounded-lg px-4 py-3 mb-4 text-base">
                                 <MessageCircleQuestion className="h-5 w-5" /> Guía del Evaluador — Preguntas, Indicadores y Puntuación

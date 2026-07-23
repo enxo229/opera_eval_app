@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { generateQuestionsA1, generateQuestionsA2, generateQuestionsA3, generateDynamicCaseA4 } from '@/app/actions/ai'
+import { generateQuestionsA1, generateQuestionsA2, generateQuestionsA3, generateDynamicCaseA4, generateQuestionsB, generateQuestionsC } from '@/app/actions/ai'
 import { saveA1QuestionsOnly } from '@/app/actions/candidate/a1'
 import { saveA2QuestionsOnly } from '@/app/actions/candidate/a2'
 import { saveA3QuestionsOnly } from '@/app/actions/candidate/a3'
 import { saveA4Case } from '@/app/actions/candidate/a4'
+import { saveB2QuestionsOnly } from '@/app/actions/candidate/b2'
+import { saveCQuestionsOnly } from '@/app/actions/candidate/c'
 import { log } from '@/lib/observability/logger'
 
 /**
@@ -91,6 +93,34 @@ export async function pregenerateTrackQuestions(evaluationId: string, educationL
                 const a4Case = await generateDynamicCaseA4('otel_expert')
                 await saveA4Case(evaluationId, a4Case)
             }
+        }
+
+        // B2-B6 Questions pre-generation (All tracks)
+        const { data: existingB2 } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'QUESTIONS_B2')
+            .limit(1)
+
+        if (!existingB2 || existingB2.length === 0) {
+            log.info('Pre-generating B2-B6 situational questions')
+            const bQuestions = await generateQuestionsB(educationLevel, profileTrack)
+            await saveB2QuestionsOnly(evaluationId, bQuestions)
+        }
+
+        // Section C Questions pre-generation (All tracks)
+        const { data: existingC } = await supabase
+            .from('dynamic_tests')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('test_type', 'QUESTIONS_C')
+            .limit(1)
+
+        if (!existingC || existingC.length === 0) {
+            log.info('Pre-generating Section C philosophy questions')
+            const cQuestions = await generateQuestionsC(educationLevel, profileTrack)
+            await saveCQuestionsOnly(evaluationId, cQuestions)
         }
 
         return { success: true }

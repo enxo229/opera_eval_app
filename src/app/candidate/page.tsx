@@ -8,6 +8,8 @@ import { PromptEditorIA2 } from '@/components/candidate/PromptEditorIA2'
 import { A1Tab } from '@/components/candidate/tabs/A1Tab'
 import { A2Tab } from '@/components/candidate/tabs/A2Tab'
 import { A3Tab } from '@/components/candidate/tabs/A3Tab'
+import { B2Tab } from '@/components/candidate/tabs/B2Tab'
+import { CTab } from '@/components/candidate/tabs/CTab'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Terminal, HelpCircle, GitBranch, Bot, FileText, Sparkles, Mail, GraduationCap, Loader2, Clock, CheckCircle2 } from 'lucide-react'
@@ -26,6 +28,8 @@ import { useCandidateContext } from '@/context/CandidateContext'
 import { useA1State } from '@/hooks/useA1State'
 import { useA2State } from '@/hooks/useA2State'
 import { useA3State } from '@/hooks/useA3State'
+import { useB2State } from '@/hooks/useB2State'
+import { useCState } from '@/hooks/useCState'
 
 export default function CandidateEvaluationFlow() {
     const ctx = useCandidateContext()
@@ -37,13 +41,13 @@ export default function CandidateEvaluationFlow() {
     const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1, ctx.profileTrack)
     const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2, ctx.profileTrack)
     const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3, ctx.profileTrack)
+    const b2 = useB2State(ctx.evaluationId, ctx.educationLevel, ctx.profileTrack)
+    const c = useCState(ctx.evaluationId, ctx.educationLevel, ctx.profileTrack)
 
     // Completion states for tabs that don't export them via hooks
     const [a4Submitted, setA4Submitted] = useState(false)
     const [b1Submitted, setB1Submitted] = useState(false)
     const [d2Submitted, setD2Submitted] = useState(false)
-    const [b2Submitted, setB2Submitted] = useState(false)
-    const [cSubmitted, setCSubmitted] = useState(false)
 
     // Legal Guard
     useEffect(() => {
@@ -215,11 +219,11 @@ export default function CandidateEvaluationFlow() {
                         </TabsTrigger>
                         <TabsTrigger value="b2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
                             B2-B6
-                            {b2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                            {b2.b2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="c" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
                             C
-                            {cSubmitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                            {c.cSubmitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         {ctx.profileTrack !== 'otel_expert' && (
                             <TabsTrigger value="d" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
@@ -310,58 +314,38 @@ export default function CandidateEvaluationFlow() {
                         </div>
                     </TabsContent>
 
-                    {/* ===== B2-B6: Habilidades Blandas Síncronas ===== */}
+                    {/* ===== B2-B6: Habilidades Blandas Situacionales ===== */}
                     <TabsContent value="b2" className="space-y-6">
-                        <Card className="border border-indigo-200 shadow-md bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:border-indigo-800/30">
-                            <CardHeader className="text-center pb-4 pt-8">
-                                <div className="mx-auto w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
-                                    <HelpCircle className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                                </div>
-                                <CardTitle className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">Evaluación Sincrónica (B2-B6)</CardTitle>
-                                <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-indigo-200">
-                                    Esta sección mide tus habilidades blandas (adaptabilidad, autonomía, etc.). Se realiza a través de preguntas de situación ("Roleplay") mediante entrevista.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center pb-8 border-t border-indigo-100 dark:border-indigo-800/30 pt-6 mt-4">
-                                <p className="font-bold text-lg text-indigo-700 dark:text-indigo-300 mb-6">
-                                    ✋ ¡Alto! Por favor, indica a tu líder técnico/evaluador que has llegado a este punto para que dirija las preguntas.
-                                </p>
-                                <Button 
-                                    onClick={() => setB2Submitted(true)}
-                                    disabled={b2Submitted}
-                                    className={`font-semibold transition-all ${b2Submitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
-                                >
-                                    {b2Submitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección B2-B6 Completada</> : 'Marcar sección como completada'}
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <B2Tab
+                            b2QuestionsGenerated={b2.b2QuestionsGenerated}
+                            b2QuestionsLoading={b2.b2QuestionsLoading}
+                            b2Questions={b2.b2Questions}
+                            b2Answers={b2.b2Answers}
+                            setB2Answers={b2.setB2Answers}
+                            b2Submitted={b2.b2Submitted}
+                            b2Submitting={b2.b2Submitting}
+                            evaluationId={ctx.evaluationId}
+                            allB2Answered={b2.allB2Answered}
+                            handleGenerateB2Questions={b2.handleGenerateB2Questions}
+                            handleSubmitB2={b2.handleSubmitB2}
+                        />
                     </TabsContent>
 
-                    {/* ===== C: Cultura ===== */}
+                    {/* ===== C: Cultura SRE ===== */}
                     <TabsContent value="c" className="space-y-6">
-                        <Card className="border border-teal-200 shadow-md bg-gradient-to-br from-teal-50/50 to-white dark:from-teal-950/20 dark:border-teal-800/30">
-                            <CardHeader className="text-center pb-4 pt-8">
-                                <div className="mx-auto w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center mb-4 dark:bg-teal-900/50">
-                                    <Sparkles className="h-8 w-8 text-teal-600 dark:text-teal-400" />
-                                </div>
-                                <CardTitle className="text-2xl font-bold text-teal-900 dark:text-teal-100">C. Evaluación Cultural</CardTitle>
-                                <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-teal-200">
-                                    Queremos conocer tus motivaciones, cómo trabajas en equipo y qué te apasiona de este posible nuevo rol.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center pb-8 border-t border-teal-100 dark:border-teal-800/30 pt-6 mt-4">
-                                <p className="font-bold text-lg text-teal-700 dark:text-teal-300 mb-6">
-                                    ✋ ¡Alto! Esta sección es un diálogo abierto. Avísale a tu evaluador que ya puedes comenzar la charla cultural.
-                                </p>
-                                <Button 
-                                    onClick={() => setCSubmitted(true)}
-                                    disabled={cSubmitted}
-                                    className={`font-semibold transition-all ${cSubmitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-teal-600 hover:bg-teal-700 text-white'}`}
-                                >
-                                    {cSubmitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección C Completada</> : 'Marcar sección como completada'}
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <CTab
+                            cQuestionsGenerated={c.cQuestionsGenerated}
+                            cQuestionsLoading={c.cQuestionsLoading}
+                            cQuestions={c.cQuestions}
+                            cAnswers={c.cAnswers}
+                            setCAnswers={c.setCAnswers}
+                            cSubmitted={c.cSubmitted}
+                            cSubmitting={c.cSubmitting}
+                            evaluationId={ctx.evaluationId}
+                            allCAnswered={c.allCAnswered}
+                            handleGenerateCQuestions={c.handleGenerateCQuestions}
+                            handleSubmitC={c.handleSubmitC}
+                        />
                     </TabsContent>
 
                     {/* ===== Dimensión D: IA (Solo para perfil general) ===== */}
