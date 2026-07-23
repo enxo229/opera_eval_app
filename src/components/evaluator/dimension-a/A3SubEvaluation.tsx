@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
 import { RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
-import { A3_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
+import { A3_EVALUATOR_GUIDANCE, A3_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
 
 interface A3SubEvaluationProps {
     a3QData: any[]
@@ -38,6 +38,8 @@ export function A3SubEvaluation({
     profileTrack
 }: A3SubEvaluationProps) {
     const isOtelExpert = profileTrack === 'otel_expert'
+    const guidanceMap = isOtelExpert ? A3_EVALUATOR_GUIDANCE_OTEL : A3_EVALUATOR_GUIDANCE
+
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
@@ -69,7 +71,7 @@ export function A3SubEvaluation({
 
                 {a3Subs.map(sub => {
                     const qData = a3QData.find(q => q.subcategory === sub.id)
-                    const guidance = A3_EVALUATOR_GUIDANCE[sub.id]
+                    const guidance = guidanceMap[sub.id]
                     return (
                         <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">

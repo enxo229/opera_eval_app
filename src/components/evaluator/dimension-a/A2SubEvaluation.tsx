@@ -18,6 +18,7 @@ interface A2SubEvaluationProps {
     onReset: () => void
     readOnly?: boolean
     a2Subs?: any[]
+    profileTrack?: string
 }
 
 export function A2SubEvaluation({
@@ -33,14 +34,16 @@ export function A2SubEvaluation({
     onRefresh,
     onReset,
     readOnly,
-    a2Subs
+    a2Subs,
+    profileTrack
 }: A2SubEvaluationProps) {
+    const isOtel = profileTrack === 'otel_expert'
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
                     <span className="flex items-center gap-2">
-                        A2. Observabilidad y Monitoreo
+                        {isOtel ? 'A2. Plataforma Grafana Cloud & Stack de Datos' : 'A2. Observabilidad y Monitoreo'}
                         {a2SelectedTool && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-xs font-semibold">
                                 <Wrench className="h-3 w-3" /> {a2SelectedTool}

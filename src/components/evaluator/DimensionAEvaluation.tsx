@@ -397,7 +397,11 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Dimensión A: Habilidades Técnicas</h2>
-                    <p className="text-muted-foreground text-sm">Competencias base de Sistemas, Observabilidad y Analítica (50 pts).</p>
+                    <p className="text-muted-foreground text-sm">
+                        {isOtel 
+                            ? 'Dominio OTel, Grafana Cloud, Pipelines y Prácticas SRE (50 pts).' 
+                            : 'Competencias base de Sistemas, Observabilidad y Analítica (50 pts).'}
+                    </p>
                 </div>
                 {!readOnly && (
                     <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
@@ -410,10 +414,10 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
                 <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
                     {[
-                        { id: 'section-A1', label: 'A1. Sistemas' },
-                        { id: 'section-A2', label: 'A2. Observabilidad' },
-                        { id: 'section-A3', label: 'A3. Analítica' },
-                        { id: 'section-A4', label: 'A4. Escenarios' }
+                        { id: 'section-A1', label: isOtel ? 'A1. Arquitectura OTel' : 'A1. Sistemas' },
+                        { id: 'section-A2', label: isOtel ? 'A2. Grafana Stack' : 'A2. Observabilidad' },
+                        { id: 'section-A3', label: isOtel ? 'A3. Pipelines & OTTL' : 'A3. Analítica' },
+                        { id: 'section-A4', label: isOtel ? 'A4. Escenarios SRE' : 'A4. Escenarios' }
                     ].map(link => (
                         <Button 
                             key={link.id} 
@@ -452,6 +456,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     onRefresh={handleRefreshA1} onReset={handleResetA1}
                     readOnly={readOnly}
                     a1Subs={a1Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 
@@ -466,6 +471,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     onRefresh={handleRefreshA2} onReset={handleResetA2}
                     readOnly={readOnly}
                     a2Subs={a2Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 

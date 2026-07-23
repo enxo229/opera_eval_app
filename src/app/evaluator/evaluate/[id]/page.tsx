@@ -115,6 +115,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
     const dynamicTests = (dynamicTestsResult as any[]) || []
     const existingScores = (existingScoresResult as any[]) || []
+    const isOtel = evaluation.profile_track === 'otel_expert'
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -176,7 +177,6 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 <div className="lg:col-span-2 space-y-6">
                     <Tabs defaultValue="overview" className="w-full">
                         {(() => {
-                            const isOtel = evaluation.profile_track === 'otel_expert'
                             const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
                             const hasB = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
                             const hasC = ['C1', 'C2', 'C3', 'C4'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
@@ -237,12 +237,14 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                             <div className="p-2 bg-indigo-500/10 rounded-lg">
                                                 <BrainCircuit className="h-5 w-5 text-indigo-600" />
                                             </div>
-                                            Dimensiones C y D
+                                            {isOtel ? 'Dimensión C (Fit Cultural)' : 'Dimensiones C y D'}
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                            Usa las guías integradas para evaluar la mentalidad de crecimiento y el dominio de IA. Recuerda que la Dimensión D es un factor de desempate.
+                                            {isOtel 
+                                                ? 'Usa las guías integradas para evaluar la mentalidad de crecimiento, fit cultural y filosofía SRE del candidato.'
+                                                : 'Usa las guías integradas para evaluar la mentalidad de crecimiento y el dominio de IA. Recuerda que la Dimensión D es un factor de desempate.'}
                                         </p>
                                     </CardContent>
                                 </Card>
@@ -259,8 +261,10 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                 
                                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
                                     {[
-                                        { title: "Evidencia Primaria", desc: "Nunca asignes puntaje sin leer los prompts o justificaciones registradas." },
-                                        { title: "Criterio de Desempate", desc: "La Dimensión D (IA) no suma puntos al score base de 100, es diferencial." },
+                                        { title: "Evidencia Primaria", desc: "Nunca asignes puntaje sin leer las respuestas escritas o justificaciones registradas." },
+                                        isOtel 
+                                            ? { title: "Detección de IA & Copia", desc: "Revisa las insignias de probabilidad de IA (0-100%) y el contador de bypass de pegar para auditar el candidato." }
+                                            : { title: "Criterio de Desempate", desc: "La Dimensión D (IA) no suma puntos al score base de 100, es diferencial." },
                                         { title: "Consistencia", desc: "Asegúrate de que tus comentarios reflejen fielmente la puntuación asignada." },
                                         { title: "Guardado Individual", desc: "Recuerda presionar 'Guardar' al finalizar cada dimensión técnica o blanda." }
                                     ].map((rule, idx) => (

@@ -53,3 +53,28 @@ Un candidato con score 2 (Funcional): "He documentado procedimientos en la wiki 
 Un candidato con score 3 (Autónomo): "Mantengo actualizada la documentación del equipo, he creado guías de troubleshooting con diagramas y las reviso mensualmente"`,
   },
 }
+
+export const A3_EVALUATOR_GUIDANCE_OTEL: Record<string, { title: string; content: string }> = {
+  'A3.1': {
+    title: '📋 Guía para el evaluador — Muestreo & Tail Sampling',
+    content: `A3.1 evalúa la comprensión de políticas de muestreo distribuido en OTel Collector.
+    
+• Head-based vs. Tail-based Sampling:
+  ✅ Esperado: "Head sampling decide en el SDK al inicio de la traza; Tail sampling retiene trazas en el Collector hasta completarse para evaluar latencia o errores."
+
+• Criterios de evaluación:
+  - Identifica el riesgo de Head Sampling (pérdida de trazas de error poco frecuentes).
+  - Reconoce la necesidad de trace ID routing y aglutinamiento de spans en Tail Sampling.`,
+  },
+  'A3.2': {
+    title: '📋 Guía para el evaluador — Reglas OTTL & Transform Processor',
+    content: `A3.2 evalúa la habilidad para transformar y enriquecer telemetría con OpenTelemetry Transformation Language (OTTL).
+
+• OTTL & Processors:
+  ✅ Esperado: "OTTL permite manipular atributos de métricas, logs y trazas mediante sentencias como set(attributes["env"], "production") o replace_all_patterns."
+
+• Criterios de evaluación:
+  - Manejo de contexto (span, metric, log).
+  - Control de alta cardinalidad mediante eliminación o filtrado de atributos.`,
+  },
+}

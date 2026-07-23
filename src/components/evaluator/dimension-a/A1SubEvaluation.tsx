@@ -18,6 +18,7 @@ interface A1SubEvaluationProps {
     onReset: () => void
     readOnly?: boolean
     a1Subs?: any[]
+    profileTrack?: string
 }
 
 export function A1SubEvaluation({
@@ -32,13 +33,15 @@ export function A1SubEvaluation({
     onRefresh,
     onReset,
     readOnly,
-    a1Subs
+    a1Subs,
+    profileTrack
 }: A1SubEvaluationProps) {
+    const isOtel = profileTrack === 'otel_expert'
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>A1. Fundamentos de Infraestructura y Sistemas</span>
+                    <span>{isOtel ? 'A1. Estándar OpenTelemetry & Arquitectura' : 'A1. Fundamentos de Infraestructura y Sistemas'}</span>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={onRefresh}
                             disabled={a1Refreshing} className="h-8 px-3 text-xs">

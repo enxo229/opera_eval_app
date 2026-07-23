@@ -386,9 +386,9 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                 <div>
                     <h4 className="font-bold text-blue-900 flex items-center gap-2">Guía de Evaluación: Dimensión B</h4>
                     <p className="text-sm text-blue-800 leading-relaxed mt-1">
-                        Sigue este flujo secuencial: <br />
-                        <strong>1. Revisión de Comunicación Escrita (B1):</strong> Evalúa el ticket redactado por el candidato. Usa la sugerencia de la IA como guía técnica. <br />
-                        <strong>2. Entrevista Verbal (B2-B6):</strong> Basándote en el ticket de B1, pide al candidato que te explique lo sucedido (B2) y continúa con las preguntas de orientación, equipo y gestión.
+                        Sigue este flujo de evaluación: <br />
+                        <strong>1. Comunicación Escrita / Ticket SRE (B1):</strong> Evalúa el ticket redactado por el candidato. Usa la sugerencia de la IA y el detector de copia/IA. <br />
+                        <strong>2. Respuestas Situacionales Escritas (B2-B6):</strong> Revisa las respuestas redactadas por el candidato para cada escenario conductual (comunicación verbal/negocio, orientación al cliente, trabajo en equipo, gestión del tiempo y orden).
                     </p>
                 </div>
             </div>

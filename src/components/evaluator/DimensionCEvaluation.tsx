@@ -52,7 +52,7 @@ const EVALUATOR_GUIDES: Record<string, {
         ],
     },
     C2: {
-        opening: '"En el tiempo que llevas en Soporte Nivel 1, ¿ha habido algún cambio en cómo trabajan, en los procesos o herramientas? ¿Cómo te fue con eso?"',
+        opening: '"En tu trayectoria técnica o de operaciones, ¿ha habido algún cambio en cómo trabajan, en los procesos o herramientas? ¿Cómo te fue con eso?"',
         deepening: [
             '"¿Qué fue lo más difícil de ese cambio?"',
             '"¿Hubo algo que hicieras tú específicamente para adaptarte más rápido?"',
@@ -188,7 +188,7 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Dimensión C: Actitudinal</h2>
-                    <p className="text-muted-foreground text-sm">Aprendizaje, Entorno y Crecimiento Personal (20 pts). Evaluada como conversación de desarrollo profesional.</p>
+                    <p className="text-muted-foreground text-sm">Aprendizaje, Entorno y Crecimiento Personal (20 pts). Evaluada mediante respuestas situacionales y fit de filosofía SRE.</p>
                 </div>
                 {!readOnly && (
                     <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
