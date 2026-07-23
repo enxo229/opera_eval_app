@@ -91,7 +91,12 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [bypassPasteCount, setBypassPasteCount] = useState<number>(0)
     const incrementBypassCount = useCallback(() => {
         setBypassPasteCount(prev => prev + 1)
-    }, [])
+        if (evaluationId) {
+            import('@/app/actions/candidate/evaluation').then(({ recordBypassAttempt }) => {
+                recordBypassAttempt(evaluationId)
+            }).catch(e => console.error('Error in recordBypassAttempt:', e))
+        }
+    }, [evaluationId])
 
     const [reloadCounter, setReloadCounter] = useState(0)
     const reloadContext = useCallback(() => {

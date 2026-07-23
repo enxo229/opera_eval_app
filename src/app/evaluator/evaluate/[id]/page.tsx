@@ -160,6 +160,19 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                     🎓 {candidate.education_level === 'bachiller' ? 'Bachiller' : candidate.education_level === 'tecnico_sena' ? 'Técnico SENA' : candidate.education_level === 'tecnologo' ? 'Tecnólogo' : 'Profesional/Ingeniería'}
                                 </span>
                             )}
+                            {(() => {
+                                const bypassCount = dynamicTests.filter(t => t.test_type === 'SECURITY_AUDIT' && t.subcategory === 'BYPASS_PASTE').length
+                                return (
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                        bypassCount > 0 
+                                            ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 animate-pulse' 
+                                            : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                                    }`}>
+                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                        <span>Intentos de Pegado Detectados: {bypassCount}</span>
+                                    </span>
+                                )
+                            })()}
                         </div>
                     </div>
                 </div>
