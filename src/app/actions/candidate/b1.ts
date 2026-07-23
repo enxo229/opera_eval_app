@@ -69,6 +69,9 @@ export async function saveB1Response(
 ): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient()
 
+    const { analyzeAiLikelihood } = await import('@/app/actions/ai-detector')
+    const aiDetection = await analyzeAiLikelihood(ticketText, caseContext)
+
     // 1. Guardar el ticket
     const { error: insertErr } = await supabase.from('dynamic_tests').insert({
         evaluation_id: evaluationId,
@@ -76,6 +79,7 @@ export async function saveB1Response(
         subcategory: 'RESPONSE',
         prompt_context: caseContext,
         candidate_response: ticketText,
+        ai_likelihood: aiDetection.likelihoodPercentage
     })
 
     if (insertErr) {

@@ -57,7 +57,10 @@ export async function saveA2Responses(
         .eq('evaluation_id', evaluationId)
         .eq('test_type', 'QUESTIONS_A2')
 
+    const { analyzeAiLikelihood } = await import('@/app/actions/ai-detector')
+
     for (const qa of questionsAndAnswers) {
+        const aiDetection = await analyzeAiLikelihood(qa.answer, qa.question)
         const { error } = await supabase.from('dynamic_tests').insert({
             evaluation_id: evaluationId,
             test_type: 'QUESTIONS_A2',
@@ -65,6 +68,7 @@ export async function saveA2Responses(
             prompt_context: qa.question,
             candidate_response: qa.answer,
             ai_generated_content: tool,
+            ai_likelihood: aiDetection.likelihoodPercentage
         })
         if (error) {
             console.error('Error saving A2 response:', error)
@@ -105,11 +109,12 @@ export async function getA2Results(evaluationId: string): Promise<{
     ai_score: number | null
     ai_justification: string | null
     tool: string | null
+    ai_likelihood: number | null
 }[]> {
     const supabase = await createClient()
     const { data } = await supabase
         .from('dynamic_tests')
-        .select('subcategory, prompt_context, candidate_response, ai_score, ai_justification, ai_generated_content')
+        .select('subcategory, prompt_context, candidate_response, ai_score, ai_justification, ai_generated_content, ai_likelihood')
         .eq('evaluation_id', evaluationId)
         .eq('test_type', 'QUESTIONS_A2')
         .order('subcategory')
@@ -121,6 +126,7 @@ export async function getA2Results(evaluationId: string): Promise<{
         ai_score: d.ai_score,
         ai_justification: d.ai_justification,
         tool: d.ai_generated_content || null,
+        ai_likelihood: d.ai_likelihood ?? null,
     }))
 }
 

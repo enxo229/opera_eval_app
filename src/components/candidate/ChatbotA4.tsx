@@ -41,12 +41,6 @@ Estoy conectado a la telemetría de tu infraestructura (Métricas, Logs, Trazas)
 
 Cuando tengas suficiente evidencia, escribe en esta consola tu Diagnóstico de Causa Raíz y Plan de Mitigación, luego presiona el botón verde 'Finalizar Investigación'.`
 
-    const suggestedQueries = [
-        { label: '📊 Ver CPU / Memoria', query: 'Muestra las métricas de uso de CPU y memoria de los pods del clúster' },
-        { label: '📝 Ver Logs de Error (5xx)', query: 'Muestra los logs de error 5xx y excepciones de los últimos 15 minutos' },
-        { label: '🔍 Consultar Trazas / Latencia', query: 'Consulta las trazas de mayor latencia o estado de error en el pipeline' },
-        { label: '💡 Declarar Causa Raíz', query: 'Con base en la telemetría observada, mi diagnóstico de causa raíz y mitigación es: ' },
-    ]
 
     // Notify parent when status changes
     useEffect(() => {
@@ -273,22 +267,10 @@ Cuando tengas suficiente evidencia, escribe en esta consola tu Diagnóstico de C
 
                 {!isFinished && (
                     <div className="p-3 border-t border-border bg-muted/30 space-y-2.5">
-                        {/* Quick Action Suggestion Chips */}
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                            <span className="text-[11px] font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-                                <Sparkles className="h-3 w-3 text-amber-500" /> Consultas sugeridas:
-                            </span>
-                            {suggestedQueries.map((chip, idx) => (
-                                <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => handleChipClick(chip.query)}
-                                    disabled={isLoading || isFinishing || !evaluationId}
-                                    className="text-xs bg-background hover:bg-primary/10 hover:border-primary/40 border border-border text-foreground px-2.5 py-1 rounded-full transition-all duration-150 flex items-center gap-1 shadow-xs cursor-pointer"
-                                >
-                                    {chip.label}
-                                </button>
-                            ))}
+                        {/* Informational Prompt Guidance Hint */}
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-background/50 px-3 py-1.5 rounded-lg border border-border/60">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                            <span><strong>Orientación de Prompt:</strong> Solicita datos específicos indicando métrica, ventana temporal o componente (ej: <em>"Muestra el consumo de CPU/Memoria"</em> o <em>"Filtra los logs por error 5xx"</em>).</span>
                         </div>
 
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">

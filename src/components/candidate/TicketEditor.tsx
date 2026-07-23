@@ -14,26 +14,24 @@ interface TicketEditorProps {
     onComplete?: (ticket: string, caseContext: string) => void
 }
 
-const FORMAL_TICKET_TEMPLATE = `[INCIDENTE P1] - Caída / Degradación de Servicio en Producción
+const FORMAL_TICKET_TEMPLATE = `[INCIDENTE P1/P2] - [Título o Resumen del Incidente]
 
 1. INFORMACIÓN GENERAL:
-• Servicio afectado: Servicio de Pagos / Transacciones
-• Severidad: P1 Critical (Impacto en usuarios finales)
-• Estado: En atención / Mitigación en curso
+• Servicio afectado: [Nombre del servicio o componente afectado]
+• Severidad / Prioridad: [P1 / P2 / P3]
+• Estado: [Investigación / Mitigado / Resuelto]
 
 2. SÍNTOMAS E IMPACTO EN SLO:
-• Tasa de errores 5xx al 30% en los últimos 15 minutos.
-• Latencia de respuesta > 2500ms en el pipeline.
-• Consumo directo del Error Budget mensual de latencia.
+• Síntomas observados: [Describir tasa de errores, latencia o anomalías registradas]
+• Impacto en usuarios / SLO: [Efecto directo en el servicio y presupuesto de error]
 
-3. DIAGNÓSTICO DE CAUSA RAÍZ:
-• Alto consumo de CPU (95-100%) en un nodo del clúster por descalibración de buffers / memoria.
-• Excepciones observadas en logs del OTel Collector durante la recolección.
+3. CAUSA RAÍZ O HIPÓTESIS TÉCNICA:
+• Causa identificada: [Explicación técnica del origen del problema]
 
-4. ACCIONES REALIZADAS Y PRÓXIMOS PASOS:
-• Mitigación inicial: Aislamiento del nodo afectado y reinicio controlado del pipeline.
-• Próximo responsable: Equipo de Infraestructura SRE / On-call.
-• Seguimiento: Ajustar límites de memoria y política de tail sampling.`
+4. ACCIONES REALIZADAS Y SIGUIENTES PASOS:
+• Mitigación o acciones ejecutadas: [Pasos aplicados para estabilizar]
+• Escalado / Responsables: [Equipo o rol asignado para seguimiento]
+• Acciones preventivas: [Recomendaciones para prevenir reincidencia]`
 
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
     const ctx = useCandidateContext()

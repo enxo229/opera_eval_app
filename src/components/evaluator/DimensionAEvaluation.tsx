@@ -128,6 +128,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 candidate_response: r.answer,
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
+                ai_likelihood: r.ai_likelihood,
             })))
         } catch (e) {
             console.error('Error refreshing A1:', e)
@@ -180,6 +181,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
                 ai_generated_content: r.tool,
+                ai_likelihood: r.ai_likelihood,
             })))
         } catch (e) {
             console.error('Error refreshing A2:', e)

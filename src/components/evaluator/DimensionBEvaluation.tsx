@@ -501,6 +501,8 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                                                         </div>
                                                         {testB1.candidate_response}
                                                     </div>
+                                                    
+                                                    <AiLikelihoodBadge percentage={testB1.ai_likelihood} />
 
                                                     <div className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 p-4 rounded-lg">
                                                         <div className="flex items-center gap-3">
