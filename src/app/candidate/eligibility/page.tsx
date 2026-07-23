@@ -81,7 +81,7 @@ export default function EligibilityPage() {
         // Pre-generate track questions to avoid active test generation delay
         if (evaluationId) {
             if (profileTrack === 'otel_expert') {
-                setPregenText('Generando preguntas personalizadas de OTel & Grafana Cloud (esto puede tomar unos segundos)...')
+                setPregenText('Generando preguntas de OTel & Grafana Cloud...')
             }
             await pregenerateTrackQuestions(evaluationId, selected)
             reloadContext()
@@ -160,7 +160,7 @@ export default function EligibilityPage() {
                         <Button
                             onClick={handleContinue}
                             disabled={!selected || saving}
-                            className={`w-full h-14 text-xl font-bold transition-all duration-500 rounded-2xl shadow-xl ${
+                            className={`w-full h-auto min-h-[3.5rem] whitespace-normal leading-snug text-xl font-bold transition-all duration-500 rounded-2xl shadow-xl ${
                                 selected 
                                 ? 'bg-primary hover:bg-primary/90 text-primary-foreground scale-[1.01] shadow-primary/20' 
                                 : 'bg-muted text-muted-foreground opacity-60 border-border cursor-not-allowed'
