@@ -3,7 +3,7 @@ import { A3Question, generateQuestionsA3 } from '@/app/actions/ai'
 import { saveA3QuestionsOnly, saveA3Responses } from '@/app/actions/candidate/a3'
 import { useCandidateContext, RestoredA3 } from '@/context/CandidateContext'
 
-export function useA3State(educationLevel: string, evaluationId: string | null, restored: RestoredA3 | null) {
+export function useA3State(educationLevel: string, evaluationId: string | null, restored: RestoredA3 | null, profileTrack?: string) {
     const [a3Commands, setA3Commands] = useState<string[]>([])
     const [a3Questions, setA3Questions] = useState<A3Question[]>([])
     const [a3Answers, setA3Answers] = useState<Record<string, string>>({})
@@ -28,13 +28,13 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
     const handleGenerateA3Questions = useCallback(async () => {
         setA3QuestionsLoading(true)
         try {
-            const questions = await generateQuestionsA3(educationLevel)
+            const questions = await generateQuestionsA3(educationLevel, profileTrack)
             setA3Questions(questions)
             setA3QuestionsGenerated(true)
             
             const initialAnswers: Record<string, string> = {}
             questions.forEach(q => {
-                if (q.subcategory === 'A3.3') {
+                if (q.subcategory === 'A3.3' && profileTrack !== 'otel_expert') {
                     initialAnswers[q.subcategory] = `Número de Ticket: [AUTO-SETI-2026-001]\nTítulo: \nPrioridad: \nCategoría: \nDescripción del problema: \nPasos iniciales de revisión: `
                 } else {
                     initialAnswers[q.subcategory] = ''
@@ -52,7 +52,7 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
         } finally {
             setA3QuestionsLoading(false)
         }
-    }, [educationLevel, evaluationId])
+    }, [educationLevel, evaluationId, profileTrack])
 
     const handleSubmitA3 = useCallback(async () => {
         if (!evaluationId) return

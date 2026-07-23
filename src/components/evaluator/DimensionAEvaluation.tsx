@@ -13,7 +13,7 @@ import { getA3Results, resetA3Responses } from '@/app/actions/candidate/a3'
 import { getA4Results, resetA4Responses } from '@/app/actions/candidate/a4'
 
 // Subcomponents & Constants
-import { A1_SUBS, A2_SUBS, A3_SUBS, A4_SUBS, A1_SUBS_OTEL, A2_SUBS_OTEL } from './dimension-a/constants'
+import { A1_SUBS, A2_SUBS, A3_SUBS, A4_SUBS, A1_SUBS_OTEL, A2_SUBS_OTEL, A3_SUBS_OTEL } from './dimension-a/constants'
 import { A1SubEvaluation } from './dimension-a/A1SubEvaluation'
 import { A2SubEvaluation } from './dimension-a/A2SubEvaluation'
 import { A3SubEvaluation } from './dimension-a/A3SubEvaluation'
@@ -35,6 +35,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const isOtel = profileTrack === 'otel_expert'
     const a1Subs = isOtel ? A1_SUBS_OTEL : A1_SUBS
     const a2Subs = isOtel ? A2_SUBS_OTEL : A2_SUBS
+    const a3Subs = isOtel ? A3_SUBS_OTEL : A3_SUBS
 
     // Initial Scoring Helpers
     const getInitialSubScore = (subId: string) => {
@@ -82,19 +83,19 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     // A3 State
     const [a3SubScores, setA3SubScores] = useState<Record<string, number>>(() => {
         const initial: Record<string, number> = {}
-        A3_SUBS.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
+        a3Subs.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
         return initial
     })
     const [a3SubComments, setA3SubComments] = useState<Record<string, string>>(() => {
         const initial: Record<string, string> = {}
-        A3_SUBS.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
+        a3Subs.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
         return initial
     })
     const [a3QData, setA3QData] = useState(dynamicTests.filter(t => t.test_type === 'QUESTIONS_A3'))
     const [a3Refreshing, setA3Refreshing] = useState(false)
     const [a3Resetting, setA3Resetting] = useState(false)
     const a3Total = Object.values(a3SubScores).reduce((sum, v) => sum + v, 0)
-    const a3Normalized = (Math.round((a3Total / 12) * 10 * 10) / 10).toString()
+    const a3Normalized = (Math.round((a3Total / (isOtel ? 6 : 12)) * 10 * 10) / 10).toString()
 
     // A4 State
     const [a4SubScores, setA4SubScores] = useState<Record<string, number>>(() => {
@@ -249,7 +250,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             if (result.success) {
                 setA3QData([])
                 const resetScores: Record<string, number> = {}
-                A3_SUBS.forEach(s => { resetScores[s.id] = 0 })
+                a3Subs.forEach(s => { resetScores[s.id] = 0 })
                 setA3SubScores(resetScores)
             } else {
                 alert(`Error: ${result.error}`)
@@ -263,7 +264,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const hasAppliedA3AutoFill = useRef(false)
     useEffect(() => {
         if (a3QData.length > 0 && !hasAppliedA3AutoFill.current) {
-            const hasExisting = A3_SUBS.some(s => getInitialSubScore(s.id) > 0)
+            const hasExisting = a3Subs.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a3QData.forEach(q => {
@@ -275,7 +276,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 }
             }
         }
-    }, [a3QData, A3_SUBS])
+    }, [a3QData, a3Subs])
 
     // --- A4 Handlers ---
     const handleRefreshA4 = async () => {
@@ -346,7 +347,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             const subScoresData = [
                 ...a1Subs.map(s => ({ category: s.id, score: a1SubScores[s.id] || 0, comment: a1SubComments[s.id] || '' })),
                 ...a2Subs.map(s => ({ category: s.id, score: a2SubScores[s.id] || 0, comment: a2SubComments[s.id] || '' })),
-                ...A3_SUBS.map(s => ({ category: s.id, score: a3SubScores[s.id], comment: a3SubComments[s.id] })),
+                ...a3Subs.map(s => ({ category: s.id, score: a3SubScores[s.id], comment: a3SubComments[s.id] })),
                 ...A4_SUBS.map(s => ({ category: s.id, score: a4SubScores[s.id], comment: a4SubComments[s.id] })),
             ]
 
@@ -477,6 +478,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     a3Refreshing={a3Refreshing} a3Resetting={a3Resetting}
                     onRefresh={handleRefreshA3} onReset={handleResetA3}
                     readOnly={readOnly}
+                    a3Subs={a3Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 

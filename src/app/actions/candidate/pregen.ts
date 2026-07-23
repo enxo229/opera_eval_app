@@ -1,9 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { generateQuestionsA1, generateQuestionsA2 } from '@/app/actions/ai'
+import { generateQuestionsA1, generateQuestionsA2, generateQuestionsA3 } from '@/app/actions/ai'
 import { saveA1QuestionsOnly } from '@/app/actions/candidate/a1'
 import { saveA2QuestionsOnly } from '@/app/actions/candidate/a2'
+import { saveA3QuestionsOnly } from '@/app/actions/candidate/a3'
 import { log } from '@/lib/observability/logger'
 
 /**
@@ -60,6 +61,20 @@ export async function pregenerateTrackQuestions(evaluationId: string, educationL
                 log.info('Pre-generating A2 questions with tool Grafana (OTel Expert)')
                 const a2Questions = await generateQuestionsA2('Grafana', educationLevel, 'otel_expert')
                 await saveA2QuestionsOnly(evaluationId, 'Grafana', a2Questions)
+            }
+
+            // A3 Questions pre-generation (OTel Expert)
+            const { data: existingA3 } = await supabase
+                .from('dynamic_tests')
+                .select('id')
+                .eq('evaluation_id', evaluationId)
+                .eq('test_type', 'QUESTIONS_A3')
+                .limit(1)
+
+            if (!existingA3 || existingA3.length === 0) {
+                log.info('Pre-generating A3 questions (OTel Expert)')
+                const a3Questions = await generateQuestionsA3(educationLevel, 'otel_expert')
+                await saveA3QuestionsOnly(evaluationId, a3Questions, {})
             }
         }
 

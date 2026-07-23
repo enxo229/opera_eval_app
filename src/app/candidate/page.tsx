@@ -36,7 +36,7 @@ export default function CandidateEvaluationFlow() {
 
     const a1 = useA1State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA1, ctx.profileTrack)
     const a2 = useA2State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA2, ctx.profileTrack)
-    const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3)
+    const a3 = useA3State(ctx.educationLevel, ctx.evaluationId, ctx.restoredA3, ctx.profileTrack)
 
     // Completion states for tabs that don't export them via hooks
     const [a4Submitted, setA4Submitted] = useState(false)
@@ -278,6 +278,7 @@ export default function CandidateEvaluationFlow() {
                             setA3Commands={a3.setA3Commands}
                             handleGenerateA3Questions={a3.handleGenerateA3Questions}
                             handleSubmitA3={a3.handleSubmitA3}
+                            profileTrack={ctx.profileTrack}
                         />
                     </TabsContent>
 

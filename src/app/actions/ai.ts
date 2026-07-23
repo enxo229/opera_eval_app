@@ -562,8 +562,40 @@ Responde ÚNICAMENTE con un JSON array de objetos:
  */
 export type A3Question = { subcategory: string; label: string; question: string }
 
-export async function generateQuestionsA3(educationLevel: string): Promise<A3Question[]> {
+export async function generateQuestionsA3(educationLevel: string, profileTrack?: string): Promise<A3Question[]> {
     const seed = Math.floor(Math.random() * 10000)
+
+    if (profileTrack === 'otel_expert') {
+        const prompt = `Eres un evaluador técnico para ingenieros SRE Expertos en OpenTelemetry y observabilidad.
+Genera exactamente 2 preguntas de análisis en español basadas en una configuración de OpenTelemetry Collector que contiene un procesador transform con reglas OTTL y un procesador tail_sampling.
+
+Subcategorías y Tareas:
+1. A3.1 — Análisis de Pipeline & Muestreo: Pide al candidato analizar la lógica de tail_sampling del archivo (ej. latencias, códigos de estado, etc.) y explicar el impacto.
+2. A3.2 — Reglas OTTL & Procesamiento: Pide al candidato interpretar el procesador transform/OTTL y explicar qué atributos o campos se están renombrando o filtrando.
+
+Reglas:
+- Nivel Experto/Senior (escolaridad: ${educationLevel}).
+- Las preguntas deben requerir respuestas analíticas y de diagnóstico del archivo YAML.
+- Responde ÚNICAMENTE con un JSON array de 2 objetos:
+[
+  {"subcategory": "A3.1", "label": "Análisis de Pipeline & Muestreo", "question": "..."},
+  {"subcategory": "A3.2", "label": "Reglas OTTL & Procesamiento", "question": "..."}
+]`
+        const raw = await generateContentWithRetry(prompt)
+        const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+        const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+        try {
+            const parsed = JSON.parse(cleaned)
+            log.ai.info('Preguntas A3 (OTel Expert) generadas exitosamente');
+            return parsed
+        } catch (e) {
+            log.ai.error('Error parseando preguntas A3 (OTel Expert)', e as Error, { raw });
+            return [
+                { subcategory: 'A3.1', label: 'Análisis de Pipeline & Muestreo', question: 'Analiza la sección processors.tail_sampling en el editor YAML. ¿Qué criterios de muestreo (sampling) se están aplicando y qué ocurrirá con las trazas que contengan spans de error?' },
+                { subcategory: 'A3.2', label: 'Reglas OTTL & Procesamiento', question: 'Identifica la regla OTTL (OpenTelemetry Transformation Language) definida en el procesador transform. ¿Qué campos de la telemetría modifica y cuál es el resultado esperado de esa transformación?' }
+            ]
+        }
+    }
 
     const prompt = `Eres un evaluador técnico para Analistas Junior (entry-level) de Observabilidad.
 Genera exactamente 4 preguntas en español, una por cada subcategoría de A3.
@@ -610,7 +642,7 @@ Reglas:
 }
 
 /**
- * Evalúa las 4 respuestas de A3 usando la escala 0-3.
+ * Evalúa las respuestas de A3 usando la escala 0-3.
  */
 export type A3EvaluationResult = {
     subcategory: string
@@ -620,11 +652,45 @@ export type A3EvaluationResult = {
 }
 
 export async function evaluateAnswersA3(
-    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
+    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[],
+    profileTrack?: string
 ): Promise<A3EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
+
+    if (profileTrack === 'otel_expert') {
+        const prompt = `Eres un evaluador técnico senior experto en OpenTelemetry. Evalúa las respuestas del candidato especialista a las preguntas de configuración, OTTL y pipelines de A3.
+
+QA A EVALUAR:
+${qaBlock}
+
+ESCALA DE VALORACIÓN:
+- 0 (Sin conocimiento): Respuesta errónea, vacía o copia literal.
+- 1 (Básico): Entiende la sintaxis básica pero no comprende la lógica del pipeline, el muestreo (sampling) ni las reglas OTTL.
+- 2 (Funcional): Demuestra un entendimiento correcto de la lógica de tail_sampling y de las sentencias OTTL del transform.
+- 3 (Autónomo/Experto): Aporta un análisis profundo sobre la latencia, reintentos, control de cardinalidad y optimizaciones.
+
+Responde ÚNICAMENTE con un JSON array de objetos matching the length of the input array (exactamente 2):
+[
+  {"subcategory": "A3.1", "label": "Análisis de Pipeline & Muestreo", "score": 2, "justification": "..."},
+  {"subcategory": "A3.2", "label": "Reglas OTTL & Procesamiento", "score": 2, "justification": "..."}
+]`
+
+        const raw = await evaluateContentWithRetry(prompt)
+        const arrayMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/)
+        const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+        try {
+            return JSON.parse(cleaned)
+        } catch {
+            return questionsAndAnswers.map(qa => ({
+                subcategory: qa.subcategory,
+                label: qa.label,
+                score: 0,
+                justification: 'Error al procesar la evaluación de A3 (OTel Expert).',
+            }))
+        }
+    }
 
     const prompt = `Eres un evaluador técnico senior. Evalúa las respuestas de un candidato entry-level para el rol de Analista de Observabilidad Junior.
 

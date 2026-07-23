@@ -205,9 +205,13 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                     if (rA3 && rA3.length > 0) {
                         const questions: A3Question[] = rA3.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A3.1' ? 'Git Básico' :
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A3.1' ? 'Análisis de Pipeline & Muestreo' : 'Reglas OTTL & Procesamiento'
+                            ) : (
+                                r.subcategory === 'A3.1' ? 'Git Básico' :
                                 r.subcategory === 'A3.2' ? 'Scripting' :
-                                r.subcategory === 'A3.3' ? 'Gestión ITSM' : 'Documentación',
+                                r.subcategory === 'A3.3' ? 'Gestión ITSM' : 'Documentación'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA3.forEach(r => answers[r.subcategory] = r.answer)

@@ -55,6 +55,11 @@ export const A3_SUBS = [
     { id: 'A3.4', name: 'Documentación', desc: 'Documentar procedimientos en wikis/Confluence' },
 ]
 
+export const A3_SUBS_OTEL = [
+    { id: 'A3.1', name: 'Análisis de Pipeline & Muestreo', desc: 'Análisis de la lógica de tail_sampling y políticas de decisión' },
+    { id: 'A3.2', name: 'Reglas OTTL & Procesamiento', desc: 'Renombrado y transformación de atributos con reglas OTTL en transform processor' },
+]
+
 export const A4_SUBS = [
     { id: 'A4.1', name: 'Identificación de Fuentes', desc: 'Identifica fuentes relevantes (logs, métricas, estados)' },
     { id: 'A4.2', name: 'Lógica de Investigación', desc: 'Propone una secuencia lógica y coherente' },

@@ -1,6 +1,6 @@
 import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
-import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle } from 'lucide-react'
+import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle, FileText } from 'lucide-react'
 import { A3Question } from '@/app/actions/ai'
 
 interface A3TabProps {
@@ -15,6 +15,7 @@ interface A3TabProps {
     setA3Commands: (commands: string[]) => void
     handleGenerateA3Questions: () => void
     handleSubmitA3: () => void
+    profileTrack?: string
 }
 
 export function A3Tab({
@@ -28,18 +29,22 @@ export function A3Tab({
     evaluationId,
     setA3Commands,
     handleGenerateA3Questions,
-    handleSubmitA3
+    handleSubmitA3,
+    profileTrack
 }: A3TabProps) {
     const allA3Answered = a3Questions.length > 0 && a3Questions.every(q => (a3Answers[q.subcategory] || '').trim().length > 0)
+    const isOtelExpert = profileTrack === 'otel_expert'
 
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <GitBranch className="h-5 w-5 text-primary" />
-                A3. Herramientas y Automatización Básica
+                {isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Herramientas y Automatización Básica'}
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-                Responde las preguntas sobre Git, scripting, gestión de tickets y documentación.
+                {isOtelExpert 
+                    ? 'Analiza el archivo de configuración del OpenTelemetry Collector provisto y responde las preguntas sobre el pipeline de procesamiento y reglas de transformación (OTTL).'
+                    : 'Responde las preguntas sobre Git, scripting, gestión de tickets y documentación.'}
             </p>
 
             {!a3QuestionsGenerated ? (
@@ -60,15 +65,82 @@ export function A3Tab({
                 </div>
             ) : a3Questions.length > 0 ? (
                 <div className="space-y-6">
-                    <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
-                        <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                            <Terminal className="h-4 w-4" /> Live Demo: Sandbox Git & CLI
-                        </h3>
-                        <TerminalSandbox mode="A3" onCommandsChange={setA3Commands} />
-                        <p className="text-[10px] text-muted-foreground mt-2 italic">
-                            * Usa esta terminal si tu evaluador solicita una demostración práctica de comandos.
-                        </p>
-                    </div>
+                    {isOtelExpert ? (
+                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg space-y-3">
+                            <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                                <FileText className="h-4 w-4" /> OpenTelemetry Collector Config (otel-collector-config.yaml)
+                            </h3>
+                            <div className="relative">
+                                <pre className="text-xs font-mono bg-zinc-950 text-emerald-400 p-5 rounded-lg overflow-x-auto border border-zinc-800 shadow-inner max-h-[350px] leading-relaxed">
+{`receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 256
+
+  transform:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["service.env"], "production")
+          - replace_pattern(attributes["http.target"], "^/api/v1/auth/.*", "/api/v1/auth/*")
+          - keep_keys(attributes, ["http.method", "http.status_code", "service.env", "http.target"])
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 10000
+    expected_new_traces_per_sec: 2000
+    policies:
+      - name: filter_errors
+        type: status_code
+        status_code:
+          status_codes: [ ERROR ]
+      - name: filter_latency
+        type: latency
+        latency:
+          threshold_ms: 2000
+      - name: probabilistic_sample
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10.0
+
+exporters:
+  otlp:
+    endpoint: tempo-us-central.grafana.net:443
+    headers:
+      authorization: Basic Y2FuZGlkYXRlOnNlY3JldA==
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform, tail_sampling, batch]
+      exporters: [otlp]`}
+                                </pre>
+                                <div className="absolute top-2 right-2 bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono border border-zinc-700 select-none">
+                                    YAML (READ-ONLY)
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                                <Terminal className="h-4 w-4" /> Live Demo: Sandbox Git & CLI
+                            </h3>
+                            <TerminalSandbox mode="A3" onCommandsChange={setA3Commands} />
+                            <p className="text-[10px] text-muted-foreground mt-2 italic">
+                                * Usa esta terminal si tu evaluador solicita una demostración práctica de comandos.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="space-y-4">
                         {a3Questions.map(q => (

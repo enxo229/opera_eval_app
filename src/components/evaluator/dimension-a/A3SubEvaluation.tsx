@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
-import { A3_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
 import { A3_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
 
 interface A3SubEvaluationProps {
@@ -17,6 +17,8 @@ interface A3SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a3Subs: { id: string; name: string; desc?: string }[]
+    profileTrack?: string
 }
 
 export function A3SubEvaluation({
@@ -31,13 +33,16 @@ export function A3SubEvaluation({
     a3Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a3Subs,
+    profileTrack
 }: A3SubEvaluationProps) {
+    const isOtelExpert = profileTrack === 'otel_expert'
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>A3. Herramientas y Automatización Básica</span>
+                    <span>{isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Herramientas y Automatización Básica'}</span>
                     <div className="flex items-center gap-2">
                         {!readOnly && (
                             <>
@@ -62,7 +67,7 @@ export function A3SubEvaluation({
                     </div>
                 ) : null}
 
-                {A3_SUBS.map(sub => {
+                {a3Subs.map(sub => {
                     const qData = a3QData.find(q => q.subcategory === sub.id)
                     const guidance = A3_EVALUATOR_GUIDANCE[sub.id]
                     return (
@@ -149,8 +154,9 @@ export function A3SubEvaluation({
 
                 {/* A3 Summary (Normalized) */}
                 {(() => {
-                    const pct = a3Total / 12
-                    const level = a3Total <= 3 ? 0 : a3Total <= 6 ? 1 : a3Total <= 9 ? 2 : 3
+                    const maxScore = a3Subs.length * 3
+                    const pct = maxScore > 0 ? a3Total / maxScore : 0
+                    const level = a3Total <= (maxScore * 0.25) ? 0 : a3Total <= (maxScore * 0.5) ? 1 : a3Total <= (maxScore * 0.75) ? 2 : 3
                     const c = TOTAL_COLORS[level]
                     return (
                         <div className={`${c.fill} border ${c.border} rounded-lg p-4 space-y-2`}>
@@ -158,7 +164,7 @@ export function A3SubEvaluation({
                                 <span className="text-sm font-bold text-foreground">Total A3:</span>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs font-bold ${c.text}`}>{c.label}</span>
-                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / 12</span>
+                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / {maxScore}</span>
                                     <span className="text-xs text-muted-foreground">(normalizado: {a3Normalized} / 10)</span>
                                 </div>
                             </div>
