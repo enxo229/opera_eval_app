@@ -121,7 +121,7 @@ export function A3Tab({
                                     {'  '}<span style={{ color: '#38bdf8' }}>otlp</span>:<br />
                                     {'    '}<span style={{ color: '#38bdf8' }}>endpoint</span>: <span style={{ color: '#fbbf24' }}>"tempo-us-central.grafana.net:443"</span><br />
                                     {'    '}<span style={{ color: '#38bdf8' }}>headers</span>:<br />
-                                    {'      '}<span style={{ color: '#38bdf8' }}>authorization</span>: <span style={{ color: '#fbbf24' }}>"Basic Y2FuZGlkYXRlOnNlY3JldA=="</span><br /><br />
+                                    {'      '}<span style={{ color: '#38bdf8' }}>authorization</span>: <span style={{ color: '#fbbf24' }}>"Bearer ${'${'}GRAFANA_CLOUD_API_TOKEN{'}'}"</span><br /><br />
 
                                     <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>service</span>:<br />
                                     {'  '}<span style={{ color: '#38bdf8' }}>pipelines</span>:<br />
