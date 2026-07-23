@@ -6,13 +6,34 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
-import { AlertCircle, Loader2, FileText, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, Loader2, FileText, CheckCircle2, Compass, ChevronDown, ChevronUp, Sparkles, RotateCcw } from 'lucide-react'
 import { useCandidateContext } from '@/context/CandidateContext'
 
 interface TicketEditorProps {
     evaluationId: string | null
     onComplete?: (ticket: string, caseContext: string) => void
 }
+
+const FORMAL_TICKET_TEMPLATE = `[INCIDENTE P1] - Caída / Degradación de Servicio en Producción
+
+1. INFORMACIÓN GENERAL:
+• Servicio afectado: Servicio de Pagos / Transacciones
+• Severidad: P1 Critical (Impacto en usuarios finales)
+• Estado: En atención / Mitigación en curso
+
+2. SÍNTOMAS E IMPACTO EN SLO:
+• Tasa de errores 5xx al 30% en los últimos 15 minutos.
+• Latencia de respuesta > 2500ms en el pipeline.
+• Consumo directo del Error Budget mensual de latencia.
+
+3. DIAGNÓSTICO DE CAUSA RAÍZ:
+• Alto consumo de CPU (95-100%) en un nodo del clúster por descalibración de buffers / memoria.
+• Excepciones observadas en logs del OTel Collector durante la recolección.
+
+4. ACCIONES REALIZADAS Y PRÓXIMOS PASOS:
+• Mitigación inicial: Aislamiento del nodo afectado y reinicio controlado del pipeline.
+• Próximo responsable: Equipo de Infraestructura SRE / On-call.
+• Seguimiento: Ajustar límites de memoria y política de tail sampling.`
 
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
     const ctx = useCandidateContext()
@@ -21,6 +42,8 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+    const [guideCollapsed, setGuideCollapsed] = useState(false)
+    const [caseCollapsed, setCaseCollapsed] = useState(false)
 
     const handleBypassAttempt = (e: React.SyntheticEvent) => {
         e.preventDefault()
@@ -43,19 +66,16 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
             }
 
             try {
-                // 1. Intentar cargar estado persistente
                 const state = await getB1State(evaluationId)
 
                 if (state.caseText) {
                     setCaseText(state.caseText)
                 } else {
-                    // Si no hay caso en DB, generarlo y persistirlo de inmediato
                     const generated = await generateIncidentCaseB1()
                     const res = await saveB1Case(evaluationId, generated)
                     if (res.success) {
                         setCaseText(generated)
                     } else {
-                        // Si falla el guardado (ej: constraint), lo mostramos pero logueamos el error
                         console.error('Persistence Error (B1_CASE):', res.error)
                         setCaseText(generated)
                     }
@@ -93,106 +113,163 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
         }
     }
 
+    const wordCount = ticket.trim() ? ticket.trim().split(/\s+/).length : 0
+
     if (loading) {
         return (
             <Card className="bg-card border-border shadow-sm">
                 <CardContent className="flex items-center justify-center p-12 gap-3 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span>Cargando escenario...</span>
+                    <span>Cargando escenario de incidente...</span>
                 </CardContent>
             </Card>
         )
     }
 
     return (
-        <Card className="bg-card border-border shadow-sm overflow-hidden">
-            <CardHeader className="flex flex-row items-start justify-between gap-4 bg-muted/30 pb-4">
-                <div className="flex-1">
-                    <CardTitle className="text-foreground text-xl flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" /> B1: Comunicación Técnica Escrita
-                    </CardTitle>
-                </div>
-                {submitted && (
-                    <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 p-2 rounded font-medium text-sm border border-emerald-500/20">
-                        <CheckCircle2 className="h-4 w-4" /> Finalizado
+        <div className="space-y-4">
+            {/* Quick Module Instructions Banner */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
+                <button
+                    onClick={() => setGuideCollapsed(!guideCollapsed)}
+                    className="w-full flex items-center justify-between text-left"
+                >
+                    <h4 className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2 text-sm">
+                        <Compass className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        Guía del Módulo — ¿Cómo redactar tu ticket de incidente SRE?
+                    </h4>
+                    {guideCollapsed ? <ChevronDown className="h-4 w-4 text-amber-600" /> : <ChevronUp className="h-4 w-4 text-amber-600" />}
+                </button>
+                {!guideCollapsed && (
+                    <div className="text-xs text-amber-900/90 dark:text-amber-200/90 space-y-2 pt-2 border-t border-amber-500/20">
+                        <p className="font-semibold">Sigue estos 4 pasos para completar tu documentación de Ticket ITSM/GLPI/Jira:</p>
+                        <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
+                            <li><strong>Lee el Escenario:</strong> Revisa la alerta P1/P2 y los síntomas reportados en la tarjeta azul.</li>
+                            <li><strong>Cubre los 4 aspectos clave:</strong> Severidad, Impacto en SLOs/Usuarios, Causa Raíz identificada y Próximos Pasos con responsables.</li>
+                            <li><strong>Usa la plantilla si la necesitas:</strong> Puedes presionar el botón <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold text-[10px]">Insertar Plantilla ITSM</span> para guiar tu redacción.</li>
+                            <li><strong>Envía tu registro:</strong> Haz clic en el botón <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-bold text-[10px]">Enviar y Finalizar B1</span> al terminar.</li>
+                        </ol>
                     </div>
                 )}
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-                {/* Dynamic Case Display */}
-                {caseText && (
-                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-5">
-                        <h4 className="font-bold mb-3 flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                            <AlertCircle className="w-5 h-5" /> Escenario del Incidente
+            </div>
+
+            {/* Dynamic Case Display */}
+            {caseText && (
+                <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                    <button
+                        onClick={() => setCaseCollapsed(!caseCollapsed)}
+                        className="w-full flex items-center justify-between text-left"
+                    >
+                        <h4 className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 text-sm">
+                            <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" /> ESCENARIO DEL INCIDENTE B1 — LÉELO CON ATENCIÓN
                         </h4>
-                        <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed italic border-l-2 border-amber-500/30 pl-4">
+                        {caseCollapsed ? <ChevronDown className="h-4 w-4 text-blue-600" /> : <ChevronUp className="h-4 w-4 text-blue-600" />}
+                    </button>
+                    {!caseCollapsed && (
+                        <div className="mt-3 text-sm text-blue-950 dark:text-blue-200 whitespace-pre-wrap leading-relaxed border-l-2 border-blue-500/40 pl-3 italic">
                             "{caseText}"
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
+            )}
 
-                {/* Ticket Editor */}
-                {!submitted ? (
-                    <div className="space-y-4">
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-foreground">Tu documentación del Ticket (ITSM)</label>
-                            <p className="text-xs text-muted-foreground">
-                                Describe qué pasó, qué hiciste y el impacto observado. Usa un lenguaje profesional.
-                            </p>
+            {/* Ticket Editor Card */}
+            <Card className="bg-card border-border shadow-sm overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between gap-4 bg-muted/30 py-3 border-b border-border">
+                    <CardTitle className="text-foreground text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" /> B1: Documentación del Ticket (ITSM)
+                    </CardTitle>
+                    {submitted && (
+                        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full font-bold text-xs border border-emerald-500/20">
+                            <CheckCircle2 className="h-4 w-4" /> Ticket Registrado
                         </div>
-
-                        <Textarea
-                            placeholder="Ej: [INCIDENTE] Alto consumo CPU srv-prod... 
-Atención de alerta a las 02:47h..."
-                            className="min-h-[300px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
-                            value={ticket}
-                            onChange={(e) => setTicket(e.target.value)}
-                            onPaste={handleBypassAttempt}
-                            onCopy={handleBypassAttempt}
-                            onCut={handleBypassAttempt}
-                            onContextMenu={handleBypassAttempt}
-                            disabled={isSubmitting}
-                        />
-
-                        <div className="flex justify-between items-center pt-2">
-                            <span className="text-xs text-muted-foreground italic">
-                                * Una vez guardado, no podrás editar tu respuesta.
-                            </span>
-                            <Button
-                                onClick={handleSubmit}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg transition-all active:scale-95"
-                                disabled={!ticket.trim() || isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Guardando...
-                                    </>
-                                ) : 'Enviar y Finalizar B1'}
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <div className="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-lg text-center space-y-2">
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 mb-2">
-                                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                    )}
+                </CardHeader>
+                <CardContent className="space-y-4 pt-4">
+                    {!submitted ? (
+                        <div className="space-y-3">
+                            {/* Action chips for template insertion */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/20 p-2.5 rounded-lg border border-border">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                                        <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Herramientas de redacción:
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTicket(FORMAL_TICKET_TEMPLATE)}
+                                        className="text-xs bg-background hover:bg-primary/10 hover:border-primary/40 border border-border text-foreground px-2.5 py-1 rounded-md transition-all font-semibold flex items-center gap-1 cursor-pointer shadow-xs"
+                                    >
+                                        📋 Insertar Plantilla ITSM
+                                    </button>
+                                    {ticket.trim() && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTicket('')}
+                                            className="text-xs bg-background hover:bg-rose-500/10 hover:border-rose-500/40 text-muted-foreground hover:text-rose-600 border border-border px-2 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <RotateCcw className="h-3 w-3" /> Limpiar
+                                        </button>
+                                    )}
+                                </div>
+                                <span className={`font-mono text-xs font-bold ${wordCount >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
+                                    {wordCount} palabras (Sugerido: ~60-120)
+                                </span>
                             </div>
-                            <h3 className="font-bold text-xl text-emerald-600 dark:text-emerald-500">¡Ticket Guardado!</h3>
-                            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                Tu respuesta ha sido registrada y está lista para ser evaluada por el líder técnico.
-                            </p>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tu Registro Enviado:</label>
-                            <div className="p-4 bg-muted/30 border border-border rounded-md font-mono text-sm whitespace-pre-wrap text-foreground/80 min-h-[150px]">
-                                {ticket}
+                            <Textarea
+                                placeholder="Escribe aquí el ticket de incidente (ej: [INCIDENTE P1] Alto consumo CPU en srv-prod...)"
+                                className="min-h-[280px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
+                                value={ticket}
+                                onChange={(e) => setTicket(e.target.value)}
+                                onPaste={handleBypassAttempt}
+                                onCopy={handleBypassAttempt}
+                                onCut={handleBypassAttempt}
+                                onContextMenu={handleBypassAttempt}
+                                disabled={isSubmitting}
+                            />
+
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-xs text-muted-foreground italic">
+                                    * El pegado de texto está deshabilitado. Una vez guardado no podrás modificar tu entrega.
+                                </span>
+                                <Button
+                                    onClick={handleSubmit}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg transition-all active:scale-95 h-11"
+                                    disabled={!ticket.trim() || isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Guardando y evaluando con IA...
+                                        </>
+                                    ) : (
+                                        'Enviar y Finalizar B1'
+                                    )}
+                                </Button>
                             </div>
                         </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                    ) : (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-xl text-center space-y-2">
+                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 mb-1">
+                                    <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <h3 className="font-bold text-xl text-emerald-700 dark:text-emerald-300">¡Ticket Guardado y Registrado!</h3>
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                                    Tu documentación ha sido registrada y analizada por el evaluador de IA.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tu Registro Enviado:</label>
+                                <div className="p-4 bg-muted/30 border border-border rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground min-h-[150px] leading-relaxed">
+                                    {ticket}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     )
 }
