@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { History } from 'lucide-react'
+import { History, Shield, LogOut } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,20 +64,23 @@ export default async function EvaluatorDashboard() {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <Link href="/evaluator/history" title="Buscar y filtrar procesos pasados y evaluaciones antiguas usando CC, correo o equipo.">
-                        <Button variant="outline" className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 transition-all">
-                            <History className="h-4 w-4 mr-2" /> Buscar Historial
+                        <Button variant="outline" size="sm" className="border-border text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary font-semibold gap-1.5 shadow-xs transition-all">
+                            <History className="h-4 w-4 text-primary shrink-0" />
+                            <span>Búsqueda Global</span>
                         </Button>
                     </Link>
                     <Link href="/admin">
-                        <Button variant="outline" className="border-border text-muted-foreground hover:text-primary hover:border-primary">
-                            ⚙️ Admin
+                        <Button variant="outline" size="sm" className="border-border text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary font-semibold gap-1.5 shadow-xs transition-all">
+                            <Shield className="h-4 w-4 text-amber-500 shrink-0" />
+                            <span>Admin</span>
                         </Button>
                     </Link>
                     <form action="/auth/signout" method="post">
-                        <Button variant="outline" type="submit" className="border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/10">
-                            Cerrar Sesión
+                        <Button variant="outline" size="sm" type="submit" className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500 font-semibold gap-1.5 shadow-xs transition-all cursor-pointer">
+                            <LogOut className="h-4 w-4 shrink-0" />
+                            <span>Salir</span>
                         </Button>
                     </form>
                 </div>
