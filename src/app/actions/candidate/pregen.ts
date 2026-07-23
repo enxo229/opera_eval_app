@@ -1,10 +1,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { generateQuestionsA1, generateQuestionsA2, generateQuestionsA3 } from '@/app/actions/ai'
+import { generateQuestionsA1, generateQuestionsA2, generateQuestionsA3, generateDynamicCaseA4 } from '@/app/actions/ai'
 import { saveA1QuestionsOnly } from '@/app/actions/candidate/a1'
 import { saveA2QuestionsOnly } from '@/app/actions/candidate/a2'
 import { saveA3QuestionsOnly } from '@/app/actions/candidate/a3'
+import { saveA4Case } from '@/app/actions/candidate/a4'
 import { log } from '@/lib/observability/logger'
 
 /**
@@ -75,6 +76,20 @@ export async function pregenerateTrackQuestions(evaluationId: string, educationL
                 log.info('Pre-generating A3 questions (OTel Expert)')
                 const a3Questions = await generateQuestionsA3(educationLevel, 'otel_expert')
                 await saveA3QuestionsOnly(evaluationId, a3Questions, {})
+            }
+
+            // A4 Case pre-generation (OTel Expert)
+            const { data: existingA4 } = await supabase
+                .from('dynamic_tests')
+                .select('id')
+                .eq('evaluation_id', evaluationId)
+                .eq('test_type', 'CHATBOT_A4')
+                .limit(1)
+
+            if (!existingA4 || existingA4.length === 0) {
+                log.info('Pre-generating A4 case scenario (OTel Expert)')
+                const a4Case = await generateDynamicCaseA4('otel_expert')
+                await saveA4Case(evaluationId, a4Case)
             }
         }
 

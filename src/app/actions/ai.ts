@@ -48,7 +48,12 @@ Responde ÚNICAMENTE con JSON:
     }
 }
 
-export async function generateDynamicCaseA4(): Promise<string> {
+export async function generateDynamicCaseA4(profileTrack?: string): Promise<string> {
+    if (profileTrack === 'otel_expert') {
+        const prompt = `Actúa como un Lead SRE de Observabilidad. Genera un escenario de incidente técnico de Nivel 2 (P1/P2) enfocado en OpenTelemetry y Grafana Cloud (por ejemplo: descalibración en tail_sampling con caída de trazas de latencia alta, desbordamiento de buffer o alto consumo de memoria en el OTel Collector, o degradación de servicio por alta cardinalidad en métricas de Mimir).
+Retorna el caso en 2 párrafos concisos y directos describiendo la alerta y los síntomas iniciales, sin dar la causa raíz ni la solución.`
+        return generateContentWithRetry(prompt)
+    }
     const prompt = `Actúa como un líder técnico de observabilidad. Genera un escenario de incidente técnico de Nivel 2 (caída de servidor o alto CPU) que el candidato debe investigar en un entorno Dynatrace/Grafana. Retorna solo el caso en 2 párrafos concisos sin la solución.`
     return generateContentWithRetry(prompt)
 }
