@@ -169,6 +169,7 @@ export interface Database {
           candidate_response: string | null
           ai_score: number | null
           ai_justification: string | null
+          ai_likelihood: number | null
         }
         Insert: {
           id?: string
@@ -180,6 +181,7 @@ export interface Database {
           candidate_response?: string | null
           ai_score?: number | null
           ai_justification?: string | null
+          ai_likelihood?: number | null
         }
         Update: {
           id?: string
@@ -191,6 +193,7 @@ export interface Database {
           candidate_response?: string | null
           ai_score?: number | null
           ai_justification?: string | null
+          ai_likelihood?: number | null
         }
       }
     }

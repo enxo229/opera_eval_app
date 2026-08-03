@@ -67,9 +67,12 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
             if (result.success) {
                 setA1Submitted(true)
                 if (result.evaluations) setA1AIResults(result.evaluations)
+            } else if (result.error) {
+                alert('Error al guardar A1: ' + result.error)
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error submitting A1:', e)
+            alert('Error al guardar A1: ' + (e?.message || 'Error desconocido'))
         } finally {
             setA1Submitting(false)
         }

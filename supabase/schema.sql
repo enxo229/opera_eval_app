@@ -147,7 +147,8 @@ create table public.dynamic_tests (
   ai_generated_content text,
   candidate_response text,
   ai_score integer,          -- AI-suggested score (0-3 for dim A, etc)
-  ai_justification text      -- AI explanation for the score
+  ai_justification text,     -- AI explanation for the score
+  ai_likelihood integer      -- AI detector likelihood percentage (0-100)
 );
 
 alter table public.dynamic_tests enable row level security;
