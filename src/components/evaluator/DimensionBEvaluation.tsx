@@ -15,11 +15,12 @@ interface Props {
     existingScores: any[]
     dynamicTests: any[]
     readOnly?: boolean
+    profileTrack?: string
 }
 
 
 
-// Evaluator question guides per category (B2-B6)
+// Evaluator question guides per category (B2-B6) - General Track
 const EVALUATOR_GUIDES: Record<string, { description: string; questions: string[]; indicators: { score: number; what: string }[] }> = {
     B2: {
         description: 'Usando el mismo escenario del incidente de B1, pídele al candidato que lo explique verbalmente como si fueras el gerente de cuenta del cliente (no técnico). Máximo 5 minutos.',
@@ -91,6 +92,70 @@ const EVALUATOR_GUIDES: Record<string, { description: string; questions: string[
     },
 }
 
+// Evaluator question guides per category (B2-B6) - OTel Expert Track (Asynchronous SRE Evaluation)
+const EVALUATOR_GUIDES_OTEL: Record<string, { description: string; questions: string[]; indicators: { score: number; what: string }[] }> = {
+    B2: {
+        description: 'Evalúa la respuesta escrita del candidato para traducir el incidente técnico a un lenguaje comprensible para stakeholders y gerencia no técnica.',
+        questions: [
+            'Criterio de Evaluación: ¿Tradujo el impacto técnico (spans/métricas) a impacto de negocio (disponibilidad de usuarios, compras, SLOs)?',
+        ],
+        indicators: [
+            { score: 4, what: 'Lenguaje claro, empático, orientado al impacto de negocio. Explicación fluida con causa, síntoma y resolución.' },
+            { score: 3, what: 'Explica sin jerga confusa manteniendo los hechos clave del incidente.' },
+            { score: 2, what: 'Intenta simplificar pero pierde precisión o deja vacíos en la explicación.' },
+            { score: 1, what: 'Utiliza jerga técnica sin traducirla o redacta de forma desordenada.' },
+        ],
+    },
+    B3: {
+        description: 'Evalúa la orientación al cliente interno/desarrolladores y la gestión de prioridades interpersonales en entornos de infraestructura.',
+        questions: [
+            'Criterio de Evaluación: ¿Cómo gestiona peticiones urgentes de desarrolladores mientras mantiene bajo control las alertas críticas de producción?',
+        ],
+        indicators: [
+            { score: 4, what: 'Prioriza activamente según severidad (SLO/SLI). Empático con otros equipos, verifica comprensión y cierra ciclos.' },
+            { score: 3, what: 'Muestra conciencia del impacto en los desarrolladores y la plataforma.' },
+            { score: 2, what: 'Cumple de forma transaccional sin profundizar en la experiencia del desarrollador.' },
+            { score: 1, what: 'Centrado exclusivamente en herramientas o procesos sin empatía interpersonal.' },
+        ],
+    },
+    B4: {
+        description: 'Evalúa el trabajo en equipo y la colaboración asíncrona dentro de células SRE/DevOps durante situaciones de alta presión.',
+        questions: [
+            'Criterio de Evaluación: ¿Demuestra espíritu colaborativo y capacidad de organización del equipo ante incidentes masivos?',
+        ],
+        indicators: [
+            { score: 4, what: 'Concibe al equipo como un sistema coordinado. Actúa proactivamente y facilita la toma de decisiones.' },
+            { score: 3, what: 'Colabora activamente cuando el equipo lo requiere.' },
+            { score: 2, what: 'Cumple sus responsabilidades individuales con colaboración puntual.' },
+            { score: 1, what: 'Actitud aislada o individualista sin conciencia del equipo.' },
+        ],
+    },
+    B5: {
+        description: 'Evalúa el criterio de priorización y gestión del tiempo ante tormentas de alertas y telemetría de producción.',
+        questions: [
+            'Criterio de Evaluación: ¿Utiliza un método estructurado de priorización basado en severidad de impacto en lugar de orden de llegada?',
+        ],
+        indicators: [
+            { score: 4, what: 'Criterio claro basado en impacto real de negocio y severidad del servicio. Usa herramientas de apoyo.' },
+            { score: 3, what: 'Prioriza atendiendo primero lo más crítico y reconoce cuándo pedir apoyo.' },
+            { score: 2, what: 'Prioriza principalmente por orden de llegada sin estructura clara.' },
+            { score: 1, what: 'Responde de forma caótica sin criterios claros de triaje.' },
+        ],
+    },
+    B6: {
+        description: 'Evalúa el rigor en la documentación asíncrona y la claridad en la gestión de registros e incidentes para la continuidad del equipo.',
+        questions: [
+            'Criterio de Evaluación: ¿La documentación dejada en el registro es autoexplicativa y permite a un compañero continuar el caso sin fricción?',
+        ],
+        indicators: [
+            { score: 4, what: 'Documenta detalladamente pensando en la guardia que sigue. Registros estructurados y claros.' },
+            { score: 3, what: 'Documenta de forma consistente y completa los aspectos clave.' },
+            { score: 2, what: 'Documenta lo mínimo indispensable; requiere contexto previo para entenderse.' },
+            { score: 1, what: 'Registros incompletos, desordenados o ausentes.' },
+        ],
+    },
+}
+
 const CATEGORIES = [
     { id: 'B1', name: 'Comunicación Técnica Escrita', max: 16, sub: 'B1.x' },
     { id: 'B2', name: 'Comunicación Verbal Técnica', max: 16, sub: 'B2.1' },
@@ -138,7 +203,8 @@ const B6_SUBS = [
     { id: 'B6.3', label: 'Seguimiento de acuerdos', levels: ['Sin próximos pasos', 'Próximos pasos vagos', 'Pasos claros y responsable', 'Detallado con tiempos esperados'] }
 ]
 
-export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTests, readOnly }: Props) {
+export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTests, readOnly, profileTrack }: Props) {
+    const isOtel = profileTrack === 'otel_expert'
     const router = useRouter()
     const [isSaving, setIsSaving] = useState(false)
     const [isResetting, setIsResetting] = useState(false)
@@ -460,7 +526,8 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
             </div>
 
             {CATEGORIES.map(cat => {
-                const guide = EVALUATOR_GUIDES[cat.id]
+                const guidesMap = isOtel ? EVALUATOR_GUIDES_OTEL : EVALUATOR_GUIDES
+                const guide = guidesMap[cat.id]
                 const isGuideOpen = expandedGuide === cat.id
                 const isEvidenceOpen = expandedEvidence === cat.id
 

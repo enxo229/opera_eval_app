@@ -13,9 +13,11 @@ interface Props {
     existingScores: any[]
     dynamicTests?: any[]
     readOnly?: boolean
+    profileTrack?: string
 }
 
 // Evaluator guides from modelo-evaluacion-noc.md — Dimensión C
+// Evaluator question guides per category (C1-C4) - General Track
 const EVALUATOR_GUIDES: Record<string, {
     opening: string
     deepening: string[]
@@ -137,6 +139,128 @@ const EVALUATOR_GUIDES: Record<string, {
     },
 }
 
+// Evaluator question guides per category (C1-C4) - OTel Expert Track (Asynchronous SRE Evaluation)
+const EVALUATOR_GUIDES_OTEL: Record<string, {
+    opening: string
+    deepening: string[]
+    positive: string[]
+    alert: string[]
+    scoring: { score: number; desc: string }[]
+}> = {
+    C1: {
+        opening: 'Evalúa la respuesta del candidato sobre aprendizaje autodidacta en tecnología (OpenTelemetry, Cloud, eBPF, arquitecturas de observabilidad).',
+        deepening: [
+            '¿Menciona fuentes técnicas concretas (documentación oficial OTel, RFCs, blogs de ingeniería, proyectos open source)?',
+            '¿Aplicó lo aprendido en escenarios prácticos o laboratorios personales?',
+            '¿Demuestra curiosidad genuina y hábito continuo de autoformación?',
+        ],
+        positive: [
+            'Menciona fuentes técnicas y oficiales concretas',
+            'El aprendizaje fue autodidacta e impulsado por curiosidad técnica',
+            'Existe aplicación práctica verificable o experimentación en labs',
+            'Comparte o documenta el conocimiento para la comunidad/equipo',
+        ],
+        alert: [
+            '"No he tenido tiempo" como justificación principal',
+            'Solo estudia cuando hay una certificación obligatoria',
+            'Conocimiento puramente superficial sin experimentación',
+            'Falta de reflexión sobre la utilidad del aprendizaje',
+        ],
+        scoring: [
+            { score: 5, desc: 'Ejemplo específico con fuentes técnicas, experimentación en lab y aplicación. Hábito autodidacta continuo.' },
+            { score: 4, desc: 'Ejemplo concreto con fuente técnica y aplicación pero sin profundizar en el hábito continuo.' },
+            { score: 3, desc: 'Aprendió algo nuevo pero motivado por asignación laboral directa sin iniciativa propia.' },
+            { score: 2, desc: 'Respuesta vaga sin tecnologías ni ejemplos concretos verificables.' },
+            { score: 1, desc: 'No recuerda haber aprendido nada por su cuenta en el último año.' },
+            { score: 0, desc: 'Expresa que no le interesa aprender fuera del horario o requerimiento obligatorio.' },
+        ],
+    },
+    C2: {
+        opening: 'Evalúa cómo reacciona el candidato ante cambios de arquitectura, migraciones de infraestructura o adopción de nuevos estándares de observabilidad.',
+        deepening: [
+            '¿Qué acciones concretas tomó para adaptarse rápidamente al nuevo stack?',
+            '¿Demuestra resiliencia y actitud constructiva ante la transición tecnológica?',
+            '¿Ayudó al equipo o facilitó la adopción del cambio?',
+        ],
+        positive: [
+            'Describe acciones estructuradas tomadas para dominar el nuevo stack',
+            'Enmarca la dificultad técnica como oportunidad de crecimiento',
+            'Proactivo en apoyar la transición tecnológica en su equipo',
+            'Reflexiona sobre aprendizajes derivados del proceso de cambio',
+        ],
+        alert: [
+            'Resistencia, incomodidad o queja central en el relato',
+            'Actitud pasiva esperando que el cambio sea resuelto por otros',
+            'Percibe las transformaciones tecnológicas como una carga negativa',
+            'Sin aprendizaje extraído de migraciones o cambios pasados',
+        ],
+        scoring: [
+            { score: 5, desc: 'Adaptación rápida con acciones concretas, resiliencia y liderazgo en la transición.' },
+            { score: 4, desc: 'Manejó bien el cambio tecnológico con acciones concretas pero rol pasivo en el equipo.' },
+            { score: 3, desc: 'Se adaptó por cumplimiento de asignación sin iniciativa propia.' },
+            { score: 2, desc: 'Relato marcado por resistencia o incomodidad ante la evolución tecnológica.' },
+            { score: 1, desc: 'Rechazo abierto a cambios de herramientas o arquitecturas sin mitigantes.' },
+            { score: 0, desc: 'Prefiere trabajar únicamente con herramientas heredadas sin interés en evolucionar.' },
+        ],
+    },
+    C3: {
+        opening: 'Evalúa la claridad en la visión de carrera técnica (SRE, Platform Engineering, Cloud Native, Observabilidad Avanzada).',
+        deepening: [
+            '¿Tiene un objetivo de desarrollo profesional alineado con ingeniería de confiabilidad y plataformas?',
+            '¿Conecta sus responsabilidades actuales con sus metas de crecimiento futuro?',
+            '¿Ha realizado acciones concretas para avanzar hacia esa visión?',
+        ],
+        positive: [
+            'Dirección técnica clara (SRE, Cloud Native, DevOps, Platform Engineering)',
+            'Explicación fundamentada en pasión por la estabilidad e infraestructura',
+            'Conecta sus retos actuales con su hoja de ruta profesional',
+            'Ha realizado acciones de preparación concretas (estudio, laboratorios, proyectos)',
+        ],
+        alert: [
+            'Aspiraciones ambiguas o sin rumbo definido',
+            'Motivación puramente salarial sin interés por el dominio técnico',
+            'Desconexión total entre el rol actual y las metas expresadas',
+            'Metas sin ninguna acción previa de preparación',
+        ],
+        scoring: [
+            { score: 5, desc: 'Visión de carrera clara y sólida alineada a SRE/Platform. Pasos concretos de preparación en marcha.' },
+            { score: 4, desc: 'Dirección clara y bien argumentada hacia el área técnica, aun con pocos pasos concretos.' },
+            { score: 3, desc: 'Aspiraciones generales sin hoja de ruta ni preparación previa.' },
+            { score: 2, desc: 'Motivación externa/económica sin curiosidad técnica por la especialización.' },
+            { score: 1, desc: 'Sin dirección ni interés expresado en el desarrollo profesional.' },
+            { score: 0, desc: 'Desinterés en crecer profesionalmente o asumir mayores retos técnicos.' },
+        ],
+    },
+    C4: {
+        opening: 'Evalúa el método de investigación previa antes de escalar incidentes de producción no documentados.',
+        deepening: [
+            '¿Qué pasos de diagnóstico realizó (inspección de logs, métricas en Grafana, trazas en Tempo) antes de escalar?',
+            '¿Documentó el hallazgo y proporcionó contexto al nivel superior?',
+            '¿Demuestra autonomía e investigación sistemática?',
+        ],
+        positive: [
+            'Investigación autónoma sistemática antes de escalar',
+            'Uso de herramientas de observabilidad para acotar el problema',
+            'Escaló proporcionando hipótesis y evidencia (logs/spans)',
+            'Documentó el caso para evitar recurrencia',
+        ],
+        alert: [
+            'Escala de inmediato sin realizar ninguna verificación inicial',
+            'No inspeccionó métricas ni logs disponibles',
+            'Escalación desprovista de evidencia o contexto técnico',
+            'Parálisis o pasividad ante alertas desconocidas',
+        ],
+        scoring: [
+            { score: 5, desc: 'Diagnóstico autónomo riguroso con herramientas de observabilidad antes de escalar con hipótesis estructurada.' },
+            { score: 4, desc: 'Realizó verificaciones iniciales valiosas y escaló con contexto técnico aceptable.' },
+            { score: 3, desc: 'Investigó levemente pero escaló de forma prematura con información parcial.' },
+            { score: 2, desc: 'Escaló rápidamente sin intento significativo de diagnóstico autónomo.' },
+            { score: 1, desc: 'Escalación directa e inmediata sin revisar métricas ni logs.' },
+            { score: 0, desc: 'Parálisis o inacción total ante una anomalía de producción.' },
+        ],
+    },
+}
+
 const CATEGORIES = [
     { id: 'C1', name: 'Disposición al Aprendizaje Autónomo', max: 5 },
     { id: 'C2', name: 'Adaptabilidad al Cambio', max: 5 },
@@ -144,7 +268,8 @@ const CATEGORIES = [
     { id: 'C4', name: 'Tolerancia a la Incertidumbre', max: 5 }
 ]
 
-export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTests = [], readOnly }: Props) {
+export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTests = [], readOnly, profileTrack }: Props) {
+    const isOtel = profileTrack === 'otel_expert'
     const router = useRouter()
     const [isSaving, setIsSaving] = useState(false)
     const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
@@ -244,7 +369,8 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
 
 
             {CATEGORIES.map(cat => {
-                const guide = EVALUATOR_GUIDES[cat.id]
+                const guidesMap = isOtel ? EVALUATOR_GUIDES_OTEL : EVALUATOR_GUIDES
+                const guide = guidesMap[cat.id]
                 const isGuideOpen = expandedGuide === cat.id
 
                 return (
