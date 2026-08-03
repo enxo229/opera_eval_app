@@ -23,27 +23,25 @@ const genAI = new GoogleGenerativeAI(apiKey)
 // Usaremos un modelo primario y si falla por Hard Limits (429, 503)
 // se saltará al siguiente modelo en la cadena de prioridad.
 
-// Cadena de prioridad (Primary -> Fallback) para generación de contenido
+// Cadena de prioridad (Primary -> Fallback) para generación de contenido (Preguntas, Chat A4)
 const GENERATION_MODEL_CHAIN = [
-    'gemini-2.5-flash',      // 1. Principal: Ultra-rápido, creativo y estable.
-    'gemma-4-31b-it',        // 2. Fallback: Gratuito, razonativo.
-    'gemma-4-26b-a4b-it',    // 3. Fallback: Consistente.
-    'gemini-2.5-flash-lite'  // 4. Fallback Universal: Económico, resistente.
+    'gemini-3.5-flash-lite',  // 1. Principal: Ultra-rápido (~1.8s), económico ($0.30/1M) y respuesta directa
+    'gemini-2.5-flash',       // 2. Fallback: Alta creatividad y contexto extenso
+    'gemini-2.5-flash-lite'   // 3. Fallback Universal: Ultra-económico ($0.10/1M) y resistente
 ]
 
-// Cadena de prioridad para evaluación (scoring estricto en JSON)
+// Cadena de prioridad para evaluación (scoring estricto en JSON, rúbricas, IA-2)
 const EVALUATION_MODEL_CHAIN = [
-    'gemini-2.5-flash',      // 1. Principal: Calificación e interpretación en milisegundos.
-    'gemma-4-31b-it',        // 2. Fallback: Alta capacidad analítica.
-    'gemma-4-26b-a4b-it',    // 3. Fallback: Rápido.
-    'gemini-2.5-flash-lite'  // 4. Fallback Universal: Resistente.
+    'gemini-2.5-flash',       // 1. Principal: Máxima consistencia en scoring JSON y rúbricas
+    'gemini-3.5-flash-lite',  // 2. Fallback: Ultra-rápido y estructurado
+    'gemini-2.5-flash-lite'   // 3. Fallback Universal: Anti-caídas
 ]
 
 // Cadena de prioridad para Reportes Ejecutivos (Narrativa de alta calidad)
 const REPORT_MODEL_CHAIN = [
-    'gemma-4-31b-it',        // 1. Principal: Máxima razonamiento y narrativa.
-    'gemma-4-26b-a4b-it',    // 2. Fallback 1: Consistente.
-    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Resistente.
+    'gemini-3.6-flash',       // 1. Principal: Máxima calidad narrativa y razonamiento sintético
+    'gemini-2.5-flash',       // 2. Fallback: Gran capacidad analítica
+    'gemini-3.5-flash-lite'   // 3. Fallback: Rápido y estructurado
 ]
 
 
@@ -179,7 +177,7 @@ export async function generateReportFeedbackWithRetry(prompt: string, maxRetries
  * Fuerza la generación usando exclusivamente Gemini 2.5 Flash Lite (Estrategia de respaldo manual).
  */
 export async function generateReportFeedbackLite(prompt: string): Promise<string> {
-    return callWithRetry(['gemini-2.5-flash-lite'], prompt, 2, 0.7)
+    return callWithRetry(['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite'], prompt, 2, 0.7)
 }
 
 /**
