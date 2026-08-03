@@ -31,22 +31,32 @@ export async function calculateDimensionA(scores: { a1: number; a2: number; a3: 
 /**
  * Calcula el Subtotal de la Dimensión B
  * La BD almacena los raw_scores.
- * B1 (max 16) -> normaliza a 7
- * B2 (max 16) -> normaliza a 7
- * B3-B6 (max 12) -> normaliza a 4
- * Total máximo redondeado a 2 decimas = 30.
+ * Para perfil general:
+ * B1 (max 16) -> 7, B2 (max 16) -> 7, B3-B6 (max 12) -> 4 c/u. Total = 30.
+ * Para otel_expert:
+ * B1 Ticket (max 16) -> 18.0 Pts, B2 Situacional (max 16) -> 12.0 Pts. Total = 30.
  */
-export async function calculateDimensionB(scores: {
-    b1: number
-    b2: number
-    b3: number
-    b4: number
-    b5: number
-    b6: number
-}): Promise<number> {
+export async function calculateDimensionB(
+    scores: {
+        b1: number
+        b2: number
+        b3: number
+        b4: number
+        b5: number
+        b6: number
+    },
+    profileTrack?: string
+): Promise<number> {
     const rawToNorm = (val: number, maxRaw: number, maxNorm: number) => {
         const clamped = Math.min(Math.max(0, val), maxRaw)
         return (clamped / maxRaw) * maxNorm
+    }
+
+    if (profileTrack === 'otel_expert') {
+        const normB1 = rawToNorm(scores.b1, 16, 18)
+        const normB2 = rawToNorm(scores.b2, 16, 12)
+        const total = normB1 + normB2
+        return parseFloat(Math.min(Math.max(0, total), 30).toFixed(2))
     }
 
     const normB1 = rawToNorm(scores.b1, 16, 7)
@@ -62,9 +72,20 @@ export async function calculateDimensionB(scores: {
 
 /**
  * Calcula el Subtotal de la Dimensión C
- * C1 (5), C2 (5), C3 (5), C4 (5). Total = 20.
+ * Para perfil general: C1 (5), C2 (5), C3 (5), C4 (5). Total = 20.
+ * Para otel_expert: C1 (10 pts), C2 (10 pts). Total = 20.
  */
-export async function calculateDimensionC(scores: { c1: number; c2: number; c3: number; c4: number }): Promise<number> {
+export async function calculateDimensionC(
+    scores: { c1: number; c2: number; c3: number; c4: number },
+    profileTrack?: string
+): Promise<number> {
+    if (profileTrack === 'otel_expert') {
+        const normC1 = (Math.min(Math.max(0, scores.c1), 5) / 5) * 10
+        const normC2 = (Math.min(Math.max(0, scores.c2), 5) / 5) * 10
+        const total = normC1 + normC2
+        return parseFloat(Math.min(Math.max(0, total), 20).toFixed(2))
+    }
+
     const total = scores.c1 + scores.c2 + scores.c3 + scores.c4
     return parseFloat(Math.min(Math.max(0, total), 20).toFixed(2))
 }

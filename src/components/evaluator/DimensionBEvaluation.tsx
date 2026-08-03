@@ -490,14 +490,17 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
             {/* Sticky Sub-navigation */}
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
                 <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
-                    {[
+                    {(isOtel ? [
+                        { id: 'section-B1', label: 'B1. Ticket Escrito' },
+                        { id: 'section-B2', label: 'B2. Adaptabilidad SRE' }
+                    ] : [
                         { id: 'section-B1', label: 'B1. Escrita' },
                         { id: 'section-B2', label: 'B2. Verbal' },
                         { id: 'section-B3', label: 'B3. Cliente' },
                         { id: 'section-B4', label: 'B4. Equipo' },
                         { id: 'section-B5', label: 'B5. Tiempo' },
                         { id: 'section-B6', label: 'B6. Orden' }
-                    ].map(link => (
+                    ]).map(link => (
                         <Button 
                             key={link.id} 
                             variant="secondary" 
@@ -525,7 +528,10 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                 </div>
             </div>
 
-            {CATEGORIES.map(cat => {
+            {(isOtel ? [
+                { id: 'B1', name: 'Comunicación Técnica Escrita (Ticket ITSM)', max: 16, sub: 'B1.x' },
+                { id: 'B2', name: 'Adaptabilidad & Gestión de Presión', max: 16, sub: 'B2.1' }
+            ] : CATEGORIES).map(cat => {
                 const guidesMap = isOtel ? EVALUATOR_GUIDES_OTEL : EVALUATOR_GUIDES
                 const guide = guidesMap[cat.id]
                 const isGuideOpen = expandedGuide === cat.id

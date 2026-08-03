@@ -334,12 +334,15 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
             {/* Sticky Sub-navigation */}
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
                 <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
-                    {[
+                    {(isOtel ? [
+                        { id: 'section-C1', label: 'C1. Post-mortems' },
+                        { id: 'section-C2', label: 'C2. SLOs & Error Budgets' }
+                    ] : [
                         { id: 'section-C1', label: 'C1. Aprendizaje' },
                         { id: 'section-C2', label: 'C2. Adaptabilidad' },
                         { id: 'section-C3', label: 'C3. Crecimiento' },
                         { id: 'section-C4', label: 'C4. Incertidumbre' }
-                    ].map(link => (
+                    ]).map(link => (
                         <Button 
                             key={link.id} 
                             variant="secondary" 
@@ -368,7 +371,10 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
             </div>
 
 
-            {CATEGORIES.map(cat => {
+            {(isOtel ? [
+                { id: 'C1', name: 'Cultura Blameless & Post-mortems', max: 5 },
+                { id: 'C2', name: 'Mentalidad de SLOs & Error Budgets', max: 5 }
+            ] : CATEGORIES).map(cat => {
                 const guidesMap = isOtel ? EVALUATOR_GUIDES_OTEL : EVALUATOR_GUIDES
                 const guide = guidesMap[cat.id]
                 const isGuideOpen = expandedGuide === cat.id

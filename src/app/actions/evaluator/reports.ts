@@ -31,14 +31,14 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
         b4: scores.find(s => s.category === 'B4')?.raw_score || 0,
         b5: scores.find(s => s.category === 'B5')?.raw_score || 0,
         b6: scores.find(s => s.category === 'B6')?.raw_score || 0
-    })
+    }, evaluation.profile_track)
 
     const subC = await calculateDimensionC({
         c1: scores.find(s => s.category === 'C1')?.raw_score || 0,
         c2: scores.find(s => s.category === 'C2')?.raw_score || 0,
         c3: scores.find(s => s.category === 'C3')?.raw_score || 0,
         c4: scores.find(s => s.category === 'C4')?.raw_score || 0
-    })
+    }, evaluation.profile_track)
 
     const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
@@ -59,6 +59,7 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
     return `
 CANDIDATO: ${profile?.full_name || 'Desconocido'}
 EDUCACIÓN: ${profile?.education_level || 'N/A'}
+PERFIL / TRACK: ${evaluation.profile_track || 'general'}
 SCORE GLOBAL: ${finalResult.score}/100 - ${finalResult.classification}
 
 SUBTOTALES:
@@ -105,8 +106,8 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
     // 2. Ejecutar Cálculos de Totales
     const getRaw = (cat: string) => scores.find(s => s.category === cat)?.raw_score || 0
     const subA = await calculateDimensionA({ a1: getRaw('A1'), a2: getRaw('A2'), a3: getRaw('A3'), a4: getRaw('A4') })
-    const subB = await calculateDimensionB({ b1: getRaw('B1'), b2: getRaw('B2'), b3: getRaw('B3'), b4: getRaw('B4'), b5: getRaw('B5'), b6: getRaw('B6') })
-    const subC = await calculateDimensionC({ c1: getRaw('C1'), c2: getRaw('C2'), c3: getRaw('C3'), c4: getRaw('C4') })
+    const subB = await calculateDimensionB({ b1: getRaw('B1'), b2: getRaw('B2'), b3: getRaw('B3'), b4: getRaw('B4'), b5: getRaw('B5'), b6: getRaw('B6') }, evaluation.profile_track)
+    const subC = await calculateDimensionC({ c1: getRaw('C1'), c2: getRaw('C2'), c3: getRaw('C3'), c4: getRaw('C4') }, evaluation.profile_track)
     const subIA = await calculateDimensionIA({ ia1: getRaw('IA-1'), ia2: getRaw('IA-2') })
     const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
