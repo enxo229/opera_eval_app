@@ -75,9 +75,12 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
             if (result.success) {
                 setA3Submitted(true)
                 if (result.evaluations) setA3AIResults(result.evaluations)
+            } else if (result.error) {
+                alert('Error al guardar A3: ' + result.error)
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error submitting A3:', e)
+            alert('Error al guardar A3: ' + (e?.message || 'Error desconocido'))
         } finally {
             setA3Submitting(false)
         }
