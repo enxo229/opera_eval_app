@@ -14,7 +14,7 @@
 | UI | React + Tailwind CSS v4 + Shadcn UI v4 (base-ui) | React 19.2.3 |
 | Lenguaje | TypeScript | ^5 |
 | Base de datos | Supabase (PostgreSQL + Auth + RLS) | SDK 2.98 |
-| IA Generativa | Google Gemini (Gemma 4 & Gemini 2.5) | SDK 0.24.1 |
+| IA Generativa | Google Gemini (Gemini 3.7 Flash, 3.5 Flash Lite, 2.5 Flash Lite) | SDK 0.24.1 |
 | Gráficos | Recharts | ^3.8 |
 | Animaciones | Framer Motion | ^12.35 |
 | Iconos | Lucide React | ^0.577 |
@@ -29,12 +29,12 @@ Configuración en `src/lib/ai/gemini.ts`.
 
 | Tipo de Tarea | Modelo Principal (Intento 1) | Fallback 1 (Intento 2) | Fallback 2 (Intento 3) |
 |---|---|---|---|
-| **Generación** | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
-| **Evaluación** (JSON) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
-| **Reportes** (Narrativa) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
+| **Generación** | `gemini-3.7-flash` (~3.7s) | `gemini-3.5-flash-lite` (~1.7s) | `gemini-2.5-flash-lite` (~1.2s) |
+| **Evaluación** (JSON) | `gemini-3.7-flash` (~3.3s) | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
+| **Reportes** (Narrativa) | `gemini-3.7-flash` (~3.8s) | `gemini-3.5-flash-lite` | `gemini-2.5-flash-lite` |
 
-- **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
-- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo `gemini-2.5-flash-lite` para garantizar la generación en situaciones de alta latencia o agotamiento de cuota de los modelos Gemma.
+- **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500/404/400), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
+- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente a la cadena ultrarrápida `['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite']` para garantizar la generación en situaciones de alta latencia.
 - **PII Filter**: Eliminado intencionalmente. El usuario ha confirmado que desea capturar `prompt` y `completion` incluso en producción para auditoría técnica.
 - **Variable de entorno**: Usa `APP_GEMINI_API_KEY` (NO `GEMINI_API_KEY`) para evitar colisiones con el entorno del sistema.
 - **Observability**: Toda llamada a la IA debe registrarse usando `metricsApp.recordAiRequest()` y envolverse en un Span de OTel (`tracer.startActiveSpan`).

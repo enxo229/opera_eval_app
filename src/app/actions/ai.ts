@@ -71,7 +71,7 @@ export type AINarrativeReport = {
 
 /**
  * Genera un feedback narrativo consolidado, fortalezas y brechas basado en toda la evaluación.
- * Usa la cadena de modelos de REPORTE (Gemma 4 31B -> 26B -> Gemini Flash Lite).
+ * Usa la cadena de modelos de REPORTE (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite).
  */
 export async function generateNarrativeFeedback(context: string): Promise<AINarrativeReport> {
     const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 

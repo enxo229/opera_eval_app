@@ -572,7 +572,7 @@ Se evalúan 5 dimensiones técnicas del prompt formulado por el candidato:
 
 ## 9. INFORME EJECUTIVO Y NARRATIVA IA
 
-Al finalizar la evaluación, el sistema utiliza un modelo de alta capacidad analítica (**Gemma 4 31B**) para procesar todos los datos recolectados (scores, logs de chat, tickets y comentarios del evaluador) y generar una narrativa resumida.
+Al finalizar la evaluación, el sistema utiliza un modelo de alta capacidad analítica y síntesis ejecutiva (**Gemini 3.7 Flash**) para procesar todos los datos recolectados (scores, logs de chat, tickets y comentarios del evaluador) y generar una narrativa resumida.
 
 ### Componentes del Informe
 
@@ -581,7 +581,7 @@ Al finalizar la evaluación, el sistema utiliza un modelo de alta capacidad anal
 3.  **Brechas Técnicas y Actitudinales:** Identificación de áreas críticas que requieren un plan de formación o nivelación antes de asumir el nuevo rol.
 
 ### Mecanismo de Resiliencia
-En caso de fallo en la generación automática, la plataforma dispone de un botón de **"Regeneración Manual de Respaldo"** que fuerza la creación del informe usando el modelo **Gemini 2.5 Flash Lite**, garantizando que el evaluador siempre obtenga un dictamen procesable.
+En caso de fallo en la generación automática, la plataforma dispone de un botón de **"Regeneración Manual de Respaldo"** que fuerza la creación del informe usando modelos **Gemini Flash Lite** (`gemini-3.5-flash-lite` / `gemini-2.5-flash-lite`), garantizando que el evaluador siempre obtenga un dictamen procesable.
 
 ---
 
