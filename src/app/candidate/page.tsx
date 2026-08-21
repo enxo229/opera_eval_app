@@ -209,7 +209,7 @@ export default function CandidateEvaluationFlow() {
                             {b1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="b2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
-                            B2-B6
+                            B2-B3
                             {b2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="c" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
@@ -302,16 +302,16 @@ export default function CandidateEvaluationFlow() {
                         </div>
                     </TabsContent>
 
-                    {/* ===== B2-B6: Habilidades Blandas Síncronas ===== */}
+                    {/* ===== B2-B3: Habilidades Blandas Síncronas ===== */}
                     <TabsContent value="b2" className="space-y-6">
                         <Card className="border border-indigo-200 shadow-md bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:border-indigo-800/30">
                             <CardHeader className="text-center pb-4 pt-8">
                                 <div className="mx-auto w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
                                     <HelpCircle className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
                                 </div>
-                                <CardTitle className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">Evaluación Sincrónica (B2-B6)</CardTitle>
+                                <CardTitle className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">Evaluación Sincrónica (B2-B3)</CardTitle>
                                 <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-indigo-200">
-                                    Esta sección mide tus habilidades blandas (adaptabilidad, autonomía, etc.). Se realiza a través de preguntas de situación ("Roleplay") mediante entrevista.
+                                    Esta sección mide tus habilidades blandas (comunicación verbal con stakeholders, colaboración bajo presión y priorización). Se realiza mediante preguntas guiadas por tu evaluador.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="text-center pb-8 border-t border-indigo-100 dark:border-indigo-800/30 pt-6 mt-4">
@@ -323,7 +323,7 @@ export default function CandidateEvaluationFlow() {
                                     disabled={b2Submitted}
                                     className={`font-semibold transition-all ${b2Submitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
                                 >
-                                    {b2Submitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección B2-B6 Completada</> : 'Marcar sección como completada'}
+                                    {b2Submitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección B2-B3 Completada</> : 'Marcar sección como completada'}
                                 </Button>
                             </CardContent>
                         </Card>

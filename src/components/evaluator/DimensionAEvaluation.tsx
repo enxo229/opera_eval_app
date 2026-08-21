@@ -89,7 +89,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const [a3Refreshing, setA3Refreshing] = useState(false)
     const [a3Resetting, setA3Resetting] = useState(false)
     const a3Total = Object.values(a3SubScores).reduce((sum, v) => sum + v, 0)
-    const a3Normalized = (Math.round((a3Total / 12) * 10 * 10) / 10).toString()
+    const a3Normalized = (Math.round((a3Total / 9) * 10 * 10) / 10).toString()
 
     // A4 State
     const [a4SubScores, setA4SubScores] = useState<Record<string, number>>(() => {

@@ -36,10 +36,10 @@ export function A1Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <Terminal className="h-5 w-5 text-primary" />
-                A1. Fundamentos de Infraestructura y Sistemas
+                A1. Linux & Cloud Computing AWS
             </h2>
             <p className="text-muted-foreground text-sm mb-4">
-                Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
+                Usa la terminal interactiva para demostrar tu manejo de comandos en Linux (archivos, permisos, procesos, logs) y responde las preguntas de Linux y Fundamentos Cloud AWS.
                 Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
             </p>
             <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />

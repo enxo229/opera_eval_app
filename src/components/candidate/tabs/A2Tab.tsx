@@ -36,10 +36,10 @@ export function A2Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <HelpCircle className="h-5 w-5 text-primary" />
-                A2. Observabilidad y Monitoreo
+                A2. Observabilidad, SRE & APM
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-                Selecciona la herramienta de observabilidad que mejor conozcas. Las preguntas se adaptarán a tu experiencia.
+                Selecciona la plataforma de observabilidad que conozcas (Dynatrace, Grafana, CloudWatch, etc.). Se evaluarán pilares, conceptos SRE (SLI/SLO), dashboards y diagnóstico de alertas.
             </p>
 
             {!a2SelectedTool ? (

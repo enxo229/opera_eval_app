@@ -81,11 +81,11 @@ export function PromptEditorIA2({ evaluationId, onStatusChange }: { evaluationId
                     </h3>
                     <div className="bg-white border border-slate-100 p-4 rounded-md shadow-sm">
                         <p className="text-slate-800 text-base leading-relaxed font-medium italic">
-                            "Imagina que necesitas buscar en Elasticsearch todos los logs de error del servidor <code className="bg-slate-100 text-rose-600 px-1.5 py-0.5 rounded text-sm not-italic">srv-prod-payments-01</code> que ocurrieron durante el <span className="font-bold underline decoration-indigo-300 decoration-2 underline-offset-2">día de ayer</span>."
+                            "Imagina que necesitas obtener la consulta en Grafana Loki (LogQL) para filtrar todos los logs de error con código HTTP 500 del microservicio <code className="bg-slate-100 text-rose-600 px-1.5 py-0.5 rounded text-sm not-italic">payments-service</code> del <span className="font-bold underline decoration-indigo-300 decoration-2 underline-offset-2">día de ayer</span>, o cómo aislar la traza de mayor latencia en Dynatrace."
                         </p>
                     </div>
                     <p className="text-sm text-slate-600 mt-4 leading-relaxed">
-                        Abre tu herramienta de IA preferida (ChatGPT, Gemini, Copilot, etc.) y fórmula la pregunta o instrucción que utilizarías para obtener la respuesta a este problema. Luego, <strong>copia y pega ese texto exacto aquí abajo</strong>.
+                        Abre tu herramienta de IA preferida (ChatGPT, Gemini, Claude, Copilot, etc.) y formula la pregunta o instrucción (prompt) que utilizarías para obtener la respuesta más precisa a este problema. Luego, <strong>copia y pega ese prompt exacto aquí abajo</strong>.
                     </p>
                 </div>
 

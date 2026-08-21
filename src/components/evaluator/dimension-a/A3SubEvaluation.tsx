@@ -37,7 +37,7 @@ export function A3SubEvaluation({
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>A3. Herramientas y Automatización Básica</span>
+                    <span>A3. Git & Análisis de Datos con Pandas</span>
                     <div className="flex items-center gap-2">
                         {!readOnly && (
                             <>
@@ -149,8 +149,8 @@ export function A3SubEvaluation({
 
                 {/* A3 Summary (Normalized) */}
                 {(() => {
-                    const pct = a3Total / 12
-                    const level = a3Total <= 3 ? 0 : a3Total <= 6 ? 1 : a3Total <= 9 ? 2 : 3
+                    const pct = a3Total / 9
+                    const level = a3Total <= 2 ? 0 : a3Total <= 4 ? 1 : a3Total <= 7 ? 2 : 3
                     const c = TOTAL_COLORS[level]
                     return (
                         <div className={`${c.fill} border ${c.border} rounded-lg p-4 space-y-2`}>
@@ -158,7 +158,7 @@ export function A3SubEvaluation({
                                 <span className="text-sm font-bold text-foreground">Total A3:</span>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs font-bold ${c.text}`}>{c.label}</span>
-                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / 12</span>
+                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / 9</span>
                                     <span className="text-xs text-muted-foreground">(normalizado: {a3Normalized} / 10)</span>
                                 </div>
                             </div>

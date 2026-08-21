@@ -1,55 +1,50 @@
 /**
  * Guía estática para el evaluador en A3 (no generada por IA).
- * Incluye comandos Git sugeridos, contexto ITSM y expectativas entry-level.
+ * Incluye comandos Git y sintaxis / conceptos clave de Pandas en Python.
  * 
  * Separado de ai.ts porque archivos 'use server' solo pueden exportar funciones async.
  */
 export const A3_EVALUATOR_GUIDANCE: Record<string, { title: string; content: string }> = {
   'A3.1': {
-    title: '📋 Guía para el evaluador — Comandos Git',
-    content: `Si desea evaluar habilidad práctica, pida al candidato que explique o ejecute estos comandos básicos:
+    title: '📋 Guía para el evaluador — Control de Versiones Git',
+    content: `Flujo básico esperado en Git:
+• git clone <url>         → Clonar un repositorio remoto
+• git checkout -b fix/xxx → Crear y cambiar a una nueva rama de trabajo
+• git add <archivos>      → Pasar cambios al área de preparación (staging)
+• git commit -m "..."     → Guardar un punto de control con mensaje descriptivo
+• git push origin <rama>  → Publicar los commits locales en el repositorio remoto
 
-• git clone <url>         → Clonar un repositorio
-  ✅ Esperado: "Descarga una copia del repositorio remoto a mi máquina local"
-  
-  💡 Repositorio de ejemplo para la prueba:
-  HTTPS: https://github.com/opera-eval/demo-project.git
-  SSH:   git@github.com:opera-eval/demo-project.git
+Para nivel Junior/Entry: Es suficiente con comprender el ciclo de vida de una rama y cómo colaborar sin sobreescribir la rama principal (main).`,
+  },
+  'A3.2': {
+    title: '📋 Guía para el evaluador — Pandas: Carga y Filtrado',
+    content: `Conceptos esperados en manipulación de datasets con Pandas:
+• Carga de datos:
+  df = pd.read_csv('metrics.csv') o pd.read_json('logs.json')
+• Inspección básica:
+  df.head(), df.info(), df.describe()
+• Filtrado condicional (Series de tiempo / logs):
+  df_errors = df[df['status'] >= 500]
+  df_slow = df[df['latency_ms'] > 2000]
 
-• git checkout -b mi-rama → Crear y cambiar a una nueva rama
-  ✅ Esperado: "Crea una rama nueva y me mueve a ella para trabajar sin afectar main"
-
-• git add .               → Agregar cambios al staging
-  ✅ Esperado: "Prepara los archivos modificados para ser incluidos en el próximo commit"
-
-• git commit -m "mensaje" → Hacer commit
-  ✅ Esperado: "Guarda un punto de control con los cambios que tengo en staging"
-
-• git push origin mi-rama → Subir cambios al remoto
-  ✅ Esperado: "Envía mis commits locales al servidor para que otros los vean"
-
-Para entry-level, es suficiente con que comprenda el flujo: clone → branch → add → commit → push.`,
+Criterio de evaluación:
+- Nivel 1 (Básico): Conoce qué es un DataFrame y menciona read_csv.
+- Nivel 2 (Funcional): Escribe o explica la sintaxis correcta de filtrado por columnas.
+- Nivel 3 (Autónomo): Maneja indexación temporal, múltiples condiciones (&, |) y manejo de valores nulos (dropna / fillna).`,
   },
   'A3.3': {
-    title: '📋 Contexto — Herramientas ITSM',
-    content: `A3.3 evalúa la capacidad de gestionar tickets de incidentes en cualquier herramienta ITSM.
-Ejemplos de herramientas: GLPI, JIRA Service Management, ServiceNow, Zendesk, ManageEngine.
+    title: '📋 Guía para el evaluador — Pandas: Agregaciones & Anomalías',
+    content: `Conceptos esperados en agregación y análisis estadístico:
+• Agrupación y métricas por servicio:
+  df.groupby('service_name')['latency_ms'].mean()
+  df.groupby('service_name')['status'].value_counts()
+• Percentiles y anomalías:
+  df['latency_ms'].quantile(0.95)   → Percentil 95 (P95)
+  df.describe()                     → Resumen estadístico (min, max, std, quartiles)
 
-Para entry-level, esperamos que el candidato:
-• Conozca los campos básicos de un ticket (título, descripción, prioridad, categoría)
-• Sepa diferenciar entre incidente y solicitud de servicio
-• Entienda el concepto de escalamiento
-• No se espera que conozca configuración o administración de la herramienta`,
-  },
-  'A3.4': {
-    title: '📋 Qué esperamos ver en la respuesta',
-    content: `Para entry-level en documentación, esperamos que el candidato:
-• Entienda la importancia de documentar procedimientos técnicos
-• Conozca al menos una herramienta (Confluence, wikis internas, Google Docs, Notion)
-• Pueda describir qué incluiría en una guía: pasos, capturas de pantalla, responsables
-• NO esperamos: dominio avanzado de Confluence, creación de macros, templates complejos
-
-Un candidato con score 2 (Funcional): "He documentado procedimientos en la wiki del equipo, incluyo los pasos, el resultado esperado y capturas"
-Un candidato con score 3 (Autónomo): "Mantengo actualizada la documentación del equipo, he creado guías de troubleshooting con diagramas y las reviso mensualmente"`,
+Criterio de evaluación:
+- Nivel 1 (Básico): Menciona conceptos estadísticos básicos (promedio, máximo) pero sin sintaxis clara.
+- Nivel 2 (Funcional): Explica el uso de groupby() para calcular métricas por dimensión.
+- Nivel 3 (Autónomo): Conecta los percentiles (P95/P99) con los SLI/SLO de observabilidad y detección de picos.`,
   },
 }

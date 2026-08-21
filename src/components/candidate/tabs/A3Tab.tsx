@@ -36,10 +36,10 @@ export function A3Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <GitBranch className="h-5 w-5 text-primary" />
-                A3. Herramientas y Automatización Básica
+                A3. Git & Análisis de Datos con Pandas
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-                Responde las preguntas sobre Git, scripting, gestión de tickets y documentación.
+                Responde las preguntas prácticas sobre control de versiones en Git y manipulación/análisis de métricas con Python & Pandas.
             </p>
 
             {!a3QuestionsGenerated ? (

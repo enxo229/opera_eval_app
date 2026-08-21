@@ -1,12 +1,12 @@
 'use server'
 
 /**
- * Normaliza la dimensión A3. El puntaje obtenido se calcula como: (suma_puntos_a3 / 12) * 10.
+ * Normaliza la dimensión A3. El puntaje obtenido se calcula como: (suma_puntos_a3 / 9) * 10.
  */
 export async function normalizeA3(rawA3Score: number): Promise<number> {
-    // Aseguramos que no pase del máximo teórico de A3 (12 puntos)
-    const clampedRaw = Math.min(Math.max(0, rawA3Score), 12)
-    return parseFloat(((clampedRaw / 12) * 10).toFixed(2))
+    // Aseguramos que no pase del máximo teórico de A3 (9 puntos: 3 criterios x 3 pts)
+    const clampedRaw = Math.min(Math.max(0, rawA3Score), 9)
+    return parseFloat(((clampedRaw / 9) * 10).toFixed(2))
 }
 
 /**
@@ -19,7 +19,7 @@ export async function normalizeA4(rawA4Score: number): Promise<number> {
 
 /**
  * Calcula el Subtotal de la Dimensión A
- * A1 (15), A2 (15), A3 (10 normalizado de 12), A4 (10 normalizado de 9). Total = 50.
+ * A1 (15), A2 (15), A3 (10 normalizado de 9), A4 (10 normalizado de 9). Total = 50.
  */
 export async function calculateDimensionA(scores: { a1: number; a2: number; a3: number; a4: number }): Promise<number> {
     const normA3 = await normalizeA3(scores.a3)
@@ -31,41 +31,52 @@ export async function calculateDimensionA(scores: { a1: number; a2: number; a3: 
 /**
  * Calcula el Subtotal de la Dimensión B
  * La BD almacena los raw_scores.
- * B1 (max 16) -> normaliza a 7
- * B2 (max 16) -> normaliza a 7
- * B3-B6 (max 12) -> normaliza a 4
- * Total máximo redondeado a 2 decimas = 30.
+ * B1 (max 16) -> normaliza a 10 (Comunicación Escrita)
+ * B2 (max 16) -> normaliza a 10 (Comunicación Verbal & Stakeholders)
+ * B3 (max 12) -> normaliza a 10 (Colaboración, Priorización y Manejo bajo presión)
+ * Total máximo = 30 puntos.
  */
 export async function calculateDimensionB(scores: {
     b1: number
     b2: number
     b3: number
-    b4: number
-    b5: number
-    b6: number
+    b4?: number
+    b5?: number
+    b6?: number
 }): Promise<number> {
     const rawToNorm = (val: number, maxRaw: number, maxNorm: number) => {
         const clamped = Math.min(Math.max(0, val), maxRaw)
         return (clamped / maxRaw) * maxNorm
     }
 
-    const normB1 = rawToNorm(scores.b1, 16, 7)
-    const normB2 = rawToNorm(scores.b2, 16, 7)
-    const normB3 = rawToNorm(scores.b3, 12, 4)
-    const normB4 = rawToNorm(scores.b4, 12, 4)
-    const normB5 = rawToNorm(scores.b5, 12, 4)
-    const normB6 = rawToNorm(scores.b6, 12, 4)
+    // Si viene en el formato legacy B1-B6
+    if (scores.b4 !== undefined && scores.b5 !== undefined && scores.b6 !== undefined && (scores.b4 > 0 || scores.b5 > 0 || scores.b6 > 0)) {
+        const normB1 = rawToNorm(scores.b1, 16, 7)
+        const normB2 = rawToNorm(scores.b2, 16, 7)
+        const normB3 = rawToNorm(scores.b3, 12, 4)
+        const normB4 = rawToNorm(scores.b4, 12, 4)
+        const normB5 = rawToNorm(scores.b5, 12, 4)
+        const normB6 = rawToNorm(scores.b6, 12, 4)
+        const total = normB1 + normB2 + normB3 + normB4 + normB5 + normB6
+        return parseFloat(Math.min(Math.max(0, total), 30).toFixed(2))
+    }
 
-    const total = normB1 + normB2 + normB3 + normB4 + normB5 + normB6
+    // Formato consolidado B1 (10) + B2 (10) + B3 (10) = 30
+    const normB1 = rawToNorm(scores.b1, 16, 10)
+    const normB2 = rawToNorm(scores.b2, 16, 10)
+    const normB3 = rawToNorm(scores.b3, 12, 10)
+
+    const total = normB1 + normB2 + normB3
     return parseFloat(Math.min(Math.max(0, total), 30).toFixed(2))
 }
 
 /**
  * Calcula el Subtotal de la Dimensión C
- * C1 (5), C2 (5), C3 (5), C4 (5). Total = 20.
+ * C1 (max 7), C2 (max 7), C3 (max 6). Total = 20.
+ * Soporta compatibilidad con formato anterior C1..C4.
  */
-export async function calculateDimensionC(scores: { c1: number; c2: number; c3: number; c4: number }): Promise<number> {
-    const total = scores.c1 + scores.c2 + scores.c3 + scores.c4
+export async function calculateDimensionC(scores: { c1: number; c2: number; c3: number; c4?: number }): Promise<number> {
+    const total = (scores.c1 || 0) + (scores.c2 || 0) + (scores.c3 || 0) + (scores.c4 || 0)
     return parseFloat(Math.min(Math.max(0, total), 20).toFixed(2))
 }
 
