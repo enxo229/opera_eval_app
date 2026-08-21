@@ -133,17 +133,32 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
-        for (const cat of CATEGORIES) {
-            const { data: existing } = await supabase.from('dimension_scores').select('id')
-                .eq('evaluation_id', evaluationId).eq('dimension', 'C').eq('category', cat.id).single()
-            if (existing) {
-                await supabase.from('dimension_scores').update({ raw_score: scores[cat.id], comments: comments[cat.id] }).eq('id', existing.id)
-            } else {
-                await supabase.from('dimension_scores').insert({ evaluation_id: evaluationId, dimension: 'C', category: cat.id, raw_score: scores[cat.id], comments: comments[cat.id] })
+        try {
+            for (const cat of CATEGORIES) {
+                const ext = existingScores.find(s => s.dimension === 'C' && s.category === cat.id)
+                const { error: upsertErr } = await supabase.from('dimension_scores').upsert({
+                    ...(ext ? { id: ext.id } : {}),
+                    evaluation_id: evaluationId,
+                    dimension: 'C',
+                    category: cat.id,
+                    raw_score: scores[cat.id],
+                    comments: comments[cat.id]
+                })
+                if (upsertErr) throw upsertErr
             }
+
+            // Actualizar total Dimensión C en tabla evaluations
+            const totalC = (scores['C1'] || 0) + (scores['C2'] || 0) + (scores['C3'] || 0)
+            await supabase.from('evaluations').update({ score_c: totalC }).eq('id', evaluationId)
+
+            router.refresh()
+            alert('Dimensión C guardada exitosamente.')
+        } catch (error: any) {
+            console.error('Error guardando Dimensión C:', error)
+            alert('Error al guardar Dimensión C: ' + (error?.message || 'Error desconocido'))
+        } finally {
+            setIsSaving(false)
         }
-        setIsSaving(false)
-        router.refresh()
     }
 
     return (

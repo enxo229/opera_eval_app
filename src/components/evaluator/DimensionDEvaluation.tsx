@@ -80,11 +80,11 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
     const [isSaving, setIsSaving] = useState(false)
 
     const getInitialScore = (categoryId: string) => {
-        const found = existingScores.find(s => s.dimension === 'D' && s.category === categoryId)
+        const found = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === categoryId)
         return found ? found.raw_score : 0
     }
     const getInitialComment = (categoryId: string) => {
-        const found = existingScores.find(s => s.dimension === 'D' && s.category === categoryId)
+        const found = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === categoryId)
         return found?.comments || ''
     }
 
@@ -145,17 +145,32 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
-        for (const cat of CATEGORIES) {
-            const { data: existing } = await supabase.from('dimension_scores').select('id')
-                .eq('evaluation_id', evaluationId).eq('dimension', 'D').eq('category', cat.id).single()
-            if (existing) {
-                await supabase.from('dimension_scores').update({ raw_score: scores[cat.id], comments: comments[cat.id] }).eq('id', existing.id)
-            } else {
-                await supabase.from('dimension_scores').insert({ evaluation_id: evaluationId, dimension: 'D', category: cat.id, raw_score: scores[cat.id], comments: comments[cat.id] })
+        try {
+            for (const cat of CATEGORIES) {
+                const ext = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === cat.id)
+                const { error: upsertErr } = await supabase.from('dimension_scores').upsert({
+                    ...(ext ? { id: ext.id } : {}),
+                    evaluation_id: evaluationId,
+                    dimension: 'IA',
+                    category: cat.id,
+                    raw_score: scores[cat.id],
+                    comments: comments[cat.id]
+                })
+                if (upsertErr) throw upsertErr
             }
+
+            // Actualizar total IA en tabla evaluations
+            const totalIA = (scores['IA-1'] || 0) + (scores['IA-2'] || 0)
+            await supabase.from('evaluations').update({ score_ia: totalIA }).eq('id', evaluationId)
+
+            router.refresh()
+            alert('Dimensión D guardada exitosamente.')
+        } catch (error: any) {
+            console.error('Error guardando Dimensión D:', error)
+            alert('Error al guardar Dimensión D: ' + (error?.message || 'Error desconocido'))
+        } finally {
+            setIsSaving(false)
         }
-        setIsSaving(false)
-        router.refresh()
     }
 
     return (

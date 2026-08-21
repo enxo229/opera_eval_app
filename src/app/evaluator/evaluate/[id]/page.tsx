@@ -172,7 +172,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                             const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
                             const hasB = ['B1', 'B2', 'B3'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
                             const hasC = ['C1', 'C2', 'C3'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
-                            const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => s.dimension === 'D' && s.category === cat))
+                            const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === cat))
 
                             return (
                                 <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 mb-8">
