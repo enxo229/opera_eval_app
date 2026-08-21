@@ -102,7 +102,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
             <CardHeader className="flex flex-row items-start justify-between gap-4 bg-muted/30 pb-4">
                 <div className="flex-1">
                     <CardTitle className="text-foreground text-xl flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" /> B1: Comunicación Técnica Escrita
+                        <FileText className="h-5 w-5 text-primary" /> B1: Comunicación Técnica Escrita (Registro en GLPI)
                     </CardTitle>
                 </div>
                 {submitted && (
@@ -118,8 +118,8 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                         <h4 className="font-bold mb-3 flex items-center gap-2 text-amber-600 dark:text-amber-500">
                             <AlertCircle className="w-5 h-5" /> Escenario del Incidente
                         </h4>
-                        <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed italic border-l-2 border-amber-500/30 pl-4">
-                            "{caseText}"
+                        <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed border-l-2 border-amber-500/30 pl-4">
+                            {caseText}
                         </div>
                     </div>
                 )}
@@ -128,15 +128,21 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                 {!submitted ? (
                     <div className="space-y-4">
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-foreground">Tu documentación del Ticket (ITSM)</label>
+                            <label className="text-sm font-medium text-foreground">Tu documentación del Ticket en GLPI</label>
                             <p className="text-xs text-muted-foreground">
-                                Describe qué pasó, qué hiciste y el impacto observado. Usa un lenguaje profesional.
+                                Documenta el incidente formalmente en GLPI: incluye título, fecha/hora, servicio y host, métricas de observabilidad, escalamiento (AlertOps / Teams), resolución aplicada e impacto total.
                             </p>
                         </div>
 
                         <Textarea
-                            placeholder="Ej: [INCIDENTE] Alto consumo CPU srv-prod... 
-Atención de alerta a las 02:47h..."
+                            placeholder="[GLPI - INCIDENTE] Título breve del problema
+Fecha y Hora (UTC): 
+Servidor / Microservicio: 
+Prioridad: 
+Descripción Técnica y Métricas (Dynatrace / Grafana): 
+Escalamiento (AlertOps / Microsoft Teams): 
+Resolución Aplicada: 
+Impacto al Negocio / Tiempo Total: "
                             className="min-h-[300px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
                             value={ticket}
                             onChange={(e) => setTicket(e.target.value)}

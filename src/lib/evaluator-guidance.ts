@@ -17,34 +17,33 @@ export const A3_EVALUATOR_GUIDANCE: Record<string, { title: string; content: str
 Para nivel Junior/Entry: Es suficiente con comprender el ciclo de vida de una rama y cómo colaborar sin sobreescribir la rama principal (main).`,
   },
   'A3.2': {
-    title: '📋 Guía para el evaluador — Pandas: Carga y Filtrado',
-    content: `Conceptos esperados en manipulación de datasets con Pandas:
-• Carga de datos:
-  df = pd.read_csv('metrics.csv') o pd.read_json('logs.json')
-• Inspección básica:
-  df.head(), df.info(), df.describe()
-• Filtrado condicional (Series de tiempo / logs):
-  df_errors = df[df['status'] >= 500]
-  df_slow = df[df['latency_ms'] > 2000]
+    title: '📋 Guía para el evaluador — Pandas: Análisis de Datos (Interpretación de Código)',
+    content: `Criterios esperados en la interpretación del script de Pandas:
+• Identificación del objetivo:
+  El candidato explica con claridad que el script carga métricas y aísla transacciones lentas o con error.
+• Comprensión de parámetros y filtros:
+  Identifica las columnas del DataFrame (ej. latency_ms, status_code) y la lógica booleana del filtro.
+• Deducción del resultado:
+  Calcula o deduce correctamente la salida ante los datos de prueba presentados.
 
-Criterio de evaluación:
-- Nivel 1 (Básico): Conoce qué es un DataFrame y menciona read_csv.
-- Nivel 2 (Funcional): Escribe o explica la sintaxis correcta de filtrado por columnas.
-- Nivel 3 (Autónomo): Maneja indexación temporal, múltiples condiciones (&, |) y manejo de valores nulos (dropna / fillna).`,
+Escala:
+- 1 (Básico): Identifica que usa Pandas pero su explicación de las salidas es confusa.
+- 2 (Funcional): Explica el objetivo y deduce las salidas con sentido común y lógica.
+- 3 (Autónomo): Explicación impecable del flujo, parámetros y deducción exacta del resultado.`,
   },
   'A3.3': {
-    title: '📋 Guía para el evaluador — Pandas: Agregaciones & Anomalías',
-    content: `Conceptos esperados en agregación y análisis estadístico:
-• Agrupación y métricas por servicio:
-  df.groupby('service_name')['latency_ms'].mean()
-  df.groupby('service_name')['status'].value_counts()
-• Percentiles y anomalías:
-  df['latency_ms'].quantile(0.95)   → Percentil 95 (P95)
-  df.describe()                     → Resumen estadístico (min, max, std, quartiles)
+    title: '📋 Guía para el evaluador — Python: Automatización de Observabilidad',
+    content: `Criterios esperados en la interpretación de la función de automatización:
+• Comprensión del flujo lógico:
+  Explica qué evalúa la función (umbrales de CPU/memoria o tasa de error) y cómo clasifica el estado.
+• Identificación de condiciones de alerta:
+  Reconoce la regla exacta que dispara el estado CRITICAL o WARNING.
+• Deducción del valor retornado:
+  Indica con precisión el diccionario o mensaje que retorna la función para los datos de prueba.
 
-Criterio de evaluación:
-- Nivel 1 (Básico): Menciona conceptos estadísticos básicos (promedio, máximo) pero sin sintaxis clara.
-- Nivel 2 (Funcional): Explica el uso de groupby() para calcular métricas por dimensión.
-- Nivel 3 (Autónomo): Conecta los percentiles (P95/P99) con los SLI/SLO de observabilidad y detección de picos.`,
+Escala:
+- 1 (Básico): Explicación superficial o duda en la salida.
+- 2 (Funcional): Comprende las condiciones if/else y deduce el estado de alerta correcto.
+- 3 (Autónomo): Precisión total en la explicación de entradas, condiciones y resultado devuelto.`,
   },
 }

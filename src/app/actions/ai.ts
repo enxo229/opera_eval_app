@@ -116,9 +116,9 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura:
 
 // NUEVO: Handler para el Chat interactivo A4 llamado desde Client Component
 export async function handleCandidateChat(history: string, userInput: string): Promise<string> {
-    const prompt = `Eres una simulación de consola de logs/backend (Grafana/Kibana) durante un incidente P1. 
-Responde de forma técnica y concisa simulando el resultado que arrojarían los logs o métricas según lo que el usuario pida.
-Intenta ser realista: si pide logs sin filtrar, dile que hay demasiada data. Si pide logs específicos, dáselos.
+    const prompt = `Eres una simulación de consola de observabilidad y logs (Dynatrace / Grafana Loki) durante un incidente P1 en producción. 
+Responde de forma técnica y concisa simulando el resultado que arrojarían las métricas, trazas o logs según lo que el usuario pida.
+Intenta ser realista: si pide logs sin filtrar, dile que hay demasiada data. Si pide logs o métricas específicas, dáselos.
 
 Historial:
 ${history}
@@ -548,25 +548,33 @@ Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score 
 
 /**
  * Genera un caso de incidente único en español para el módulo B1.
- * Cada caso es diferente: diferentes servicios, errores, horarios, impactos.
+ * Escenario conciso (2 párrafos, ~120-150 palabras) alineado con las herramientas del equipo:
+ * Monitoreo: Dynatrace / Grafana, Alertas/Guardias: AlertOps, Coordinación: Microsoft Teams, Registro: GLPI.
  */
 export async function generateIncidentCaseB1(): Promise<string> {
     const seed = Math.floor(Math.random() * 10000)
-    const prompt = `Eres un generador de escenarios de incidentes técnicos de producción para evaluaciones de soporte NOC/SRE.
+    const prompt = `Eres un generador de escenarios de incidentes de producción para evaluaciones de soporte NOC/SRE.
 
-Genera UN escenario de incidente único y realista en español. El candidato debe usar este escenario para documentar un ticket de incidente como si lo fuera a ingresar en un sistema de gestión (GLPI).
+Genera UN escenario de incidente conciso, claro y realista en español de EXACTAMENTE 2 párrafos cortos (máximo 150 palabras en total).
+El candidato usará este escenario para documentar un ticket formal de incidente en el sistema GLPI.
 
-Requisitos del escenario:
-- Incluye hora exacta, nombre del servidor (formato srv-prod-XXX-01), servicio afectado
-- Incluye una alerta con asunto del correo
-- Incluye datos de lo que se observa en una herramienta de monitoreo (Grafana, Elasticsearch, Kibana)
-- Incluye logs específicos con mensajes de error realistas
-- Incluye un intento de contacto con el equipo de escalamiento
-- Incluye resolución final (rollback, restart, fix temporal)
-- Incluye duración del impacto
-- Usa variación (seed: ${seed}) para que cada caso sea completamente diferente
+Estructura y Requisitos Obligatorios:
+1. Párrafo 1 — Detección y Métricas:
+   - Hora exacta en formato UTC.
+   - Nombre del servidor (formato srv-prod-XXX-01) y nombre del microservicio afectado.
+   - Asunto de la alerta crítica recibida en AlertOps (ej: "[CRITICAL] [ALERTOPS] High HTTP 500 Rate on order-service").
+   - Métricas o síntomas concretos observados en Dynatrace o Grafana (ej: latencia P95 subió a 4.2s o tasa de errores 500 alcanzó el 30%).
 
-Formato: Escribe el escenario como una narrativa en segunda persona ("Recibes una alerta...") de máximo 4 párrafos. No incluyas instrucciones sobre qué hacer.`
+2. Párrafo 2 — Escalamiento, Resolución e Impacto:
+   - Escalamiento al ingeniero on-call a través de AlertOps y apertura de sala de crisis en Microsoft Teams.
+   - Causa identificada y acción de resolución ejecutada (ej: rollback de versión en pipeline o reinicio secuencial de instancias).
+   - Hora de normalización de métricas y duración total del impacto (ej: 25 a 35 minutos de indisponibilidad parcial).
+
+Reglas Estrictas:
+- Usa ÚNICAMENTE estas herramientas: Dynatrace o Grafana (monitoreo), AlertOps (alertas y guardia on-call), Microsoft Teams (sala de crisis), GLPI (sistema de tickets).
+- PROHIBIDO mencionar PagerDuty, Slack, Elasticsearch, Kibana, Docker o Kubernetes.
+- Debe ser directo y conciso (máximo 150 palabras). No agregues instrucciones ni títulos adicionales.
+- Usa variación (seed: ${seed}) para que los nombres de servicio y horarios varíen cada vez.`
 
     return generateContentWithRetry(prompt)
 }
@@ -582,45 +590,45 @@ export type B1RubricEvaluation = {
 }
 
 /**
- * Evalúa un ticket B1 con la rúbrica detallada de 4 criterios.
+ * Evalúa un ticket B1 con la rúbrica detallada de 4 criterios para GLPI.
  * Retorna puntaje por criterio (1-4 cada uno) + puntaje normalizado a /7.
  */
 export async function evaluateTicketB1Detailed(ticketText: string, caseContext: string): Promise<B1RubricEvaluation> {
-    const prompt = `Eres un evaluador senior de SRE. Evalúa el siguiente ticket de incidente documentado por un candidato de soporte NOC.
+    const prompt = `Eres un evaluador senior de SRE y líder de mesa de ayuda GLPI. Evalúa el siguiente ticket de incidente documentado por un candidato de soporte NOC.
 
 CONTEXTO DEL INCIDENTE:
 ${caseContext}
 
-TICKET DOCUMENTADO POR EL CANDIDATO:
+TICKET DOCUMENTADO POR EL CANDIDATO (GLPI):
 ${ticketText}
 
 REGLA LIMITANTE Y ESTRICTA: Si la respuesta del candidato tiene menos de 10 palabras, contiene solo afirmaciones genéricas (ej: "Se presentan errores", "Hubo falla") o carece por completo de los detalles técnicos mínimos provistos en el escenario, DEBES calificar con 1 TODOS los criterios. No asumas conocimiento que no está escrito explícitamente en el ticket.
 
-Evalúa con la siguiente rúbrica (1-4 por criterio):
+Evalúa con la siguiente rúbrica para tickets en GLPI (1-4 por criterio):
 
-1. ESTRUCTURA DEL REGISTRO (1-4):
-   1 = Solo describe lo que pasó sin orden
-   2 = Tiene inicio y fin pero le faltan campos clave  
-   3 = Cubre todos los campos relevantes del ticket
-   4 = Estructura clara, reutilizable como plantilla
+1. ESTRUCTURA DEL REGISTRO EN GLPI (1-4):
+   1 = Solo describe lo que pasó sin orden ni formato
+   2 = Tiene inicio y fin pero le faltan campos clave (título, prioridad, servicio)
+   3 = Cubre todos los campos relevantes de un ticket formal en GLPI
+   4 = Estructura impecable, profesional y reutilizable como plantilla de incidente
 
 2. PRECISIÓN TÉCNICA (1-4):
    1 = Omite datos técnicos o los confunde
-   2 = Menciona el error pero sin contexto (proceso, duración)
-   3 = Incluye proceso, error, duración y métricas
-   4 = Incluye evidencia técnica y cronología completa
+   2 = Menciona el error pero sin contexto (host, métricas o herramientas)
+   3 = Incluye host (srv-prod-...), servicio, error, métricas de Dynatrace/Grafana
+   4 = Incluye evidencia técnica precisa, cronología de horas UTC y herramientas correctas
 
-3. ACCIONES DOCUMENTADAS (1-4):
+3. ACCIONES Y ESCALAMIENTO DOCUMENTADOS (1-4):
    1 = Solo el problema, sin acciones tomadas
-   2 = Menciona que escaló pero sin detalle
-   3 = Documenta pasos propios y respuesta del escalado
-   4 = Cronología de acciones con responsables y tiempos
+   2 = Menciona que escaló pero sin detalle de AlertOps ni Teams
+   3 = Documenta escalamiento vía AlertOps, sala en Microsoft Teams y solución aplicada
+   4 = Cronología completa de acciones con responsables, herramientas y tiempos exactos
 
 4. IMPACTO DESCRITO (1-4):
    1 = No menciona el impacto al servicio
    2 = Menciona que hubo impacto sin cuantificar
-   3 = Indica servicio afectado y duración
-   4 = Cuantifica afectación con datos concretos
+   3 = Indica servicio afectado y duración estimada
+   4 = Cuantifica con exactitud el tiempo de impacto (minutos) y la afectación a usuarios
 
 Responde ÚNICAMENTE con un JSON válido:
 {

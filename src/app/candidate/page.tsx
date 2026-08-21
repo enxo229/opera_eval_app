@@ -285,10 +285,10 @@ export default function CandidateEvaluationFlow() {
                         <div className="space-y-4">
                             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-primary" />
-                                B1. Comunicación Técnica Escrita
+                                B1. Comunicación Técnica Escrita (Documentación en GLPI)
                             </h2>
                             <p className="text-muted-foreground text-sm">
-                                Lee el escenario del incidente con atención y documenta el ticket como si lo fueras a ingresar en GLPI o JIRA.
+                                Lee el escenario del incidente con atención y documenta el ticket técnico como si lo fueras a ingresar en GLPI.
                             </p>
                             <TicketEditor evaluationId={ctx.evaluationId} onComplete={() => setB1Submitted(true)} />
                         </div>
