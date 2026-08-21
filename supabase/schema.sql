@@ -1,6 +1,6 @@
 -- ================================================
 -- OTP — Schema SQL (Synced with Production DB)
--- Last verified: 2026-04-07
+-- Last verified: 2026-08-21
 -- ================================================
 
 -- Enable UUID extension
@@ -17,7 +17,7 @@ as $$
 $$;
 
 -- 1. PROFILES
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   full_name text,
   role text check (role in ('evaluator', 'candidate')),
@@ -45,7 +45,7 @@ create policy "Users can update own profile."
 
 
 -- 1.5 SELECTION PROCESSES
-create table public.selection_processes (
+create table if not exists public.selection_processes (
   id uuid primary key default uuid_generate_v4(),
   candidate_email text not null,
   candidate_national_id text,  -- Denormalized for historical search
@@ -71,7 +71,7 @@ create policy "Evaluators and owners can view/manage selection processes"
   );
 
 -- 2. EVALUATIONS
-create table public.evaluations (
+create table if not exists public.evaluations (
   id uuid primary key default uuid_generate_v4(),
   candidate_id uuid references public.profiles(id) on delete set null,
   evaluator_id uuid references public.profiles(id) on delete set null,
@@ -93,7 +93,8 @@ create table public.evaluations (
   test_duration_minutes int default 60,
   paused_at timestamptz,
   total_paused_ms bigint default 0,
-  pause_count int default 0
+  pause_count int default 0,
+  tab_switch_count int default 0
 );
 
 alter table public.evaluations enable row level security;
@@ -112,10 +113,10 @@ create policy "Evaluators and owners can view/manage evaluations"
 
 
 -- 3. DIMENSION SCORES
-create table public.dimension_scores (
+create table if not exists public.dimension_scores (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  dimension text check (dimension in ('A', 'B', 'C', 'IA')),
+  dimension text check (dimension in ('A', 'B', 'C', 'IA', 'D')),
   category text not null,
   raw_score integer not null,
   comments text
@@ -137,10 +138,10 @@ create policy "Evaluators and owners can view/manage dimension scores"
 
 
 -- 4. DYNAMIC TESTS
-create table public.dynamic_tests (
+create table if not exists public.dynamic_tests (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'PROMPT_IA2')),
+  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'PROMPT_IA2', 'TAB_SWITCH_EVENT')),
   subcategory text,          -- e.g. 'A1.1', 'A1.2', 'A2.3' for per-subcategory questions
   prompt_context text,
   ai_generated_content text,
@@ -163,3 +164,13 @@ create policy "Evaluators and owners can view/manage dynamic tests"
         ))
     )
   );
+
+-- ================================================
+-- INDEXES FOR QUERY OPTIMIZATION
+-- ================================================
+create index if not exists idx_selection_processes_candidate_email on public.selection_processes(candidate_email);
+create index if not exists idx_evaluations_candidate_id on public.evaluations(candidate_id);
+create index if not exists idx_evaluations_selection_process_id on public.evaluations(selection_process_id);
+create index if not exists idx_dimension_scores_eval_id on public.dimension_scores(evaluation_id);
+create index if not exists idx_dynamic_tests_eval_id on public.dynamic_tests(evaluation_id);
+create index if not exists idx_dynamic_tests_test_type on public.dynamic_tests(test_type);
