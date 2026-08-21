@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
 import { A3_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
 import { A3_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A3SubEvaluationProps {
     a3QData: any[]
@@ -89,7 +90,7 @@ export function A3SubEvaluation({
                             {qData && (
                                 <div className="space-y-2 bg-secondary/20 rounded-md p-3">
                                     <p className="text-xs font-bold text-muted-foreground uppercase">Pregunta:</p>
-                                    <p className="text-sm text-foreground">{qData.prompt_context}</p>
+                                    <FormattedQuestion text={qData.prompt_context || ''} />
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
                                     {qData.ai_score !== null && (

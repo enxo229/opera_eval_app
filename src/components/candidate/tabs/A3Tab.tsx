@@ -2,6 +2,7 @@ import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
 import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle } from 'lucide-react'
 import { A3Question } from '@/app/actions/ai'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A3TabProps {
     a3QuestionsGenerated: boolean
@@ -77,9 +78,7 @@ export function A3Tab({
                                     <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                     <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                 </div>
-                                <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                                    {q.question}
-                                </div>
+                                <FormattedQuestion text={q.question} />
                                 <textarea
                                     value={a3Answers[q.subcategory] || ''}
                                     onChange={(e) => setA3Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}

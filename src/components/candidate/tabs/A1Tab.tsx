@@ -2,6 +2,7 @@ import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
 import { Terminal, Sparkles, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
 import { A1Question } from '@/app/actions/ai'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A1TabProps {
     a1QuestionsGenerated: boolean
@@ -71,7 +72,7 @@ export function A1Tab({
                                     </span>
                                     <span className="text-xs font-semibold text-muted-foreground">{q.label}</span>
                                 </div>
-                                <p className="text-sm text-foreground">{q.question}</p>
+                                <FormattedQuestion text={q.question} />
                                 <textarea
                                     value={a1Answers[q.subcategory] || ''}
                                     onChange={(e) => setA1Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}

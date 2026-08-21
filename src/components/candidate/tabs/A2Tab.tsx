@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { HelpCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { A2Question } from '@/app/actions/ai'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 import { TOOL_OPTIONS } from '@/lib/constants'
 
 interface A2TabProps {
@@ -74,7 +75,7 @@ export function A2Tab({
                                         <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                         <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{q.question}</p>
+                                    <FormattedQuestion text={q.question} />
                                     <textarea
                                         value={a2Answers[q.subcategory] || ''}
                                         onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
