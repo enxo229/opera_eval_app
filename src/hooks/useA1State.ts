@@ -56,7 +56,7 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
                 question: q.question,
                 answer: a1Answers[q.subcategory] || '',
             }))
-            const result = await saveA1Responses(evaluationId, qa)
+            const result = await saveA1Responses(evaluationId, qa, a1Commands)
             if (result.success) {
                 setA1Submitted(true)
                 if (result.evaluations) setA1AIResults(result.evaluations)
@@ -66,7 +66,7 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
         } finally {
             setA1Submitting(false)
         }
-    }, [evaluationId, a1Questions, a1Answers])
+    }, [evaluationId, a1Questions, a1Answers, a1Commands])
 
     const allA1Answered = a1Questions.length > 0 && a1Questions.every(q => (a1Answers[q.subcategory] || '').trim().length > 0)
 

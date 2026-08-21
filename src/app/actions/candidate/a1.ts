@@ -35,6 +35,7 @@ export async function saveA1QuestionsOnly(
 /**
  * Persists A1 question responses and triggers AI evaluation.
  * Each question/answer becomes a record in dynamic_tests with subcategory.
+ * Optionally stores the candidate's terminal command sequence for evaluator telemetry.
  */
 export async function saveA1Responses(
     evaluationId: string,
@@ -43,14 +44,25 @@ export async function saveA1Responses(
         label: string
         question: string
         answer: string
-    }[]
+    }[],
+    terminalCommands: string[] = []
 ): Promise<{ success: boolean; evaluations?: A1EvaluationResult[]; error?: string }> {
     const supabase = await createClient()
 
     // 1. Clean existing records and save each Q&A to dynamic_tests
     await supabase.from('dynamic_tests').delete()
         .eq('evaluation_id', evaluationId)
-        .eq('test_type', 'QUESTIONS_A1')
+        .in('test_type', ['QUESTIONS_A1', 'TERMINAL_A1'])
+
+    // Save terminal commands telemetry if any
+    if (terminalCommands.length > 0) {
+        await supabase.from('dynamic_tests').insert({
+            evaluation_id: evaluationId,
+            test_type: 'TERMINAL_A1',
+            prompt_context: 'Terminal Linux Commands Execution',
+            candidate_response: JSON.stringify(terminalCommands),
+        })
+    }
 
     for (const qa of questionsAndAnswers) {
         const { error } = await supabase.from('dynamic_tests').insert({
@@ -119,6 +131,28 @@ export async function getA1Results(evaluationId: string): Promise<{
 }
 
 /**
+ * Get A1 terminal commands telemetry for the evaluator view
+ */
+export async function getA1TerminalCommands(evaluationId: string): Promise<string[]> {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('dynamic_tests')
+        .select('candidate_response')
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'TERMINAL_A1')
+        .maybeSingle()
+
+    if (data?.candidate_response) {
+        try {
+            return JSON.parse(data.candidate_response)
+        } catch {
+            return []
+        }
+    }
+    return []
+}
+
+/**
  * Reset A1 responses — evaluator only.
  */
 export async function resetA1Responses(evaluationId: string): Promise<{ success: boolean; error?: string }> {
@@ -134,7 +168,7 @@ export async function resetA1Responses(evaluationId: string): Promise<{ success:
         .from('dynamic_tests')
         .delete()
         .eq('evaluation_id', evaluationId)
-        .eq('test_type', 'QUESTIONS_A1')
+        .in('test_type', ['QUESTIONS_A1', 'TERMINAL_A1'])
 
     if (error) {
         console.error('Error resetting A1:', error)
