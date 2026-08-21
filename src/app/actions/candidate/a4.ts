@@ -129,6 +129,17 @@ export async function resetA4Responses(evaluationId: string): Promise<{ success:
  */
 export async function saveA4Case(evaluationId: string, caseText: string): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient()
+
+    // Guard: Si ya existe un caso A4, no duplicar
+    const { data: existing } = await supabase
+        .from('dynamic_tests')
+        .select('id')
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'A4_CASE')
+        .limit(1)
+
+    if (existing && existing.length > 0) return { success: true }
+
     const { error } = await supabase.from('dynamic_tests').insert({
         evaluation_id: evaluationId,
         test_type: 'A4_CASE',

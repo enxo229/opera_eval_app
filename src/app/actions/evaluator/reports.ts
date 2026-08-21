@@ -48,10 +48,12 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
         .join('\n')
 
     const reactiveTestsBlock = tests
-        .filter(t => t.test_type === 'A4_CASE' || t.test_type === 'B1_TICKET' || t.test_type === 'PROMPT_IA2')
+        .filter(t => ['A4_CASE', 'B1_TICKET', 'PROMPT_IA2', 'QUESTIONS_B2', 'QUESTIONS_C'].includes(t.test_type))
         .map(t => {
             if (t.test_type === 'B1_TICKET') return `[B1 Ticket] Respuesta: ${t.candidate_response}\nEvaluación IA B1: ${t.ai_justification}`
             if (t.test_type === 'IA_CHAT' || t.test_type === 'A4_CASE') return `[A4 Caso/Chat] Diagnóstico: ${t.ai_justification}`
+            if (t.test_type === 'QUESTIONS_B2') return `[${t.subcategory} — Conductual] Pregunta: ${t.prompt_context}\nRespuesta del Candidato: ${t.candidate_response}\nIA Score: ${t.ai_score}/3 — ${t.ai_justification}`
+            if (t.test_type === 'QUESTIONS_C') return `[${t.subcategory} — Fit Cultural] Pregunta: ${t.prompt_context}\nRespuesta del Candidato: ${t.candidate_response}\nIA Score: ${t.ai_score}/3 — ${t.ai_justification}`
             return `[${t.test_type}] Respuesta: ${t.candidate_response}`
         })
         .join('\n\n')

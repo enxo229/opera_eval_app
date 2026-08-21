@@ -35,6 +35,8 @@ export function B2Tab({
 }: B2TabProps) {
     const ctx = useCandidateContext()
 
+    const isOtel = ctx.profileTrack === 'otel_expert'
+
     const handleBypassAttempt = (e: React.SyntheticEvent) => {
         e.preventDefault()
         ctx.incrementBypassCount()
@@ -46,10 +48,13 @@ export function B2Tab({
             <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-2">
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                     <Users className="h-5 w-5 text-indigo-500" />
-                    B2-B6. Competencias Blandas & Gestión de Situaciones
+                    {isOtel ? 'B. Competencias Situacionales SRE' : 'B2-B6. Competencias Blandas & Gestión de Situaciones'}
                 </h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                    Responde brevemente a los siguientes escenarios de resolución de problemas, negociación y trabajo en equipo.
+                    {isOtel
+                        ? 'Responde brevemente a los escenarios de adaptabilidad bajo presión y colaboración blameless en entornos SRE.'
+                        : 'Responde brevemente a los siguientes escenarios de resolución de problemas, negociación y trabajo en equipo.'
+                    }
                 </p>
             </div>
 
@@ -68,60 +73,72 @@ export function B2Tab({
 
             {!b2QuestionsGenerated ? (
                 <div className="text-center py-8 bg-card border border-border rounded-xl">
-                    <p className="text-muted-foreground mb-4 text-sm">Genera los escenarios situacionales para la sección B2-B6.</p>
+                    <p className="text-muted-foreground mb-4 text-sm">
+                        {isOtel ? 'Genera los escenarios situacionales SRE.' : 'Genera los escenarios situacionales para la sección B2-B6.'}
+                    </p>
                     <Button onClick={handleGenerateB2Questions} disabled={b2QuestionsLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
                         {b2QuestionsLoading ? (
                             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generando escenarios...</>
                         ) : (
-                            <><Sparkles className="h-4 w-4 mr-2" /> Generar Escenarios B2-B6</>
+                            <><Sparkles className="h-4 w-4 mr-2" /> {isOtel ? 'Generar Escenarios SRE' : 'Generar Escenarios B2-B6'}</>
                         )}
                     </Button>
                 </div>
             ) : b2QuestionsLoading ? (
-                <div className="flex items-center justify-center p-8 gap-3 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-                    <span className="font-medium text-sm">Generando escenarios situacionales...</span>
+                <div className="text-center py-12 bg-card border border-border rounded-xl space-y-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mx-auto" />
+                    <p className="text-sm font-medium text-muted-foreground">Cargando escenarios y restaurando respuestas...</p>
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {b2Questions.map(q => {
-                        const currentText = b2Answers[q.subcategory] || ''
-                        const wordCount = currentText.trim() ? currentText.trim().split(/\s+/).length : 0
+                    {b2Questions.map((q) => {
+                        const answer = b2Answers[q.subcategory] || ''
+                        const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0
 
                         return (
-                            <div key={q.subcategory} className="space-y-3 bg-card border border-border rounded-xl p-5 shadow-xs">
-                                <div className="select-none space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded text-xs font-bold border border-indigo-500/20">
-                                            {q.subcategory}
-                                        </span>
-                                        <span className="text-sm font-bold text-foreground">{q.label}</span>
+                            <Card key={q.subcategory} className="border-border shadow-xs overflow-hidden">
+                                <CardHeader className="bg-muted/30 pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                                            <span className="bg-indigo-600 text-white text-xs font-mono px-2 py-0.5 rounded">
+                                                {q.subcategory}
+                                            </span>
+                                            {q.label}
+                                        </CardTitle>
+                                        {b2Submitted && (
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                                <CheckCircle2 className="h-3.5 w-3.5" /> Enviado
+                                            </span>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-foreground/90 font-medium leading-relaxed pt-1 select-none">
+                                    <CardDescription className="text-sm font-medium text-foreground/90 pt-2 leading-relaxed">
                                         {q.question}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <textarea
-                                        value={currentText}
-                                        onChange={(e) => setB2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                        onPaste={handleBypassAttempt}
-                                        onCopy={handleBypassAttempt}
-                                        onCut={handleBypassAttempt}
-                                        onContextMenu={handleBypassAttempt}
-                                        disabled={b2Submitted}
-                                        placeholder="Escribe tu respuesta situacional aquí (~40-60 palabras)..."
-                                        className="w-full h-28 p-3 rounded-lg border border-input bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
-                                    />
-                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground px-1">
-                                        <span className="italic">* No se permite pegar texto.</span>
-                                        <span className={`font-mono font-bold ${wordCount >= 25 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                                            {wordCount} palabras (Sugerido: ~40-60)
-                                        </span>
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-3">
+                                    <div className="relative">
+                                        <textarea
+                                            value={answer}
+                                            disabled={b2Submitted || b2Submitting}
+                                            onChange={(e) => setB2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
+                                            onPaste={handleBypassAttempt}
+                                            onCopy={handleBypassAttempt}
+                                            onCut={handleBypassAttempt}
+                                            onContextMenu={handleBypassAttempt}
+                                            placeholder="Escribe tu respuesta aquí manteniendo las recomendaciones de extensión..."
+                                            className="w-full min-h-[120px] p-3 rounded-lg border border-input bg-background text-foreground text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500/50 resize-y leading-relaxed"
+                                        />
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground pt-1">
+                                            <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                                <AlertCircle className="h-3 w-3" /> Pegado deshabilitado por auditoría
+                                            </span>
+                                            <span className={`font-mono ${wordCount >= 40 && wordCount <= 75 ? 'text-emerald-600 font-bold' : ''}`}>
+                                                {wordCount} palabras (Sugerido: ~40-60)
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         )
                     })}
 
@@ -138,9 +155,9 @@ export function B2Tab({
                             {b2Submitting ? (
                                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando con IA...</>
                             ) : b2Submitted ? (
-                                <><CheckCircle2 className="h-4 w-4 mr-2" /> Sección B2-B6 Completada</>
+                                <><CheckCircle2 className="h-4 w-4 mr-2" /> {isOtel ? 'Sección B completada' : 'Sección B2-B6 Completada'}</>
                             ) : (
-                                'Guardar y Confirmar B2-B6'
+                                isOtel ? 'Guardar y Confirmar Sección B' : 'Guardar y Confirmar B2-B6'
                             )}
                         </Button>
                     </div>

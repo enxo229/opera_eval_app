@@ -85,7 +85,7 @@ export async function pregenerateTrackQuestions(evaluationId: string, educationL
             .from('dynamic_tests')
             .select('id')
             .eq('evaluation_id', evaluationId)
-            .eq('test_type', 'CHATBOT_A4')
+            .eq('test_type', 'A4_CASE')
             .limit(1)
 
         if (!existingA4 || existingA4.length === 0) {

@@ -2,7 +2,7 @@
 
 ## 1. Propósito del Proyecto
 
-**OTP** es una plataforma de evaluación de talento técnico para equipos de infraestructura y operaciones. Permite a un **Evaluador** calificar a un **Candidato** en cuatro dimensiones (Técnica, Blandas, Cultural e IA) y obtener un dictamen automatizado asistido por IA.
+**OTP** es una plataforma de evaluación de talento técnico para equipos de infraestructura y operaciones. Permite a un **Evaluador** calificar a un **Candidato** en cuatro dimensiones (Técnica, Blandas, Cultural e IA) y obtener un dictamen automatizado asistido por IA. Soporta múltiples perfiles de evaluación (tracks): `general` y `otel_expert`.
 
 ---
 
@@ -14,7 +14,7 @@
 | UI | React + Tailwind CSS v4 + Shadcn UI v4 (base-ui) | React 19.2.3 |
 | Lenguaje | TypeScript | ^5 |
 | Base de datos | Supabase (PostgreSQL + Auth + RLS) | SDK 2.98 |
-| IA Generativa | Google Gemini (Gemma 4 & Gemini 2.5) | SDK 0.24.1 |
+| IA Generativa | Google Gemini (3 cadenas de modelos) | SDK 0.24.1 |
 | Gráficos | Recharts | ^3.8 |
 | Animaciones | Framer Motion | ^12.35 |
 | Iconos | Lucide React | ^0.577 |
@@ -25,20 +25,58 @@
 
 ## 3. Modelos de IA (Fallback & Resiliency Strategy)
 
-Configuración en `src/lib/ai/gemini.ts`.
+Configuración en `src/lib/ai/gemini.ts`. Se utilizan **3 cadenas diferenciadas** por tipo de tarea para optimizar latencia vs. calidad:
 
-| Tipo de Tarea | Modelo Principal (Intento 1) | Fallback 1 (Intento 2) | Fallback 2 (Intento 3) |
+### 3.1 Cadenas de Modelos
+
+| Tipo de Tarea | Modelo 1 (Principal) | Modelo 2 (Fallback) | Modelo 3 (Universal) |
 |---|---|---|---|
-| **Generación** | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
-| **Evaluación** (JSON) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
-| **Reportes** (Narrativa) | `gemma-4-31b-it` | `gemma-4-26b-a4b-it` | `gemini-2.5-flash-lite` |
+| **Generación** (Preguntas, Chat A4) | `gemini-3.5-flash-lite` | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
+| **Evaluación** (Scoring JSON, Rúbricas, IA-2) | `gemini-2.5-flash` | `gemini-3.5-flash-lite` | `gemini-2.5-flash-lite` |
+| **Reportes** (Narrativa Ejecutiva) | `gemini-3.6-flash` | `gemini-2.5-flash` | `gemini-3.5-flash-lite` |
 
 - **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
-- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo `gemini-2.5-flash-lite` para garantizar la generación en situaciones de alta latencia o agotamiento de cuota de los modelos Gemma.
+- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo lite para garantizar la generación en situaciones de alta latencia o agotamiento de cuota.
 - **PII Filter**: Eliminado intencionalmente. El usuario ha confirmado que desea capturar `prompt` y `completion` incluso en producción para auditoría técnica.
 - **Variable de entorno**: Usa `APP_GEMINI_API_KEY` (NO `GEMINI_API_KEY`) para evitar colisiones con el entorno del sistema.
 - **Observability**: Toda llamada a la IA debe registrarse usando `metricsApp.recordAiRequest()` y envolverse en un Span de OTel (`tracer.startActiveSpan`).
 - **Logging**: El log de la API Key solo se ejecuta en `development` (`process.env.NODE_ENV === 'development'`).
+
+### 3.2 Sistema de Detección de IA (AI Likelihood)
+
+Configuración en `src/app/actions/ai-detector.ts`. Cada respuesta abierta del candidato se analiza para determinar la probabilidad de que haya sido generada por un LLM.
+
+**Arquitectura del Motor Dual:**
+1. **Análisis Heurístico**: Detecta fraseología típica de LLM en español ("en resumen", "es importante destacar", etc.), formato hiper-estructurado (negritas + viñetas complejas), y ausencia de jerga situacional o experiencia personal.
+2. **Contra-Evaluación Gemini**: Un prompt especializado pide al modelo evaluar la probabilidad (0-100%) de que la respuesta sea generada por IA, basándose en tono, estructura y coloquialismos de SRE.
+3. **Scoring Ponderado**: El resultado final combina 70% del modelo + 30% del análisis heurístico.
+
+**Clasificación (Badges en el Dashboard del Evaluador):**
+| Rango | Badge | Color |
+|---|---|---|
+| 0% - 29% | Probabilidad IA Baja | Verde |
+| 30% - 69% | Probabilidad IA Media | Amarillo |
+| 70% - 100% | ⚠️ Probabilidad IA Alta | Rojo animado |
+
+**Exclusión**: Este puntaje **NO** se incluye en el reporte ejecutivo oficial.
+
+### 3.3 Counter de Bypass Anti-Copia (`bypass_paste_count`)
+
+- Las tarjetas con enunciados de preguntas aplican la clase CSS `select-none` y bloquean la copia.
+- Los campos de texto del candidato bloquean los eventos `onPaste`, `onCopy`, `onCut` y `onContextMenu`.
+- Cada intento de pegar o usar combinaciones de teclado bloqueadas incrementa un contador de advertencias (`bypass_paste_count`), el cual se muestra en el panel del evaluador para auditar la conducta del candidato.
+
+### 3.4 Pregeneración de Contenido
+
+Configuración en `src/app/actions/candidate/pregen.ts`. Al completar el flujo de onboarding (legal + nivel educativo), el sistema pre-genera **todas** las preguntas para evitar tiempos de espera de ~10s durante el examen activo.
+
+**Módulos Pregenerados:**
+- A1, A2, A3 (Preguntas Técnicas)
+- A4 (Caso Práctico)
+- B2-B6 (Preguntas Situacionales)
+- C1-C4 (Preguntas de Filosofía/Cultura)
+
+**Idempotencia:** Cada módulo verifica la existencia de registros antes de generar. Si ya existen preguntas para un `evaluation_id`, se omite la generación.
 
 ---
 
@@ -76,11 +114,15 @@ Para garantizar la estabilidad de producción, cualquier cambio destructivo o de
 
 **REGLA DE ORO PARA DOCUMENTACIÓN:** Basado en las mejores prácticas de estructuración de proyectos Web modernos (como Next.js), se debe centralizar y colocar todas las documentaciones y especificaciones técnicas dentro de una única carpeta raíz `/docs` o `/docs/specs`. Almacenar especificaciones de manera aislada (ej. en carpetas `/specs` independientes) fragmenta la estructura y genera confusión sobre la ubicación de la fuente de verdad. El proyecto sigue estrictamente esta regla.
 
+> **Archivos Deprecated:** Los archivos `modelodeavaluación.txt`, `perfilanalistas.txt`, `promptincial.txt` en `/docs/specs/` son borradores históricos y **no deben usarse como fuente de verdad**.
+
 ```
 opera_eval_app/
 ├── docs/specs/                     # ÚNICA FUENTE DE VERDAD para Documentación, rúbricas, perfiles y textos.
 │   ├── AGENTS.md                   # Este archivo (especificación para agentes IA)
-│   ├── modelo-evaluacion-talento-tecnico.md    # Modelo de evaluación detallado
+│   ├── modelo-evaluacion-talento-tecnico.md    # Modelo de evaluación detallado (perfil general)
+│   ├── otel_expert.md              # Especificación del track OTel Expert (rúbricas, dominios, tiempos)
+│   ├── duracion-evaluacion-60min.md # Análisis de viabilidad del tiempo de 60 minutos
 │   ├── terminosCondiciones.md      # Texto oficial de T&C
 │   └── tratamientoDatosPersonales.md # Texto oficial Habeas Data (Ley 1581)
 ├── supabase/
@@ -88,14 +130,18 @@ opera_eval_app/
 ├── src/
 │   ├── types/
 │   │   └── database.ts            # Tipos TypeScript de Supabase (manual)
+│   ├── context/
+│   │   └── CandidateContext.tsx   # Contexto global del candidato (evaluación, legal, educación, track)
 │   ├── hooks/
 │   │   ├── useA1State.ts          # Estado local de sub-dimensión A1
 │   │   ├── useA2State.ts          # Estado local de sub-dimensión A2
 │   │   ├── useA3State.ts          # Estado local de sub-dimensión A3
-│   │   └── useCandidateContext.ts # Contexto global del candidato (evaluación, legal, educación)
+│   │   ├── useB2State.ts          # Estado local de sección B2-B6
+│   │   ├── useCState.ts           # Estado local de sección C1-C4
+│   │   └── useCandidateContext.ts # Hook de acceso al contexto global
 │   ├── lib/
 │   │   ├── ai/
-│   │   │   └── gemini.ts           # Wrapper Gemini: fallback chain y retries
+│   │   │   └── gemini.ts           # Wrapper Gemini: 3 cadenas de fallback + retries
 │   │   ├── constants.ts            # Constantes compartidas (TOOL_OPTIONS, EDUCATION_LABELS)
 │   │   ├── utils.ts                # Utilidades (cn para clases CSS con clsx/twMerge)
 │   │   ├── terminal/
@@ -103,7 +149,10 @@ opera_eval_app/
 │   │   ├── supabase/
 │   │   │   ├── client.ts / server.ts / middleware.ts
 │   │   │   └── admin.ts            # Cliente con service_role para gestión de usuarios
-│   │   └── evaluator-guidance.ts    # Guías estáticas para evaluadores (A3)
+│   │   ├── observability/
+│   │   │   ├── logger.ts           # Logger estructurado con OTel LoggerProvider
+│   │   │   └── metrics.ts          # Métricas de aplicación (AI requests, DB ops, evaluations)
+│   │   └── evaluator-guidance.ts    # Guías estáticas para evaluadores (general + otel_expert)
 │   ├── components/
 │   │   ├── CompanyLogo.tsx          # Logo corporativo reutilizable
 │   │   ├── candidate/
@@ -117,7 +166,12 @@ opera_eval_app/
 │   │   │   ├── DimensionAEvaluation.tsx / DimensionBEvaluation.tsx ...
 │   │   │   ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
 │   │   │   ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
-│   │   │   ├── TimerAdjuster.tsx     # Widget para ajustar tiempo del candidato (+5/+10/+15 min o valor exacto)
+│   │   │   ├── AiLikelihoodBadge.tsx # Badge de probabilidad de IA (LOW/MEDIUM/HIGH)
+│   │   │   ├── TimerAdjuster.tsx     # Widget para ajustar tiempo del candidato
+│   │   │   ├── RealtimeSync.tsx      # Suscripción WebSocket a dynamic_tests
+│   │   │   ├── RegenerateAIButton.tsx # Botón de regeneración de reporte (modelo Lite)
+│   │   │   ├── PrintReportButton.tsx  # Botón de impresión de reporte
+│   │   │   ├── CopyButton.tsx         # Botón de copia de contenido
 │   │   │   ├── RadarChartComponent.tsx
 │   │   │   ├── ScrollToTopButton.tsx # Botón flotante de navegación
 │   │   │   └── dimension-a/         # Sub-evaluaciones A1, A2, A3, A4 + constantes
@@ -125,21 +179,26 @@ opera_eval_app/
 │   └── app/
 │       ├── actions/                 # Server Actions
 │       │   ├── ai.ts                # Lógica de IA generativa y evaluación
+│       │   ├── ai-detector.ts       # Motor de detección de IA (heurístico + Gemini contra-evaluación)
 │       │   ├── admin.ts             # Gestión administrativa de usuarios
-│       │   ├── evaluation.ts        # Operaciones sobre evaluaciones
+│       │   ├── evaluation.ts        # Cálculos de normalización y clasificación (bifurcados por track)
 │       │   ├── candidate/           # Acciones específicas del candidato
 │       │       ├── a1.ts … a4.ts    # Dimensión A (Técnica)
 │       │       ├── b1.ts            # Dimensión B (Blandas: Tickets)
+│       │       ├── b2.ts            # Dimensión B (Blandas: Preguntas situacionales B2-B6)
+│       │       ├── c.ts             # Dimensión C (Cultural: Preguntas de filosofía C1-C4)
 │       │       ├── ia.ts            # Dimensión D (IA)
 │       │       ├── evaluation.ts    # Timer: startEvaluationTimer, pauseEvaluation, resumeEvaluation
-│       │       └── legal.ts         # Consentimiento legal (saveLegalConsent, getLegalConsentStatus)
+│       │       ├── legal.ts         # Consentimiento legal (saveLegalConsent, getLegalConsentStatus)
+│       │       └── pregen.ts        # Pregeneración batch de preguntas al completar onboarding
 │       │   └── evaluator/           # Acciones específicas del evaluador
+│       │       ├── reports.ts       # Finalización atómica + reporte narrativo + regeneración manual
 │       │       └── timer.ts         # Ajuste de temporizador (add/set minutes)
 │       ├── auth/
 │       │   └── signout/route.ts     # Ruta de cierre de sesión (Server Route)
 │       ├── candidate/               # Interfaz de examen del candidato
 │       │   ├── onboarding/          # Consentimiento legal con modales (T&C + Habeas Data)
-│       │   ├── eligibility/         # Selección de nivel académico con tooltips
+│       │   ├── eligibility/         # Selección de nivel académico + trigger de pregeneración
 │       │   └── page.tsx             # Examen principal (dimensiones A-D)
 │       ├── evaluator/               # Dashboard y evaluación
 │       │   └── history/             # Búsqueda histórica de procesos
@@ -160,7 +219,11 @@ opera_eval_app/
 
 ## 7. Modelo de Evaluación y Normalización
 
-### Dimensiones y Pesos
+### Perfiles de Evaluación (Tracks)
+
+El sistema soporta múltiples perfiles de evaluación. El track se almacena en `selection_processes.profile_track` y afecta la generación de preguntas, la normalización de scores y los módulos disponibles.
+
+### Dimensiones y Pesos — Perfil `general`
 
 | Dimensión | Máx. Puntos | Notas de Normalización |
 |---|---|---|
@@ -169,11 +232,22 @@ opera_eval_app/
 | **C — Cultural** | 20 | C1(5), C2(5), C3(5), C4(5) |
 | **D — IA (Comp.)** | (10) | **Desempate**. IA-1 (5), IA-2 (5). No suma al total principal. |
 
-### Clasificación Final
+### Dimensiones y Pesos — Perfil `otel_expert`
+
+| Dimensión | Máx. Puntos | Notas de Normalización |
+|---|---|---|
+| **A — Técnica** | 50 | A1(15), A2(15), A3(10 de 12 pts raw), A4(10 de 9 pts raw) |
+| **B — Blandas** | 30 | B1 Ticket(18 de 16 pts raw), B2 Situacional(12 de 16 pts raw) |
+| **C — Cultural** | 20 | C1(10 de 5 pts raw), C2(10 de 5 pts raw) |
+| **D — IA** | Omitida | No aplica para este perfil |
+
+> **Nota sobre Clasificación Técnica**: La especificación de `otel_expert.md` define rangos de nivel técnico propios (90/75/60% → Arquitecto/Especialista/Junior/No Acreditado). Estos rangos son una **referencia de perfil técnico** y no afectan la clasificación automática del sistema, que usa los rangos estándar para todos los tracks.
+
+### Clasificación Final (Automática — Todos los Tracks)
 - **≥ 80**: Listo para pivotar (Verde)
 - **60–79**: Pivote con nivelación (Amarillo)
 - **40–59**: En preparación (Naranja)
-- **< 40**: Continúa en Soporte Nivel 1 (Rojo)
+- **< 40**: Continúa en su rol actual (Rojo)
 
 ---
 
@@ -199,10 +273,12 @@ opera_eval_app/
 ## 9. Flujos Especiales
 
 - **Persistencia de Preguntas (A1, A2, A3)**: Las preguntas generadas por IA se persisten inmediatamente en `dynamic_tests` vía `saveA*QuestionsOnly()`. Esto previene la pérdida de datos por recarga de página. Solo se regeneran si el evaluador ejecuta un _reset_.
-- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda.
+- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda. En perfil `otel_expert`, la herramienta predeterminada es "Grafana".
 - **A4 (Caso Práctico)**: Generación persistente de incidente en DB (`A4_CASE`). Chat interactivo (`IA_CHAT`) que se bloquea al finalizar. Evaluación IA en 3 subcategorías.
 - **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto). También evalúa B6 (Colaboración Asíncrona) en 3 criterios adicionales (Handoff, Bloqueos, Seguimiento).
-- **IA-2 (Prompting)**: El candidato ingresa el prompt que usó fuera de la plataforma. Gemini analiza el prompt en 5 dimensiones de Ingeniería de Contexto (Rol, Contexto Técnico, Formato de Salida, Restricciones, Sofisticación) y sugiere un score riguroso al evaluador en `DimensionDEvaluation`. Un simple parafraseo del enunciado sin técnicas de prompting obtiene máximo 2/5.
+- **B2-B6 (Preguntas Situacionales Autónomas)**: Preguntas abiertas generadas por IA (`QUESTIONS_B2`), respondidas por el candidato, evaluadas automáticamente por IA con scoring (0-3) y AI Likelihood (0-100%). Persistidas en `dynamic_tests` con upsert de `dimension_scores` para el evaluador.
+- **C1-C4 (Preguntas de Filosofía/Cultura Autónomas)**: Mismo flujo que B2-B6. Tipo `QUESTIONS_C`. Preguntas sobre filosofía SRE, blameless culture, adaptabilidad y SLOs.
+- **IA-2 (Prompting)**: El candidato ingresa el prompt que usó fuera de la plataforma. Gemini analiza el prompt en 5 dimensiones de Ingeniería de Contexto (Rol, Contexto Técnico, Formato de Salida, Restricciones, Sofisticación) y sugiere un score riguroso al evaluador en `DimensionDEvaluation`. Un simple parafraseo del enunciado sin técnicas de prompting obtiene máximo 2/5. **Solo aplica para perfil `general`.**
 
 ---
 
@@ -213,10 +289,10 @@ opera_eval_app/
 | Tabla | Propósito |
 |---|---|
 | `profiles` | Datos del usuario (nombre, rol, nivel educativo, documento de identidad) |
-| `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones) |
+| `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones, `profile_track`) |
 | `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
-| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts |
+| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, `ai_likelihood` |
 
 ### Campos del Timer (tabla `evaluations`)
 
@@ -235,6 +311,18 @@ opera_eval_app/
 | `legal_consent_tc` | boolean | Aceptación de Términos y Condiciones |
 | `legal_consent_data` | boolean | Autorización de Tratamiento de Datos |
 | `legal_accepted_at` | timestamptz | Estampa de tiempo del consentimiento |
+
+### Campo de Track (tabla `selection_processes`)
+
+| Campo | Tipo | Propósito |
+|---|---|---|
+| `profile_track` | text (default `general`) | Perfil de evaluación: `general` \| `otel_expert` |
+
+### Campo de AI Likelihood (tabla `dynamic_tests`)
+
+| Campo | Tipo | Propósito |
+|---|---|---|
+| `ai_likelihood` | integer | Porcentaje de probabilidad de IA (0-100). Calculado por `ai-detector.ts`. |
 
 ### Documentos de Identificación
 
@@ -261,12 +349,12 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
-3. **test_type (dynamic_tests)**: Valores permitidos en el constraint SQL: `A4_CASE`, `B1_CASE`, `B1_TICKET`, `IA_CHAT`, `TERMINAL_A1`, `TERMINAL_A3`, `TERMINAL_A4`, `QUESTIONS_A1`, `QUESTIONS_A2`, `QUESTIONS_A3`, `QUESTIONS_A4`, `QUESTIONS_B1`, `PROMPT_IA2`.
+3. **test_type (dynamic_tests)**: Valores permitidos en el constraint SQL: `A4_CASE`, `B1_CASE`, `B1_TICKET`, `IA_CHAT`, `TERMINAL_A1`, `TERMINAL_A3`, `TERMINAL_A4`, `QUESTIONS_A1`, `QUESTIONS_A2`, `QUESTIONS_A3`, `QUESTIONS_A4`, `QUESTIONS_B1`, `QUESTIONS_B2`, `QUESTIONS_C`, `PROMPT_IA2`.
 4. **Environment**: Usar estrictamente `APP_GEMINI_API_KEY`.
 5. **Supabase Generics**: Clientes con `<any, 'public'>` (sin `supabase gen types`). Los tipos manuales están en `src/types/database.ts`.
 6. **Constantes compartidas**: Definidas en `src/lib/constants.ts` (ej. `TOOL_OPTIONS`, `EDUCATION_LABELS`). No duplicar en componentes.
 7. **Persistencia de preguntas**: Usar `saveA*QuestionsOnly()` inmediatamente después de generar preguntas por IA. Incluir `evaluationId` en el array de dependencias de `useCallback`.
-8. **Schema sync**: El archivo `supabase/schema.sql` debe mantenerse sincronizado con la BD de producción. La última verificación fue el 2026-04-07.
+8. **Schema sync**: El archivo `supabase/schema.sql` debe mantenerse sincronizado con la BD de producción. La última verificación fue el 2026-08-05.
 9. **UI Componentes**: Shadcn UI v4 (basado en Base UI de @base-ui/react). NO usar la prop `asChild` (no existe en esta versión). Aplicar estilos directamente con `className` en `DialogTrigger`, `DialogClose`, `TooltipTrigger`, etc.
 10. **Diseño Legal**: Los textos legales oficiales deben provenir siempre de los archivos en `docs/specs/`. No alterar el texto sin aprobación explícita de la organización.
 11. **Hydration Safety**: `<html>` y `<body>` en `layout.tsx` incluyen `suppressHydrationWarning` para evitar falsos positivos causados por extensiones del navegador.
@@ -275,6 +363,8 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
     - Al editar un usuario, no se permite el cambio de **Email** ni **Rol** por integridad de datos. Se incluye un tooltip informativo al respecto. Se permite editar Nombre, ID, Equipo y Observaciones (estas últimas impactan el proceso activo).
 13. **Auto-Fill Técnico (Dimensión B)**: La interfaz del evaluador en B1/B6 detecta respuestas de IA y mueve los sliders automáticamente a la posición sugerida si el evaluador no ha intervenido manualmente.
 14. **Recordatorio: Revisión Realtime**: Se ha implementado un componente `RealtimeSync` para suscripción vía WebSockets a `dynamic_tests`. Esta funcionalidad requiere una auditoría técnica profunda en el futuro para validar escalabilidad y manejo de reconexiones. Queda fuera de la documentación de "mejoras finalizadas" hasta entonces.
+15. **Profile Track (`profileTrack`)**: Las funciones de cálculo (`calculateDimensionB`, `calculateDimensionC`) y las funciones de generación de preguntas aceptan `profileTrack` como parámetro para bifurcar la lógica de normalización y el contenido de las preguntas según el track.
+16. **Idempotencia en Persistencia**: Todas las funciones `save*QuestionsOnly()` y `saveA4Case()` deben verificar la existencia de registros previos antes de insertar para prevenir duplicados.
 
 ---
 
@@ -306,6 +396,13 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Auditoría de Documentación | Sincronización masiva de specs con la realidad técnica del proyecto | 2026-04-09 |
 | Integración de OTel | Consolidación de logger y métricas estandarizadas vía OpenTelemetry | 2026-04-13 |
 | **Ecosistema MCP** | Documentación de capacidades extendidas (GitHub, Supabase, Vercel) | 2026-04-15 |
+| **Track OTel Expert** | Evaluación especializada para SRE con dominios OTel/Grafana/SRE | 2026-08-05 |
+| **B2-B6 y C Autónomos** | Las secciones de blandas y cultural son preguntas abiertas con scoring IA en vez de sliders manuales | 2026-08-05 |
+| **AI Likelihood Detector** | Motor dual (heurístico + Gemini) para detectar respuestas generadas por IA (0-100%) | 2026-08-05 |
+| **Pregeneración Batch** | Todas las preguntas se pre-generan al completar onboarding para evitar latencia durante el examen | 2026-08-05 |
+| **Cadenas de Modelos Diferenciadas** | Separar Generation/Evaluation/Report en cadenas distintas para optimizar latencia vs. calidad | 2026-08-05 |
+| **Bypass Paste Counter** | Contador de intentos de copy/paste como evidencia de conducta para el evaluador | 2026-08-05 |
+| **Omisión de Dim D en OTel Expert** | El track concentra 100 pts en A+B+C sin sección de IA complementaria | 2026-08-05 |
 
 ---
 

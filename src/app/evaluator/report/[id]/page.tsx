@@ -74,6 +74,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
             if (cat === 'A2.3') return 'A2.3 — Tempo & Pyroscope (TraceQL/Profiling)'
             if (cat === 'B1') return 'B1 — Comunicación Técnica Escrita (Ticket ITSM)'
             if (cat === 'B2') return 'B2 — Adaptabilidad & Gestión de Presión'
+            if (cat === 'B5') return 'B5 — Colaboración & Trabajo en Equipo'
             if (cat === 'C1') return 'C1 — Cultura Blameless & Post-mortems'
             if (cat === 'C2') return 'C2 — Mentalidad de SLOs & Error Budgets'
         }
@@ -263,7 +264,10 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                             <td className="px-6 py-4 text-xs italic text-muted-foreground italic">Puntaje consolidado de la dimensión</td>
                                         </tr>
                                     ))}
-                                    {scores.filter((s:any) => s.category.includes('.') || s.category.startsWith('IA-') || (track === 'otel_expert' && ['B1', 'B2', 'C1', 'C2'].includes(s.category))).map((s:any) => (
+                                    {scores.filter((s:any) => {
+                                        if (track === 'otel_expert' && ['B3', 'B4', 'B5', 'B6', 'C3', 'C4'].includes(s.category)) return false
+                                        return s.category.includes('.') || s.category.startsWith('IA-') || (track === 'otel_expert' && ['B1', 'B2', 'C1', 'C2'].includes(s.category))
+                                    }).map((s:any) => (
                                         <tr key={s.id} className="hover:bg-muted/20 transition-colors">
                                             <td className="px-8 py-3 text-muted-foreground font-medium">{getSubcategoryName(s.category)}</td>
                                             <td className="px-6 py-3 text-center font-mono opacity-80">{s.raw_score}</td>

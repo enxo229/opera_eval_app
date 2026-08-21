@@ -283,20 +283,37 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
         return found?.comments || ''
     }
 
-    const [scores, setScores] = useState<Record<string, number>>({
-        C1: getInitialScore('C1'), C2: getInitialScore('C2'),
-        C3: getInitialScore('C3'), C4: getInitialScore('C4')
+    const [scores, setScores] = useState<Record<string, number>>(() => {
+        const init: Record<string, number> = {
+            C1: getInitialScore('C1'),
+            C2: getInitialScore('C2')
+        }
+        if (!isOtel) {
+            init.C3 = getInitialScore('C3')
+            init.C4 = getInitialScore('C4')
+        }
+        return init
     })
-    const [comments, setComments] = useState<Record<string, string>>({
-        C1: getInitialComment('C1'), C2: getInitialComment('C2'),
-        C3: getInitialComment('C3'), C4: getInitialComment('C4')
+    const [comments, setComments] = useState<Record<string, string>>(() => {
+        const init: Record<string, string> = {
+            C1: getInitialComment('C1'),
+            C2: getInitialComment('C2')
+        }
+        if (!isOtel) {
+            init.C3 = getInitialComment('C3')
+            init.C4 = getInitialComment('C4')
+        }
+        return init
     })
 
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
+        const catsToSave = isOtel
+            ? [{ id: 'C1' }, { id: 'C2' }]
+            : CATEGORIES
         try {
-            for (const cat of CATEGORIES) {
+            for (const cat of catsToSave) {
                 const { data: existing } = await supabase.from('dimension_scores').select('id')
                     .eq('evaluation_id', evaluationId).eq('dimension', 'C').eq('category', cat.id).single()
                 const scoreVal = scores[cat.id] || 0

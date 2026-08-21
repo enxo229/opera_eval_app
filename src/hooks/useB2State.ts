@@ -53,11 +53,11 @@ export function useB2State(evaluationId: string | null, educationLevel: string, 
             if (res.success) {
                 setB2Submitted(true)
             } else {
-                alert(`Error guardando B2-B6: ${res.error}`)
+                alert(`Error guardando respuestas: ${res.error}`)
             }
         } catch (err) {
             console.error('Error submitting B2:', err)
-            alert('Error al guardar respuestas de B2-B6')
+            alert('Error al guardar respuestas')
         } finally {
             setB2Submitting(false)
         }

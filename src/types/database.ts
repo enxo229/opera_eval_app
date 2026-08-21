@@ -19,6 +19,8 @@ export type DynamicTestType =
   | 'QUESTIONS_A3'
   | 'QUESTIONS_A4'
   | 'QUESTIONS_B1'
+  | 'QUESTIONS_B2'
+  | 'QUESTIONS_C'
   | 'PROMPT_IA2'
 
 export interface Database {

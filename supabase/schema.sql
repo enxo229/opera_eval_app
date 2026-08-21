@@ -1,6 +1,6 @@
 -- ================================================
 -- OTP — Schema SQL (Synced with Production DB)
--- Last verified: 2026-04-07
+-- Last verified: 2026-08-05
 -- ================================================
 
 -- Enable UUID extension
@@ -141,7 +141,7 @@ create policy "Evaluators and owners can view/manage dimension scores"
 create table public.dynamic_tests (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'PROMPT_IA2')),
+  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'QUESTIONS_B2', 'QUESTIONS_C', 'PROMPT_IA2')),
   subcategory text,          -- e.g. 'A1.1', 'A1.2', 'A2.3' for per-subcategory questions
   prompt_context text,
   ai_generated_content text,

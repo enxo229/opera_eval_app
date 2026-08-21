@@ -247,21 +247,25 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
         return init
     })
     const [b3SubScores, setB3SubScores] = useState<Record<string, number>>(() => {
+        if (isOtel) return {}
         const init: Record<string, number> = {}
         B3_SUBS.forEach(s => init[s.id] = getInitialSubScore(s.id))
         return init
     })
     const [b4SubScores, setB4SubScores] = useState<Record<string, number>>(() => {
+        if (isOtel) return {}
         const init: Record<string, number> = {}
         B4_SUBS.forEach(s => init[s.id] = getInitialSubScore(s.id))
         return init
     })
     const [b5SubScores, setB5SubScores] = useState<Record<string, number>>(() => {
+        if (isOtel) return {}
         const init: Record<string, number> = {}
         B5_SUBS.forEach(s => init[s.id] = getInitialSubScore(s.id))
         return init
     })
     const [b6SubScores, setB6SubScores] = useState<Record<string, number>>(() => {
+        if (isOtel) return {}
         const init: Record<string, number> = {}
         B6_SUBS.forEach(s => init[s.id] = getInitialSubScore(s.id))
         return init
@@ -318,6 +322,27 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
         }
     }, [aiB1Data, existingScores, B1_SUBS, B6_SUBS])
 
+    // Auto-fill B2 score from AI evaluation of candidate's written responses (OTel only)
+    const hasAppliedB2AutoFill = useRef(false)
+    useEffect(() => {
+        if (!isOtel || hasAppliedB2AutoFill.current) return
+        const b2QData = dynamicTests.filter(t => t.test_type === 'QUESTIONS_B2' && t.ai_score !== null)
+        if (b2QData.length > 0) {
+            const hasExistingB2Override = existingScores.some(es => es.dimension === 'B' && es.category === 'B2' && es.raw_score > 0)
+            if (!hasExistingB2Override) {
+                // Sum AI scores and map to B2 sub-scores evenly
+                const totalAiScore = b2QData.reduce((sum, q) => sum + (q.ai_score || 0), 0)
+                const avgMapped = Math.min(4, Math.max(1, Math.round((totalAiScore / b2QData.length) * (4 / 3))))
+                setB2SubScores(prev => {
+                    const next = { ...prev }
+                    B2_SUBS.forEach(s => next[s.id] = avgMapped)
+                    return next
+                })
+            }
+            hasAppliedB2AutoFill.current = true
+        }
+    }, [isOtel, dynamicTests, existingScores])
+
 
     const handleSave = async () => {
         setIsSaving(true)
@@ -328,10 +353,10 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
             const subScoresData = [
                 ...B1_SUBS.map(s => ({ category: s.id, score: b1SubScores[s.id] || 0, dimension: 'B' })),
                 ...B2_SUBS.map(s => ({ category: s.id, score: b2SubScores[s.id] || 0, dimension: 'B' })),
-                ...B3_SUBS.map(s => ({ category: s.id, score: b3SubScores[s.id] || 0, dimension: 'B' })),
-                ...B4_SUBS.map(s => ({ category: s.id, score: b4SubScores[s.id] || 0, dimension: 'B' })),
-                ...B5_SUBS.map(s => ({ category: s.id, score: b5SubScores[s.id] || 0, dimension: 'B' })),
-                ...B6_SUBS.map(s => ({ category: s.id, score: b6SubScores[s.id] || 0, dimension: 'B' })),
+                ...(!isOtel ? B3_SUBS.map(s => ({ category: s.id, score: b3SubScores[s.id] || 0, dimension: 'B' })) : []),
+                ...(!isOtel ? B4_SUBS.map(s => ({ category: s.id, score: b4SubScores[s.id] || 0, dimension: 'B' })) : []),
+                ...(!isOtel ? B5_SUBS.map(s => ({ category: s.id, score: b5SubScores[s.id] || 0, dimension: 'B' })) : []),
+                ...(!isOtel ? B6_SUBS.map(s => ({ category: s.id, score: b6SubScores[s.id] || 0, dimension: 'B' })) : []),
             ]
 
             for (const item of subScoresData) {
@@ -359,10 +384,12 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
             const totalScores = [
                 { category: 'B1', score: b1TotalRaw, comment: comments['B1'] || '' },
                 { category: 'B2', score: b2TotalRaw, comment: comments['B2'] || '' },
-                { category: 'B3', score: b3TotalRaw, comment: comments['B3'] || '' },
-                { category: 'B4', score: b4TotalRaw, comment: comments['B4'] || '' },
-                { category: 'B5', score: b5TotalRaw, comment: comments['B5'] || '' },
-                { category: 'B6', score: b6TotalRaw, comment: comments['B6'] || '' },
+                ...(!isOtel ? [
+                    { category: 'B3', score: b3TotalRaw, comment: comments['B3'] || '' },
+                    { category: 'B4', score: b4TotalRaw, comment: comments['B4'] || '' },
+                    { category: 'B5', score: b5TotalRaw, comment: comments['B5'] || '' },
+                    { category: 'B6', score: b6TotalRaw, comment: comments['B6'] || '' },
+                ] : []),
             ]
 
             for (const t of totalScores) {
@@ -657,16 +684,38 @@ export function DimensionBEvaluation({ evaluationId, existingScores, dynamicTest
                                             />
                                         )}
                                         {qData.ai_score !== null && (
-                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs">
-                                                <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
-                                                <div>
-                                                    <span className="font-bold text-violet-700 dark:text-violet-300">
-                                                        IA Sugiere Puntaje: {qData.ai_score}/3
-                                                    </span>
-                                                    {qData.ai_justification && (
-                                                        <p className="text-muted-foreground mt-0.5">{qData.ai_justification}</p>
-                                                    )}
+                                            <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs">
+                                                <div className="flex items-center gap-3">
+                                                    <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                                    <div>
+                                                        <span className="font-bold text-violet-700 dark:text-violet-300">
+                                                            IA Sugiere Puntaje: {qData.ai_score}/3
+                                                        </span>
+                                                        {qData.ai_justification && (
+                                                            <p className="text-muted-foreground mt-0.5">{qData.ai_justification}</p>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const b2QData = dynamicTests.filter(t => t.test_type === 'QUESTIONS_B2' && t.ai_score !== null)
+                                                        if (b2QData.length > 0) {
+                                                            const totalAiScore = b2QData.reduce((sum, q) => sum + (q.ai_score || 0), 0)
+                                                            const avgMapped = Math.min(4, Math.max(1, Math.round((totalAiScore / b2QData.length) * (4 / 3))))
+                                                            setB2SubScores(prev => {
+                                                                const next = { ...prev }
+                                                                B2_SUBS.forEach(s => next[s.id] = avgMapped)
+                                                                return next
+                                                            })
+                                                        }
+                                                    }}
+                                                    className="border-violet-500/30 hover:bg-violet-500/10 text-violet-700 font-bold text-[11px] gap-1.5 shrink-0 bg-white shadow-sm"
+                                                >
+                                                    <RotateCcw className="h-3.5 w-3.5" />
+                                                    Aplicar sugerencia IA a UI
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
