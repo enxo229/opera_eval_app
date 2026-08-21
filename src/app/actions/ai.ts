@@ -410,30 +410,49 @@ Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score 
 }
 
 /**
- * Genera 3 preguntas A3 (Git & Análisis de Datos con Pandas).
+ * Genera 3 preguntas A3 (Git & Análisis/Automatización con Python & Pandas).
+ * Para A3.2 y A3.3, incluye fragmentos de código Python en el enunciado para evaluar
+ * la capacidad del analista de interpretar qué hace el código, sus parámetros de entrada y sus salidas esperadas.
  */
 export type A3Question = { subcategory: string; label: string; question: string }
 
 export async function generateQuestionsA3(educationLevel: string): Promise<A3Question[]> {
     const seed = Math.floor(Math.random() * 10000)
+    const isEntry = educationLevel === 'tecnico_sena' || educationLevel === 'bachiller'
 
-    const prompt = `Eres un evaluador técnico para Analistas Junior de Observabilidad.
-Genera exactamente 3 preguntas prácticas en español sobre Control de Versiones Git y Análisis de Datos con Python & Pandas.
+    const prompt = `Eres un líder técnico y evaluador de talento para Analistas de Observabilidad Junior (entry-level).
+Genera exactamente 3 preguntas prácticas en español para la subsección A3 (Control de Versiones Git, Analítica con Pandas y Automatización con Python).
+Nivel educativo del candidato: "${educationLevel}" (${isEntry ? 'Formación Técnica / Bachiller: lenguaje muy accesible, directo y práctico' : 'Tecnólogo / Profesional: razonamiento analítico y operativo'}).
 
-Subcategorías y Tareas:
-1. A3.1 — Control de Versiones Git: Pregunta práctica sobre el flujo de trabajo en Git (ej: clonar repositorio, crear una rama con 'git checkout -b', realizar un commit con mensaje descriptivo y sincronizar con 'git push').
-2. A3.2 — Pandas: Carga y Filtrado de Datos: Pregunta práctica sobre cómo usar Pandas en Python (pd.read_csv) para importar un dataset de métricas/logs y filtrar filas donde una columna cumpla una condición (ej: status == 'ERROR' o latency_ms > 1000).
-3. A3.3 — Pandas: Agregaciones & Anomalías: Pregunta práctica sobre cómo calcular métricas agrupadas (groupby) o percentiles (describe / quantile(0.95)) para identificar microservicios con mayor tasa de error o detectar spikes.
+Instrucciones por Subcategoría:
+
+1. A3.1 — Git: Flujo y Ramas:
+   - Plantea una situación de colaboración cotidiana en observabilidad (ej: clonar repositorio, crear una rama de trabajo 'feature/alertas', hacer commit con mensaje claro y subir cambios al remoto con 'git push').
+   - Pide al candidato explicar el flujo o secuencia de comandos básicos para cumplir la tarea.
+
+2. A3.2 — Analítica de Datos con Pandas (Interpretación de Código):
+   - INCLUYE obligatoriamente en el texto de la pregunta un fragmento corto y claro de código en Python usando Pandas (4 a 6 líneas) que lea un CSV de logs/métricas y filtre o calcule algo (ej. filtrar filas con latency_ms > 1000 o status_code == 500, o calcular promedio de latencia).
+   - Pide al analista que interprete y responda:
+     a) ¿Qué hace el script y cuál es su objetivo?
+     b) ¿Qué datos o columnas de entrada analiza?
+     c) Ante un caso hipotético con datos de prueba, ¿qué resultado o salida entregará?
+
+3. A3.3 — Automatización Simple en Python (Interpretación de Código):
+   - INCLUYE obligatoriamente en el texto de la pregunta un script o función corta en Python (5 a 8 líneas) de automatización de observabilidad (ej: una función que evalúa el uso de CPU/memoria o tasa de errores y asigna un estado 'OK', 'WARNING' o 'CRITICAL' y una acción de alerta).
+   - Pide al analista que interprete y responda:
+     a) ¿Cuál es el objetivo y flujo lógico de esta función de automatización?
+     b) ¿Qué parámetros de entrada recibe y qué condición dispara la alerta?
+     c) Si se ejecuta con valores de prueba específicos (ej: cpu=92, memoria=65), ¿cuál será el resultado que retornará?
 
 Reglas:
-- Nivel Junior/Entry (${educationLevel}).
-- Preguntas prácticas de aplicación técnica en observabilidad.
-- NO incluyas preguntas de tickets ni GLPI aquí (se evalúan en B1).
+- NO pidas que el candidato escriba código complejo desde cero. Debe interpretar, entender entradas, lógica y salidas.
+- NO incluyas preguntas de tickets ni GLPI (se evalúan en B1).
+- Usa variación (seed: ${seed}).
 - Responde ÚNICAMENTE con un JSON array de 3 objetos:
 [
-  {"subcategory": "A3.1", "label": "Control de Versiones Git", "question": "..."},
-  {"subcategory": "A3.2", "label": "Pandas: Carga y Filtrado", "question": "..."},
-  {"subcategory": "A3.3", "label": "Pandas: Agregaciones & Anomalías", "question": "..."}
+  {"subcategory": "A3.1", "label": "Git: Ramas y Flujo", "question": "..."},
+  {"subcategory": "A3.2", "label": "Pandas: Análisis de Datos", "question": "Analiza el siguiente script en Python con Pandas:\n\n[fragmento de código Python]\n\nResponde:\n1) ...\n2) ...\n3) ..."},
+  {"subcategory": "A3.3", "label": "Python: Automatización", "question": "Analiza la siguiente función de automatización en Python:\n\n[función de código Python]\n\nResponde:\n1) ...\n2) ...\n3) ..."}
 ]`
 
     const raw = await generateContentWithRetry(prompt)
@@ -441,20 +460,33 @@ Reglas:
     const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
-        log.ai.info('Preguntas A3 generadas exitosamente');
+        log.ai.info('Preguntas A3 generadas exitosamente con interpretación de código');
         return parsed
     } catch (e) {
         log.ai.error('Error parseando preguntas A3', e as Error, { raw });
         return [
-            { subcategory: 'A3.1', label: 'Control de Versiones Git', question: 'Si estás colaborando en un repositorio de observabilidad, ¿cuál es la secuencia de comandos en Git para crear una nueva rama, guardar tus cambios con un commit y subirlos al servidor remoto?' },
-            { subcategory: 'A3.2', label: 'Pandas: Carga y Filtrado', question: '¿Cómo cargarías un archivo de métricas "metrics.csv" usando la librería Pandas en Python y cómo filtrarías el dataframe para ver solo las filas con status == "500"?' },
-            { subcategory: 'A3.3', label: 'Pandas: Agregaciones & Anomalías', question: 'En Pandas, ¿qué método o función usarías para agrupar los datos por servicio ("service_name") y calcular la latencia promedio de cada uno?' },
+            {
+                subcategory: 'A3.1',
+                label: 'Git: Ramas y Flujo',
+                question: 'En un equipo de observabilidad, estás trabajando en la mejora de un script de monitoreo. ¿Cuál es el flujo básico de comandos en Git que debes ejecutar para: 1) Crear y cambiarte a una nueva rama de trabajo ("feature/alertas"), 2) Guardar tus modificaciones con un mensaje de commit descriptivo, y 3) Subir tu rama al repositorio remoto para revisión?'
+            },
+            {
+                subcategory: 'A3.2',
+                label: 'Pandas: Análisis de Datos',
+                question: 'Analiza el siguiente script en Python con Pandas:\n\n```python\nimport pandas as pd\n\n# Carga de métricas de servicios\ndf = pd.read_csv("api_metrics.csv")\n\n# Filtrado de transacciones críticas\nalertas = df[(df["latency_ms"] > 1500) | (df["status_code"] == 500)]\nprint(f"Total eventos críticos: {len(alertas)}")\nprint(alertas[["service_name", "endpoint", "latency_ms"]])\n```\n\nResponde:\n1) ¿Qué hace este script y cuál es su objetivo en observabilidad?\n2) ¿Qué columnas y condiciones de entrada evalúa del archivo "api_metrics.csv"?\n3) Si el archivo contiene 100 registros en total, donde 3 tienen latencia de 2000 ms (status 200) y 2 tienen status 500 (latencia 300 ms), ¿cuántos eventos críticos reportará el script?'
+            },
+            {
+                subcategory: 'A3.3',
+                label: 'Python: Automatización',
+                question: 'Analiza la siguiente función de automatización en Python:\n\n```python\ndef evaluar_salud_nodo(host, cpu_usage, memory_usage):\n    if cpu_usage > 90 or memory_usage > 85:\n        estado = "CRITICAL"\n        accion = "Disparar alerta prioritaria a Guardia NOC"\n    elif cpu_usage > 75 or memory_usage > 70:\n        estado = "WARNING"\n        accion = "Registrar advertencia en log de monitoreo"\n    else:\n        estado = "HEALTHY"\n        accion = "Operación normal"\n    \n    return {"host": host, "estado": estado, "accion": accion}\n```\n\nResponde:\n1) ¿Cuál es el objetivo de esta función de automatización?\n2) ¿Qué parámetros de entrada recibe y qué condición exacta activa el estado "CRITICAL"?\n3) Si ejecutamos evaluar_salud_nodo("srv-db-01", cpu_usage=93, memory_usage=55), ¿cuál será el resultado que retornará la función?'
+            },
         ]
     }
 }
 
 /**
  * Evalúa las 3 respuestas de A3 usando la escala 0-3.
+ * Valora la comprensión lógica, identificación de entradas y deducción de salidas.
  */
 export type A3EvaluationResult = {
     subcategory: string
@@ -467,29 +499,32 @@ export async function evaluateAnswersA3(
     questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
 ): Promise<A3EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
-        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
+        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta y Código: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de observabilidad. Evalúa las respuestas de un candidato entry-level sobre Git y Análisis de Datos con Python & Pandas.
+    const prompt = `Eres un evaluador técnico senior y mentor de observabilidad. Evalúa las respuestas de un candidato para el rol de Analista de Observabilidad Junior sobre Git, Analítica con Pandas y Automatización con Python.
 
-Subcategorías A3:
-- A3.1 (Git): Comandos y flujo de trabajo (clone, branch, commit, push).
-- A3.2 (Pandas Carga y Filtro): Carga con read_csv/read_json y filtrado condicional booleano de dataframes.
-- A3.3 (Pandas Agregaciones y Anomalías): Uso de groupby, mean/median, describe o quantile para analizar métricas.
+Criterios de Evaluación:
+- A3.1 (Git): Comprensión del ciclo básico (ramas, commit, push) y trabajo en equipo.
+- A3.2 (Pandas - Interpretación de Código): Capacidad de entender qué hace el script, qué columnas/filtros usa y deducir correctamente la salida ante el caso de prueba.
+- A3.3 (Python Automatización - Interpretación de Código): Comprensión del flujo condicional (if/else), parámetros de entrada y deducción del resultado devuelto.
 
-ESCALA DE VALORACIÓN:
-- 0 (Sin conocimiento): No conoce el concepto o respuesta vacía/incorrecta.
-- 1 (Básico): Entiende el concepto pero la sintaxis o explicación es muy superficial.
-- 2 (Funcional): Respuesta correcta y lógica que demuestra comprensión operativa básica de Git/Pandas.
-- 3 (Autónomo): Respuesta precisa con sintaxis clara o que explica el por qué del procedimiento.
+ESCALA DE VALORACIÓN (0-3):
+- 0 (Sin conocimiento): Respuesta vacía, incoherente o completamente errónea.
+- 1 (Básico): Identifica partes del código pero no explica el flujo completo o se equivoca en la salida esperada.
+- 2 (Funcional): Explica correctamente la lógica general, entiende las entradas y deduce la salida con sentido común (incluso sin lenguaje formal).
+- 3 (Autónomo): Explicación impecable, clara y bien estructurada del objetivo, parámetros y salida exacta.
+
+IMPORTANTE: Sé empático y formativo. Se evalúa capacidad de razonamiento lógico y lectura de código, no memoria de sintaxis.
 
 QA A EVALUAR:
 ${qaBlock}
 
 Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
 [
-  {"subcategory": "A3.1", "label": "Control de Versiones Git", "score": 2, "justification": "..."},
-  ...
+  {"subcategory": "A3.1", "label": "Git: Ramas y Flujo", "score": 2, "justification": "..."},
+  {"subcategory": "A3.2", "label": "Pandas: Análisis de Datos", "score": 2, "justification": "..."},
+  {"subcategory": "A3.3", "label": "Python: Automatización", "score": 2, "justification": "..."}
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)

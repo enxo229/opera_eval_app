@@ -77,7 +77,9 @@ export function A3Tab({
                                     <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                     <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{q.question}</p>
+                                <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                    {q.question}
+                                </div>
                                 <textarea
                                     value={a3Answers[q.subcategory] || ''}
                                     onChange={(e) => setA3Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
