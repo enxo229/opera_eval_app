@@ -48,10 +48,11 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
         .join('\n')
 
     const reactiveTestsBlock = tests
-        .filter(t => t.test_type === 'A4_CASE' || t.test_type === 'B1_TICKET' || t.test_type === 'PROMPT_IA2')
+        .filter(t => t.test_type === 'A4_CASE' || t.test_type === 'B1_TICKET' || t.test_type === 'PROMPT_IA2' || t.test_type === 'TERMINAL_A1')
         .map(t => {
-            if (t.test_type === 'B1_TICKET') return `[B1 Ticket] Respuesta: ${t.candidate_response}\nEvaluación IA B1: ${t.ai_justification}`
-            if (t.test_type === 'IA_CHAT' || t.test_type === 'A4_CASE') return `[A4 Caso/Chat] Diagnóstico: ${t.ai_justification}`
+            if (t.test_type === 'B1_TICKET') return `[B1 Ticket en GLPI] Respuesta: ${t.candidate_response}\nEvaluación IA B1: ${t.ai_justification}`
+            if (t.test_type === 'IA_CHAT' || t.test_type === 'A4_CASE') return `[A4 Caso/Chat Dynatrace] Diagnóstico: ${t.ai_justification}`
+            if (t.test_type === 'TERMINAL_A1') return `[A1 Sandbox Terminal Linux] Comandos ejecutados: ${t.candidate_response}`
             return `[${t.test_type}] Respuesta: ${t.candidate_response}`
         })
         .join('\n\n')

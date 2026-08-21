@@ -7,17 +7,17 @@ import { log } from '@/lib/observability/logger'
  * Fuerza la generación de feedback usando el modelo Lite.
  */
 export async function generateNarrativeFeedbackLite(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
-Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+Tu objetivo es consolidar los resultados de una evaluación para un candidato a Analista de Observabilidad Junior.
 
-CONTEXTO DE LA EVALUACIÓN:
+CONTEXTO DE LA EVALUACIÓN (Linux, AWS Cloud, Dynatrace, Grafana, Git, Pandas, GLPI, AlertOps, Teams):
 ${context}
 
 INSTRUCCIONES:
-1. Analiza el desempeño global.
-2. Genera un "Relato Final" de 2-3 párrafos profesional y constructivo.
+1. Analiza el desempeño global y la clasificación obtenida.
+2. Genera un "Relato Final" de 2-3 párrafos profesional, constructivo y de mentoría.
 3. Identifica una lista de "Fortalezas" (mínimo 3).
-4. Identifica una lista de "Brechas" (mínimo 2).
+4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2).
 
 Responde ÚNICAMENTE con JSON:
 {
@@ -74,17 +74,23 @@ export type AINarrativeReport = {
  * Usa la cadena de modelos de REPORTE (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite).
  */
 export async function generateNarrativeFeedback(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
-Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un candidato a Analista de Observabilidad Junior.
 
-CONTEXTO DE LA EVALUACIÓN (Scores, Comentarios del Evaluador y Respuestas del Candidato):
+STACK Y ÁREAS EVALUADAS:
+- Dimensión A (Técnica /50): Linux & AWS Cloud Core (A1), Observabilidad/SRE con Dynatrace y Grafana (A2), Git & Analítica/Automatización con Python y Pandas (A3), Troubleshooting y Causa Raíz (A4).
+- Dimensión B (Blandas /30): Documentación formal de incidentes en GLPI (B1), Comunicación Verbal con Stakeholders (B2), Colaboración y Priorización de Alertas con AlertOps/Teams (B3).
+- Dimensión C (Actitudinal /20): Aprendizaje Autónomo (C1), Adaptabilidad al Cambio (C2), Proyección hacia SRE (C3).
+- Dimensión IA (/10): Criterio y Prompt Engineering aplicado a Observabilidad.
+
+CONTEXTO DE LA EVALUACIÓN (Scores, Comentarios del Evaluador y Evidencias):
 ${context}
 
 INSTRUCCIONES:
-1. Analiza el desempeño global.
-2. Genera un "Relato Final" (narrativa) de unos 2-3 párrafos que sea profesional, constructivo y directamente compartible con el candidato. Debe tener un tono de mentoría.
-3. Identifica una lista de "Fortalezas" (mínimo 3).
-4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2).
+1. Analiza el desempeño global y la clasificación obtenida.
+2. Genera un "Relato Final" (narrativa ejecutiva) de 2-3 párrafos profesional, constructivo y con tono de mentoría técnica para el candidato.
+3. Identifica una lista de "Fortalezas" (mínimo 3) destacando sus mejores competencias demostradas.
+4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2) alineadas al plan de formación del CoE.
 
 Responde ÚNICAMENTE con un JSON válido con esta estructura:
 {

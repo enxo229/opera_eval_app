@@ -309,32 +309,28 @@ En caso de fallo en la generación automática, la plataforma dispone de un bot�
 
 | Dimensión | Puntaje |
 |---|---|
-| A1. Infraestructura y Sistemas | / 15 |
-| A2. Observabilidad y Monitoreo | / 15 |
-| A3. Herramientas y Automatización | / 10 |
-| A4. Pensamiento Analítico | / 10 |
-| **Subtotal Técnico** | **/ 50** |
-| B1. Comunicación escrita | / 7 |
-| B2. Comunicación verbal | / 7 |
-| B3. Orientación al cliente | / 4 |
-| B4. Trabajo en equipo | / 4 |
-| B5. Gestión del tiempo | / 4 |
-| B6. Documentación y orden | / 4 |
-| **Subtotal Habilidades Blandas** | **/ 30** |
-| C1. Aprendizaje autónomo | / 5 |
-| C2. Adaptabilidad al cambio | / 5 |
-| C3. Aspiraciones de crecimiento | / 5 |
-| C4. Tolerancia a la incertidumbre | / 5 |
-| **Subtotal Actitudinal** | **/ 20** |
-| IA-1. Actitud frente a la IA | / 5 |
-| IA-2. Uso práctico | / 5 |
-| **IA Complementario** | **/ 10** |
-| **PUNTAJE TOTAL** | **/ 100** |
+| A1. Linux & Cloud Computing AWS | / 15 |
+| A2. Observabilidad, SRE & APM (Dynatrace/Grafana) | / 15 |
+| A3. Git & Analítica/Automatización (Python/Pandas) | / 10 |
+| A4. Pensamiento Analítico / Troubleshooting | / 10 |
+| **Subtotal Técnico (Dimensión A)** | **/ 50** |
+| B1. Comunicación Técnica Escrita (GLPI) | / 10 |
+| B2. Comunicación Verbal & Stakeholders | / 10 |
+| B3. Colaboración, Priorización de Alertas & Presión | / 10 |
+| **Subtotal Habilidades Blandas (Dimensión B)** | **/ 30** |
+| C1. Disposición al Aprendizaje Autónomo | / 7 |
+| C2. Adaptabilidad al Cambio & Resiliencia | / 7 |
+| C3. Aspiraciones y Proyección SRE/Observabilidad | / 6 |
+| **Subtotal Actitudinal (Dimensión C)** | **/ 20** |
+| IA-1. Actitud y Criterio frente a la IA | / 5 |
+| IA-2. Prompt Engineering Aplicado a Observabilidad | / 5 |
+| **IA Complementario (Desempate)** | **/ 10** |
+| **PUNTAJE GLOBAL FINAL** | **/ 100** |
 
-**Clasificación:** 🟢 Listo / 🟡 Con nivelación / 🟠 En preparación / 🔴 Continúa en su rol actual
+**Clasificación:** 🟢 Listo para pivotar (80-100) / 🟡 Pivote con nivelación (60-79) / 🟠 En preparación (40-59) / 🔴 Continúa en su rol actual (<40)
 
 **Puntaje IA (Complementario):** _______ / 10
-**Interpretación IA:** 🔵 Acelerado / 🟣 Con acompañamiento / ⚪ Desde cero
+**Interpretación IA:** 🔵 Acelerado (8-10) / 🟣 Con acompañamiento (5-7) / ⚪ Desde cero (0-4)
 
 **Fortalezas identificadas:**
 
