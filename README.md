@@ -42,7 +42,7 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 - 5 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`
 - RLS policies optimizadas para alto rendimiento (InitPlan optimization & Policy Consolidation)
 - Campos de auditoría legal: `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` en `evaluations`
-- Campos de temporizador: `started_at`, `test_duration_minutes` (default 60), `paused_at`, `total_paused_ms`, `pause_count`
+- Campos de temporizador e integridad: `started_at`, `test_duration_minutes` (default 60), `pause_count` (contador de cambios de ventana)
 - Función RPC `get_user_email`
 - Soporte para documentos de identificación nacional (CC, CE, TI, PPT, PEP, Pasaporte)
 
@@ -52,8 +52,8 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 1.  **Autenticación**: Login vía Supabase Auth.
 2.  **Onboarding Legal**: Consentimiento expreso e informado (Ley 1581 Habeas Data). Incluye lectura in-app de Términos y Condiciones y Política de Tratamiento de Datos mediante ventanas modales.
 3.  **Información Académica**: Selección de nivel de formación con tooltips informativos por nivel.
-4.  **Evaluación Técnica**: Acceso a los 6 módulos con temporizador de 60 minutos.
-5.  **Temporizador**: Cronómetro global en sticky header con sistema de pausas (máx. 3) y auto-pausa al cambiar de pestaña.
+4.  **Evaluación Técnica**: Acceso a los módulos alineados a la ruta de observabilidad con temporizador continuo de 60 minutos.
+5.  **Temporizador y Control de Foco**: Cronómetro continuo ininterrumpido en sticky header con control de cambios de ventana (máx. 4 advertencias) y ajuste de tiempo en vivo por el evaluador.
 
 ```
 src/

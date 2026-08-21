@@ -18,8 +18,7 @@ import { Button } from '@/components/ui/button'
 
 // Components
 import { TimeUpOverlay } from '@/components/candidate/TimeUpOverlay'
-import { PauseOverlay } from '@/components/candidate/PauseOverlay'
-import { startEvaluationTimer, pauseEvaluation } from '@/app/actions/candidate/evaluation'
+import { startEvaluationTimer, recordTabSwitch } from '@/app/actions/candidate/evaluation'
 
 // Custom Hooks
 import { useCandidateContext } from '@/context/CandidateContext'
@@ -52,32 +51,26 @@ export default function CandidateEvaluationFlow() {
         }
     }, [ctx.contextLoaded, ctx.legalAccepted, router])
 
-    // Auto-Pause Logic (Network & Visibility)
+    // Tab Switch / Focus Loss Detection (Max 4 integrity warnings)
     useEffect(() => {
-        // Only trigger auto-pause if evaluation has started, isn't already paused, and hasn't ended
-        if (!ctx.evaluationId || !ctx.startedAt || ctx.isPaused || ctx.isTimeUp) return
+        if (!ctx.evaluationId || !ctx.startedAt || ctx.isTimeUp) return
 
-        const triggerAutoPause = async () => {
-            if (ctx.pauseCount >= 3) return
-
-            const res = await pauseEvaluation(ctx.evaluationId!)
-            if (res.success) {
-                ctx.setPausedAt(new Date().toISOString())
-                ctx.setPauseCount((prev: number) => prev + 1)
+        const handleFocusLoss = async () => {
+            if (document.hidden) {
+                const res = await recordTabSwitch(ctx.evaluationId!)
+                if (res.success) {
+                    ctx.setTabSwitchCount(res.newCount)
+                    ctx.setShowTabSwitchWarning(true)
+                }
             }
         }
 
-        const handleOffline = () => triggerAutoPause()
-        const handleVisibility = () => { if (document.hidden) triggerAutoPause() }
-
-        window.addEventListener('offline', handleOffline)
-        document.addEventListener('visibilitychange', handleVisibility)
+        document.addEventListener('visibilitychange', handleFocusLoss)
 
         return () => {
-            window.removeEventListener('offline', handleOffline)
-            document.removeEventListener('visibilitychange', handleVisibility)
+            document.removeEventListener('visibilitychange', handleFocusLoss)
         }
-    }, [ctx.evaluationId, ctx.startedAt, ctx.isPaused, ctx.isTimeUp, ctx.pauseCount, ctx.setPausedAt, ctx.setPauseCount])
+    }, [ctx.evaluationId, ctx.startedAt, ctx.isTimeUp, ctx.setTabSwitchCount, ctx.setShowTabSwitchWarning])
 
     const handleStartEvaluation = async () => {
         if (!ctx.evaluationId) return
@@ -118,18 +111,17 @@ export default function CandidateEvaluationFlow() {
                                 ¿Listo para comenzar?
                             </CardTitle>
                             <CardDescription className="text-base">
-                                Al hacer clic en el botón, el cronómetro de <strong>{ctx.testDuration} minutos</strong> comenzará a correr.
-                                No podrás detenerlo excepto con las pausas disponibles.
+                                Al hacer clic en el botón, el cronómetro de <strong>{ctx.testDuration} minutos</strong> comenzará a correr de forma ininterrumpida.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4 pb-6">
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 space-y-1">
-                                <p className="font-bold flex items-center gap-1.5">⚠️ Importante:</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-xs ml-1">
-                                    <li>Tienes <strong>{ctx.testDuration} minutos</strong> para completar todas las secciones.</li>
-                                    <li>Dispones de <strong>máximo 3 pausas</strong> durante la prueba.</li>
-                                    <li>Si cambias de pestaña o pierdes conexión, se activará una pausa automática.</li>
-                                    <li>Asegúrate de tener una conexión estable antes de iniciar.</li>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3.5 text-sm text-amber-900 dark:text-amber-200 space-y-1.5">
+                                <p className="font-bold flex items-center gap-1.5">⚠️ Normas de Integridad:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs ml-1">
+                                    <li>El cronómetro es <strong>continuo y no se detiene</strong> durante toda la evaluación.</li>
+                                    <li>Se permite un <strong>máximo de 4 cambios de ventana/pestaña</strong> con advertencia.</li>
+                                    <li>Cualquier salida adicional quedará registrada en tu reporte técnico para el evaluador.</li>
+                                    <li>Solo tu evaluador técnico tiene la potestad de añadir minutos adicionales si se requiere.</li>
                                 </ul>
                             </div>
                             <Button
@@ -156,7 +148,7 @@ export default function CandidateEvaluationFlow() {
             {/* Time Up Blocker */}
             {ctx.isTimeUp && <TimeUpOverlay />}
 
-            <div className={`space-y-6 transition-all duration-500 ${ctx.isPaused ? 'opacity-0 scale-95 blur-xl pointer-events-none' : 'opacity-100 scale-100 blur-0'}`}>
+            <div className="space-y-6 transition-all duration-300">
                 {/* Candidate Identity Header */}
                 <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center justify-between">
                     <div className="flex items-center gap-4">

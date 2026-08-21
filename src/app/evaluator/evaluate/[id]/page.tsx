@@ -307,6 +307,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                         evaluationId={evaluation.id} 
                         initialDuration={evaluation.test_duration_minutes || 60}
                         isStarted={!!evaluation.started_at}
+                        tabSwitchCount={evaluation.pause_count || 0}
                     />
                 </div>
             </div>

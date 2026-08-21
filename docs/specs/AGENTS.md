@@ -177,36 +177,42 @@ opera_eval_app/
 
 ---
 
-## 8. Temporizador y Sistema de Pausas
+## 8. Temporizador y Control de Integridad (Reloj Continuo y Control de Foco)
 
 ### Configuración
-- **Duración por defecto**: 60 minutos (configurable por evaluador en tiempo real).
-- **Máximo de pausas**: 3 por evaluación.
-- **Auto-pausa**: Se activa al cambiar de pestaña del navegador o perder conexión (si quedan pausas disponibles).
+- **Duración por defecto**: 60 minutos (configurable y extensible por el evaluador en tiempo real).
+- **Reloj Continuo**: El cronómetro nunca se detiene bajo ninguna circunstancia del lado del candidato (no existen pausas que congelen el tiempo).
+- **Límite de Cambios de Ventana/Pestaña**: Máximo 4 advertencias por evaluación (`recordTabSwitch`).
+- **Modal de Integridad (`TabSwitchWarningModal.tsx`)**: Se despliega automáticamente al salir de la pestaña o minimizar la ventana, indicando el número de intento ($X$ de 4) y recordando que el reloj sigue avanzando sin detenerse.
+- **Auditoría de Foco**: Si el candidato supera los 4 cambios permitidos, los eventos adicionales quedan registrados en `dynamic_tests` (`test_type: 'TAB_SWITCH_EVENT'`) como telemetría de integridad para el evaluador.
 
 ### Arquitectura del Timer
-- **Server Actions** (`src/app/actions/candidate/evaluation.ts`): `startEvaluationTimer()`, `pauseEvaluation()`, `resumeEvaluation()`. Las acciones actualizan la DB pero **no usan `revalidatePath`** — el estado se maneja de forma optimista en el cliente.
-- **Estado optimista**: `CandidateContext` expone `setPausedAt()`, `setPauseCount()`, `setTotalPausedMs()`, `setStartedAt()`. Los callbacks en `CandidateHeader` y `PauseOverlay` actualizan el contexto inmediatamente.
+- **Server Actions** (`src/app/actions/candidate/evaluation.ts`): `startEvaluationTimer()`, `recordTabSwitch()`, `getTimerState()`. Las acciones actualizan la DB sin interferir con la continuidad del reloj.
+- **Estado optimista y continuo**: `CandidateContext` calcula el tiempo restante de forma estrictamente lineal:
+  $$\text{elapsed} = \text{now} - \text{startedAt}$$
+  $$\text{remaining} = \max(0, \text{testDuration} \times 60 - \lfloor \text{elapsed} / 1000 \rfloor)$$
 - **Polling de duración**: El `CandidateContext` hace polling cada 30 segundos de `test_duration_minutes` para reflejar ajustes del evaluador sin recargar la página.
-- **Posición visual**: El timer se renderiza en el centro del **sticky header** (`CandidateHeader.tsx`), que permanece fijo en la parte superior de la pantalla.
+- **Posición visual**: El timer se renderiza en el centro del **sticky header** (`CandidateHeader.tsx`), con cambio de color según urgencia (verde > 10 min, ámbar < 10 min, rojo pulsante < 2 min).
 
 ### Ajuste de Tiempo por el Evaluador
 - **Server Action** (`src/app/actions/evaluator/timer.ts`): `adjustEvaluationTime(evaluationId, 'add'|'set', minutes)`. Validación: 1-180 minutos.
-- **Widget UI** (`TimerAdjuster.tsx`): Botones rápidos (+5, +10, +15 min) + input para fijar un valor exacto. Ubicado en el sidebar de `/evaluator/evaluate/[id]`.
+- **Widget UI** (`TimerAdjuster.tsx`): Botones rápidos (+5, +10, +15 min) + input para fijar un valor exacto + badge de telemetría de cambios de ventana ($X$ / 4). Ubicado en el sidebar de `/evaluator/evaluate/[id]`.
 
 ---
 
 ## 9. Flujos Especiales
 
 - **Persistencia de Preguntas (A1, A2, A3)**: Las preguntas generadas por IA se persisten inmediatamente en `dynamic_tests` vía `saveA*QuestionsOnly()`. Esto previene la pérdida de datos por recarga de página. Solo se regeneran si el evaluador ejecuta un _reset_.
-- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda.
+- **A1 (Telemetría de Terminal Linux)**: Registro automático de los comandos ejecutados en la sandbox en `dynamic_tests` (`TERMINAL_A1`), visibles para el evaluador como evidencia cualitativa de soltura en CLI.
+- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad (Dynatrace / Grafana Loki). La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda.
+- **A3 (Git & Pandas)**: Ejercicios prácticos de control de versiones con Git y análisis de métricas y anomalías con Pandas (escala normalizada base 9 $\rightarrow$ 10).
 - **A4 (Caso Práctico)**: Generación persistente de incidente en DB (`A4_CASE`). Chat interactivo (`IA_CHAT`) que se bloquea al finalizar. Evaluación IA en 3 subcategorías.
-- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto). También evalúa B6 (Colaboración Asíncrona) en 3 criterios adicionales (Handoff, Bloqueos, Seguimiento).
-- **IA-2 (Prompting)**: El candidato ingresa el prompt que usó fuera de la plataforma. Gemini analiza el prompt en 5 dimensiones de Ingeniería de Contexto (Rol, Contexto Técnico, Formato de Salida, Restricciones, Sofisticación) y sugiere un score riguroso al evaluador en `DimensionDEvaluation`. Un simple parafraseo del enunciado sin técnicas de prompting obtiene máximo 2/5.
+- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto).
+- **IA-2 (Prompting)**: El candidato ingresa el prompt técnico para consultas en Dynatrace / Grafana Loki. Gemini evalúa la sofisticación del contexto y sugiere puntaje al evaluador.
 
 ---
 
-## 9. Base de Datos
+## 10. Base de Datos
 
 ### Tablas
 
@@ -216,17 +222,15 @@ opera_eval_app/
 | `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones) |
 | `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
-| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts |
+| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal y eventos de foco |
 
-### Campos del Timer (tabla `evaluations`)
+### Campos del Timer y Foco (tabla `evaluations`)
 
 | Campo | Tipo | Propósito |
 |---|---|---|
-| `started_at` | timestamptz | Marca de inicio de la evaluación |
-| `test_duration_minutes` | int (default 60) | Duración total configurable por evaluador |
-| `paused_at` | timestamptz | Marca de última pausa (null si no está pausado) |
-| `total_paused_ms` | bigint (default 0) | Milisegundos totales pausados acumulados |
-| `pause_count` | int (default 0) | Número de pausas utilizadas (máx. 3) |
+| `started_at` | timestamptz | Marca de inicio ininterrumpido de la evaluación |
+| `test_duration_minutes` | int (default 60) | Duración total configurable exclusivamente por evaluador |
+| `pause_count` | int (default 0) | Contador de cambios de ventana / desenfoques detectados (máx. 4 permitidos) |
 
 ### Campos de Auditoría Legal (tabla `evaluations`)
 
@@ -306,6 +310,8 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | Auditoría de Documentación | Sincronización masiva de specs con la realidad técnica del proyecto | 2026-04-09 |
 | Integración de OTel | Consolidación de logger y métricas estandarizadas vía OpenTelemetry | 2026-04-13 |
 | **Ecosistema MCP** | Documentación de capacidades extendidas (GitHub, Supabase, Vercel) | 2026-04-15 |
+| **Alineación Ruta Observabilidad** | A1 (Linux/AWS Core), A2 (SRE/Dynatrace/Grafana), A3 (Git/Pandas), Dim B (B1-B3) y C (C1-C3) | 2026-08-21 |
+| **Reloj Continuo e Integridad (Máx 4)** | Eliminación de pausas; reloj ininterrumpido y límite de 4 cambios de ventana con modal de advertencia | 2026-08-21 |
 
 ---
 

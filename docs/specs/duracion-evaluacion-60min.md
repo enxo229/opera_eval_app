@@ -57,7 +57,7 @@ La evaluación consta de módulos técnicos y prácticos alineados a la ruta de 
 | Riesgo | Mitigación |
 |--------|-----------|
 | Candidato lento leyendo | Las instrucciones son breves y claras |
-| Candidato con conexión inestable | Sistema de pausas (máx. 3) sigue activo |
+| Candidato con eventualidades | Reloj continuo con control de foco (máx. 4 cambios) y tiempo extra administrado exclusivamente por el evaluador |
 | Presión excesiva | La distribución da ~2 min/pregunta promedio, alineado con estándares de certificación IT |
 
 ## 5. Cambio Técnico Requerido
