@@ -6,7 +6,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
-import { AlertCircle, Loader2, FileText, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, Loader2, FileText, CheckCircle2, RotateCcw } from 'lucide-react'
+
+const DEFAULT_GLPI_TEMPLATE = `[GLPI - INCIDENTE] 
+Fecha y Hora (UTC): 
+Servidor / Microservicio: 
+Prioridad: 
+Descripción Técnica y Métricas (Dynatrace / Grafana): 
+Escalamiento (AlertOps / Microsoft Teams): 
+Resolución Aplicada: 
+Impacto al Negocio / Tiempo Total: `
 
 interface TicketEditorProps {
     evaluationId: string | null
@@ -14,7 +23,7 @@ interface TicketEditorProps {
 }
 
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
-    const [ticket, setTicket] = useState('')
+    const [ticket, setTicket] = useState(DEFAULT_GLPI_TEMPLATE)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
@@ -54,8 +63,13 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                     }
                 }
 
-                if (state.isFinished && state.ticketText) {
+                if (state.ticketText) {
                     setTicket(state.ticketText)
+                } else {
+                    setTicket(DEFAULT_GLPI_TEMPLATE)
+                }
+
+                if (state.isFinished) {
                     setSubmitted(true)
                 }
 
@@ -127,23 +141,29 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                 {/* Ticket Editor */}
                 {!submitted ? (
                     <div className="space-y-4">
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-foreground">Tu documentación del Ticket en GLPI</label>
-                            <p className="text-xs text-muted-foreground">
-                                Documenta el incidente formalmente en GLPI: incluye título, fecha/hora, servicio y host, métricas de observabilidad, escalamiento (AlertOps / Teams), resolución aplicada e impacto total.
-                            </p>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-medium text-foreground">Tu documentación del Ticket en GLPI</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Completa la plantilla formal de incidente en GLPI con los datos del escenario.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTicket(DEFAULT_GLPI_TEMPLATE)}
+                                className="text-xs h-8 gap-1.5 text-primary border-primary/20 hover:bg-primary/10 transition-colors shrink-0"
+                                title="Restablecer los campos base de la plantilla GLPI"
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Restaurar Plantilla
+                            </Button>
                         </div>
 
                         <Textarea
-                            placeholder="[GLPI - INCIDENTE] Título breve del problema
-Fecha y Hora (UTC): 
-Servidor / Microservicio: 
-Prioridad: 
-Descripción Técnica y Métricas (Dynatrace / Grafana): 
-Escalamiento (AlertOps / Microsoft Teams): 
-Resolución Aplicada: 
-Impacto al Negocio / Tiempo Total: "
-                            className="min-h-[300px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
+                            placeholder={DEFAULT_GLPI_TEMPLATE}
+                            className="min-h-[280px] bg-background border-border text-foreground font-mono resize-y focus-visible:ring-primary text-sm p-4 leading-relaxed"
                             value={ticket}
                             onChange={(e) => setTicket(e.target.value)}
                             onPaste={(e) => e.preventDefault()}
