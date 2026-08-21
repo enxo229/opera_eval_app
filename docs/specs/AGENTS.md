@@ -212,30 +212,104 @@ opera_eval_app/
 
 ---
 
-## 10. Base de Datos
+## 10. Base de Datos & Diagrama Entidad-Relación (ER)
 
-### Tablas
+### Diagrama Entidad-Relación
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ SELECTION_PROCESSES : "evaluator_id"
+    PROFILES ||--o{ EVALUATIONS : "candidate_id / evaluator_id"
+    SELECTION_PROCESSES ||--o{ EVALUATIONS : "selection_process_id"
+    EVALUATIONS ||--o{ DIMENSION_SCORES : "evaluation_id"
+    EVALUATIONS ||--o{ DYNAMIC_TESTS : "evaluation_id"
+
+    PROFILES {
+        uuid id PK "auth.users.id"
+        text full_name
+        text role "check: evaluator, candidate"
+        text education_level "bachiller, tecnico_sena, tecnologo, profesional"
+        text national_id_type "check: CC, CE, TI, PPT, PEP, Pasaporte"
+        text national_id "Número de identificación"
+        timestamptz created_at
+    }
+
+    SELECTION_PROCESSES {
+        uuid id PK
+        text candidate_email "Indexed"
+        text candidate_national_id
+        uuid evaluator_id FK "profiles.id"
+        text team
+        text observations
+        text status "check: active, completed, archived"
+        timestamptz created_at
+    }
+
+    EVALUATIONS {
+        uuid id PK
+        uuid candidate_id FK "profiles.id"
+        uuid evaluator_id FK "profiles.id"
+        uuid selection_process_id FK "selection_processes.id"
+        text status "check: draft, completed"
+        numeric score_a "Max 50"
+        numeric score_b "Max 30"
+        numeric score_c "Max 20"
+        numeric score_ia "Max 10 (Desempate)"
+        numeric final_score "Max 100"
+        text classification "Listo, Nivelación, Preparación, Rol actual"
+        jsonb ai_insights
+        jsonb final_feedback_ai "Narrativa, Fortalezas, Brechas"
+        timestamptz completed_at
+        boolean legal_consent_tc
+        boolean legal_consent_data
+        timestamptz legal_accepted_at
+        timestamptz started_at
+        int test_duration_minutes "Default 60"
+        timestamptz paused_at
+        bigint total_paused_ms
+        int pause_count
+        int tab_switch_count "Auditoría desenfoques (máx 4)"
+    }
+
+    DIMENSION_SCORES {
+        uuid id PK
+        uuid evaluation_id FK "evaluations.id ON DELETE CASCADE"
+        text dimension "check: A, B, C, IA, D"
+        text category "A1.1..A1.5, A2.1..A2.5, A3.1..A3.3, A4.1..A4.3, B1..B3, C1..C3, IA-1..IA-2"
+        integer raw_score
+        text comments
+    }
+
+    DYNAMIC_TESTS {
+        uuid id PK
+        uuid evaluation_id FK "evaluations.id ON DELETE CASCADE"
+        text test_type "check: A4_CASE, B1_CASE, B1_TICKET, IA_CHAT, TERMINAL_A1, QUESTIONS_A1..A4, PROMPT_IA2, TAB_SWITCH_EVENT"
+        text subcategory
+        text prompt_context
+        text ai_generated_content
+        text candidate_response
+        integer ai_score
+        text ai_justification
+    }
+```
+
+### Tablas y Propósito
 
 | Tabla | Propósito |
 |---|---|
 | `profiles` | Datos del usuario (nombre, rol, nivel educativo, documento de identidad) |
 | `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones) |
-| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
+| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal y timer) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
 | `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal y eventos de foco |
 
-### Campos del Timer y Foco (tabla `evaluations`)
+### Campos del Timer, Foco y Auditoría (tabla `evaluations`)
 
 | Campo | Tipo | Propósito |
 |---|---|---|
 | `started_at` | timestamptz | Marca de inicio ininterrumpido de la evaluación |
 | `test_duration_minutes` | int (default 60) | Duración total configurable exclusivamente por evaluador |
-| `pause_count` | int (default 0) | Contador de cambios de ventana / desenfoques detectados (máx. 4 permitidos) |
-
-### Campos de Auditoría Legal (tabla `evaluations`)
-
-| Campo | Tipo | Propósito |
-|---|---|---|
+| `tab_switch_count` | int (default 0) | Contador de cambios de ventana / desenfoques detectados (máx. 4 permitidos) |
 | `legal_consent_tc` | boolean | Aceptación de Términos y Condiciones |
 | `legal_consent_data` | boolean | Autorización de Tratamiento de Datos |
 | `legal_accepted_at` | timestamptz | Estampa de tiempo del consentimiento |
@@ -252,16 +326,17 @@ La plataforma soporta los siguientes tipos de documento nacional colombiano:
 
 El tipo se almacena en `profiles.national_id_type` y el número en `profiles.national_id`.
 
-### RLS Policies
+### RLS Policies y Rendimiento
 
 - **RLS Performance**: 
-    - Se ha implementado el patrón **InitPlan Optimization** envolviendo las llamadas a `auth.uid()` en subqueries: `(select auth.uid())`. Esto previene la re-evaluación fila por fila.
-    - **Consolidación**: Se han fusionado múltiples políticas permisivas (ej. Candidato + Evaluador) en una sola regla con lógica `OR` para reducir la sobrecarga del motor de reglas de Supabase.
-- **Indexación**: Se han indexado las llaves foráneas en `dimension_scores`, `dynamic_tests`, `evaluations` y `selection_processes` para optimizar los JOINs y el filtrado por `evaluation_id`.
+    - Se ha implementado el patrón **InitPlan Optimization** envolviendo las llamadas a `auth.uid()` y `auth.jwt()` en subqueries: `(select auth.uid())`, `((select auth.jwt()) ->> 'email')`. Esto previene la re-evaluación fila por fila.
+    - **Consolidación**: Se han fusionado múltiples políticas permisivas en una sola regla con lógica `OR` para reducir la sobrecarga del motor de reglas de Supabase.
+- **Seguridad RPC**: La función `get_user_email(uuid)` tiene permisos revocados para `anon` y restringidos únicamente a `authenticated`.
+- **Indexación**: Índices dedicados en llaves foráneas (`evaluation_id`, `candidate_id`, `selection_process_id`, `candidate_email`, `test_type`).
 
 ---
 
-## 10. Convenciones Técnicas
+## 11. Convenciones Técnicas
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
