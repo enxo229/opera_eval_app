@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTeams } from '@/app/actions/teams'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { CreateTeamDialog } from '@/components/evaluator/CreateTeamDialog'
-import { Building2, Users, CheckCircle2, Award, Sparkles } from 'lucide-react'
+import { TeamCard, TeamCardData } from '@/components/evaluator/TeamCard'
+import { Building2 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,12 +93,26 @@ export default async function TeamsManagementPage() {
   }
 
   // Sort teams: first by totalCandidates DESC, then alphabetically
-  const teamsList = Array.from(teamStatsMap.values()).sort((a, b) => {
-    if (b.totalCandidates !== a.totalCandidates) {
-      return b.totalCandidates - a.totalCandidates
-    }
-    return a.teamName.localeCompare(b.teamName)
-  })
+  const teamsList: TeamCardData[] = Array.from(teamStatsMap.values())
+    .sort((a, b) => {
+      if (b.totalCandidates !== a.totalCandidates) {
+        return b.totalCandidates - a.totalCandidates
+      }
+      return a.teamName.localeCompare(b.teamName)
+    })
+    .map((t) => ({
+      id: t.id,
+      teamName: t.teamName,
+      description: t.description,
+      totalCandidates: t.totalCandidates,
+      activeProcesses: t.activeProcesses,
+      completedEvaluations: t.completedEvaluations,
+      avgScore:
+        t.scores.length > 0
+          ? (t.scores.reduce((sum, val) => sum + val, 0) / t.scores.length).toFixed(1)
+          : null,
+      readyCount: t.readyCount,
+    }))
 
   return (
     <div className="space-y-6">
@@ -119,97 +132,11 @@ export default async function TeamsManagementPage() {
         <CreateTeamDialog />
       </div>
 
-      {/* Stats Cards Grid */}
+      {/* Stats Cards Grid with Tooltip Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {teamsList.map((t) => {
-          const avgScore =
-            t.scores.length > 0
-              ? (t.scores.reduce((sum, val) => sum + val, 0) / t.scores.length).toFixed(1)
-              : null
-
-          return (
-            <Card
-              key={t.teamName}
-              className="border shadow-xs bg-card hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col"
-            >
-              <CardHeader className="p-5 pb-3 border-b bg-muted/20">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-primary/10 text-primary shrink-0">
-                        <Building2 className="size-4" />
-                      </div>
-                      <CardTitle className="text-sm sm:text-base font-bold text-foreground tracking-tight">
-                        {t.teamName}
-                      </CardTitle>
-                    </div>
-                    {t.description && (
-                      <CardDescription className="text-xs line-clamp-2 pt-0.5">
-                        {t.description}
-                      </CardDescription>
-                    )}
-                  </div>
-                  <Badge
-                    variant={t.totalCandidates > 0 ? 'default' : 'outline'}
-                    className={`text-xs font-mono font-medium shrink-0 ${
-                      t.totalCandidates > 0
-                        ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                        : 'text-muted-foreground'
-                    }`}
-                  >
-                    {t.totalCandidates} {t.totalCandidates === 1 ? 'candidato' : 'candidatos'}
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-muted/40 border text-center">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">
-                      En Curso
-                    </span>
-                    <span className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5 block">
-                      {t.activeProcesses}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-muted/40 border text-center">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">
-                      Finalizados
-                    </span>
-                    <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                      {t.completedEvaluations}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Score and Ready stats */}
-                <div className="pt-2 border-t space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Award className="size-3.5 text-primary" />
-                      Promedio de Score:
-                    </span>
-                    <span className="font-mono font-bold text-foreground">
-                      {avgScore ? `${avgScore} / 100` : 'Sin evaluaciones'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="size-3.5 text-emerald-600" />
-                      Listos para Pivotar:
-                    </span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                      {t.readyCount}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+        {teamsList.map((t) => (
+          <TeamCard key={t.teamName} team={t} />
+        ))}
       </div>
     </div>
   )
