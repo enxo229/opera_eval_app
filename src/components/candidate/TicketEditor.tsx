@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
 import { AlertCircle, Loader2, FileText, CheckCircle2, RotateCcw } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const DEFAULT_GLPI_TEMPLATE = `[GLPI - INCIDENTE] 
 Fecha y Hora (UTC): 
@@ -28,6 +29,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
 
     // Notify parent
     useEffect(() => {
@@ -152,13 +154,47 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setTicket(DEFAULT_GLPI_TEMPLATE)}
+                                onClick={() => setShowRestoreConfirm(true)}
                                 className="text-xs h-8 gap-1.5 text-primary border-primary/20 hover:bg-primary/10 transition-colors shrink-0"
                                 title="Restablecer los campos base de la plantilla GLPI"
                             >
                                 <RotateCcw className="h-3.5 w-3.5" />
                                 Restaurar Plantilla
                             </Button>
+
+                            {/* Confirmation Dialog */}
+                            <Dialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>
+                                <DialogContent className="max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-lg flex items-center gap-2 text-foreground">
+                                            <RotateCcw className="h-5 w-5 text-amber-500" />
+                                            ¿Restaurar plantilla inicial de GLPI?
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="py-2 text-sm text-muted-foreground leading-relaxed">
+                                        Esta acción reemplazará todo lo que hayas redactado en el editor por los campos base de la plantilla de GLPI. ¿Deseas continuar?
+                                    </div>
+                                    <div className="flex justify-end gap-3 mt-4">
+                                        <Button 
+                                            variant="outline" 
+                                            type="button"
+                                            onClick={() => setShowRestoreConfirm(false)}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button 
+                                            type="button"
+                                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                            onClick={() => {
+                                                setTicket(DEFAULT_GLPI_TEMPLATE)
+                                                setShowRestoreConfirm(false)
+                                            }}
+                                        >
+                                            Restaurar Plantilla
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         </div>
 
                         <Textarea

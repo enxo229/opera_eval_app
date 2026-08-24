@@ -80,7 +80,7 @@ export function TabSwitchWarningModal({ attemptCount, maxAllowed = 4, onDismiss 
                             <span>El cronómetro no se detiene</span>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed pl-6">
-                            El reloj continúa avanzando de forma ininterrumpida. Solo tu evaluador técnico tiene la facultad de añadir tiempo extra si lo considera necesario.
+                            El reloj continúa avanzando de forma ininterrumpida sin pausas durante toda la prueba.
                         </p>
                     </div>
 

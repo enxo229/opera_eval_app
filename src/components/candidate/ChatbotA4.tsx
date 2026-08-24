@@ -19,6 +19,7 @@ export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: stri
     const [isFinishing, setIsFinishing] = useState(false)
     const [isFinished, setIsFinished] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
 
     // Notify parent when status changes
     useEffect(() => {
@@ -33,6 +34,16 @@ export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: stri
             scrollRef.current.scrollIntoView({ behavior: 'smooth' })
         }
     }, [messages, isLoading])
+
+    // Auto-focus input when AI finishes responding or when component is ready
+    useEffect(() => {
+        if (!isLoading && !isFinished && !loadingCase) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus()
+            }, 50)
+            return () => clearTimeout(timer)
+        }
+    }, [isLoading, isFinished, loadingCase])
 
     // Generate or restore dynamic case on mount
     useEffect(() => {
@@ -222,6 +233,7 @@ export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: stri
                     <div className="p-3 border-t border-border bg-muted/30">
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
                             <Input
+                                ref={inputRef}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onPaste={(e) => e.preventDefault()}

@@ -121,7 +121,6 @@ export default function CandidateEvaluationFlow() {
                                     <li>El cronómetro es <strong>continuo y no se detiene</strong> durante toda la evaluación.</li>
                                     <li>Se permite un <strong>máximo de 4 cambios de ventana/pestaña</strong> con advertencia.</li>
                                     <li>Cualquier salida adicional quedará registrada en tu reporte técnico para el evaluador.</li>
-                                    <li>Solo tu evaluador técnico tiene la potestad de añadir minutos adicionales si se requiere.</li>
                                 </ul>
                             </div>
                             <Button
