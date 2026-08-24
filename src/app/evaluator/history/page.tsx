@@ -5,9 +5,18 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { searchHistoricalProcesses, reopenEvaluation, closeSelectionProcess } from '@/app/actions/admin'
+import { getTeams } from '@/app/actions/teams'
+import { DEFAULT_SQUADS } from '@/lib/schemas/user-form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -76,6 +85,7 @@ export default function HistorySearchPage() {
   const [searchTermCC, setSearchTermCC] = useState('')
   const [searchTermEmail, setSearchTermEmail] = useState('')
   const [searchTermTeam, setSearchTermTeam] = useState('')
+  const [teamsList, setTeamsList] = useState<string[]>(DEFAULT_SQUADS as unknown as string[])
 
   const [loading, setLoading] = useState(false)
   const [processes, setProcesses] = useState<HistoricalProcess[]>([])
@@ -105,8 +115,13 @@ export default function HistorySearchPage() {
     [searchTermCC, searchTermEmail, searchTermTeam]
   )
 
-  // Initial load: fetch all recent historical processes
+  // Initial load: fetch teams catalog & recent historical processes
   useEffect(() => {
+    getTeams().then((teams) => {
+      if (teams && teams.length > 0) {
+        setTeamsList(teams.map((t) => t.name))
+      }
+    })
     handleSearch()
   }, [])
 
@@ -229,18 +244,29 @@ export default function HistorySearchPage() {
                 />
               </div>
 
-              {/* Equipo */}
+              {/* Equipo / Squad (Desplegable con Catálogo Oficial) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                   <Building2 className="size-3.5" />
                   Equipo / Squad
                 </label>
-                <Input
-                  placeholder="Ej. Squad Alpha, SRE Core..."
-                  value={searchTermTeam}
-                  onChange={(e) => setSearchTermTeam(e.target.value)}
-                  className="h-9 text-xs"
-                />
+                <Select
+                  value={searchTermTeam || 'ALL'}
+                  onValueChange={(val) => setSearchTermTeam(val === 'ALL' || !val ? '' : (val as string))}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-9 text-xs w-full">
+                    <SelectValue placeholder="Todos los Equipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Todos los Equipos</SelectItem>
+                    {teamsList.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
