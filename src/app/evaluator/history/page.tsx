@@ -274,16 +274,19 @@ export default function HistorySearchPage() {
       {/* Results Table */}
       <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/40">
-              <TableRow>
-                <TableHead className="font-semibold text-xs py-3.5">Candidato / Correo</TableHead>
-                <TableHead className="font-semibold text-xs py-3.5">Cédula</TableHead>
-                <TableHead className="font-semibold text-xs py-3.5">Equipo / Squad</TableHead>
-                <TableHead className="font-semibold text-xs py-3.5">Estado del Proceso</TableHead>
-                <TableHead className="font-semibold text-xs py-3.5">Score & Clasificación</TableHead>
-                <TableHead className="font-semibold text-xs py-3.5">Fecha Creación</TableHead>
-                <TableHead className="text-right font-semibold text-xs py-3.5 pr-6">Acciones</TableHead>
+          <Table className="w-full">
+            <TableHeader className="bg-muted/50 border-b">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs py-3.5 pl-4 min-w-[200px]">Candidato / Correo</TableHead>
+                <TableHead className="font-semibold text-xs py-3.5 min-w-[100px]">Cédula</TableHead>
+                <TableHead className="font-semibold text-xs py-3.5 min-w-[120px]">Equipo / Squad</TableHead>
+                <TableHead className="font-semibold text-xs py-3.5 min-w-[110px]">Estado</TableHead>
+                <TableHead className="font-semibold text-xs py-3.5 min-w-[180px]">Score & Clasificación</TableHead>
+                <TableHead className="font-semibold text-xs py-3.5 min-w-[120px] hidden lg:table-cell">Fecha Creación</TableHead>
+                {/* Sticky Right Actions Column Header */}
+                <TableHead className="font-semibold text-xs py-3.5 pr-4 text-right min-w-[140px] sticky right-0 bg-muted/95 backdrop-blur-xs z-20 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] dark:shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.3)]">
+                  Acciones
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -313,13 +316,15 @@ export default function HistorySearchPage() {
                   const isClosed = proc.status === 'archived' || proc.status === 'completed'
 
                   return (
-                    <TableRow key={proc.id} className="hover:bg-muted/30 transition-colors">
+                    <TableRow key={proc.id} className="hover:bg-muted/30 transition-colors group">
                       {/* Correo y Observaciones */}
-                      <TableCell className="py-3">
-                        <div className="space-y-0.5">
-                          <span className="font-medium text-sm text-foreground">{proc.candidate_email}</span>
+                      <TableCell className="py-3 pl-4">
+                        <div className="space-y-0.5 max-w-[200px] truncate">
+                          <span className="font-semibold text-sm text-foreground truncate block">
+                            {proc.candidate_email}
+                          </span>
                           {proc.observations && (
-                            <p className="text-xs text-muted-foreground italic truncate max-w-xs">
+                            <p className="text-xs text-muted-foreground italic truncate">
                               {proc.observations}
                             </p>
                           )}
@@ -333,7 +338,7 @@ export default function HistorySearchPage() {
 
                       {/* Equipo */}
                       <TableCell className="py-3">
-                        <span className="text-xs font-medium text-foreground/90 bg-muted/60 px-2.5 py-1 rounded-md border">
+                        <span className="text-xs font-medium text-foreground/90 bg-muted/60 px-2 py-0.5 rounded-md border inline-block max-w-[130px] truncate">
                           {proc.team || 'Sin asignar'}
                         </span>
                       </TableCell>
@@ -345,23 +350,21 @@ export default function HistorySearchPage() {
 
                       {/* Score y Clasificación */}
                       <TableCell className="py-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {ev?.final_score !== null && ev?.final_score !== undefined ? (
-                              <span className="font-mono font-bold text-sm text-foreground">
-                                {ev.final_score.toFixed(1)} / 100
-                              </span>
-                            ) : null}
-                            <ScoreClassificationBadge
-                              classification={ev?.classification}
-                              score={ev?.final_score}
-                            />
-                          </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {ev?.final_score !== null && ev?.final_score !== undefined ? (
+                            <span className="font-mono font-bold text-xs sm:text-sm text-foreground shrink-0">
+                              {ev.final_score.toFixed(1)} / 100
+                            </span>
+                          ) : null}
+                          <ScoreClassificationBadge
+                            classification={ev?.classification}
+                            score={ev?.final_score}
+                          />
                         </div>
                       </TableCell>
 
                       {/* Fecha */}
-                      <TableCell className="py-3 text-xs text-muted-foreground">
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden lg:table-cell">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="size-3.5 text-muted-foreground/70" />
                           <span>
@@ -376,25 +379,25 @@ export default function HistorySearchPage() {
                         </div>
                       </TableCell>
 
-                      {/* Acciones */}
-                      <TableCell className="py-3 text-right pr-6">
+                      {/* Sticky Actions */}
+                      <TableCell className="py-3 pr-4 text-right sticky right-0 bg-card group-hover:bg-muted/30 transition-colors z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] dark:shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.3)]">
                         <div className="flex items-center justify-end gap-1.5">
                           {ev?.candidate_id && isCompleted ? (
                             <Link href={`/evaluator/report/${ev.candidate_id}`}>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 gap-1 text-xs text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                className="h-7 px-2.5 gap-1 text-xs text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                               >
                                 <FileText className="size-3.5" />
-                                <span>Ver Informe</span>
+                                <span>Reporte</span>
                               </Button>
                             </Link>
                           ) : ev?.candidate_id ? (
                             <Link href={`/evaluator/evaluate/${ev.candidate_id}`}>
                               <Button
                                 size="sm"
-                                className="h-8 gap-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-xs"
+                                className="h-7 px-2.5 gap-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-xs"
                               >
                                 <PlayCircle className="size-3.5" />
                                 <span>Evaluar</span>
@@ -409,12 +412,12 @@ export default function HistorySearchPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"
-                                  className="size-8 text-muted-foreground hover:text-foreground"
+                                  className="size-7 text-muted-foreground hover:text-foreground"
                                   aria-label="Más opciones"
                                 />
                               }
                             >
-                              <MoreVertical className="size-4" />
+                              <MoreVertical className="size-3.5" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-48">
                               <DropdownMenuLabel>Gestión de Proceso</DropdownMenuLabel>
