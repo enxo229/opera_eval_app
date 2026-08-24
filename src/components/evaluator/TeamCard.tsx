@@ -28,58 +28,64 @@ interface TeamCardProps {
 
 export function TeamCard({ team }: TeamCardProps) {
   return (
-    <Card className="border shadow-xs bg-card hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
-      <CardHeader className="p-5 pb-3.5 border-b bg-muted/20">
-        <div className="flex items-center justify-between gap-2">
-          {/* Team Name + Info Tooltip */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary shrink-0">
+    <Card className="border shadow-xs bg-card hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between">
+      {/* Responsive Card Header with Multi-line Support for Long Team Names */}
+      <CardHeader className="p-4 sm:p-5 pb-3.5 border-b bg-muted/20">
+        <div className="flex items-start justify-between gap-3">
+          {/* Team Icon + Name + Info Tooltip */}
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+            <div className="p-1.5 rounded-md bg-primary/10 text-primary shrink-0 mt-0.5">
               <Building2 className="size-4" />
             </div>
-            <CardTitle className="text-sm sm:text-base font-bold text-foreground tracking-tight truncate">
-              {team.teamName}
-            </CardTitle>
 
-            {/* Info Icon with Hover Tooltip for description */}
-            {team.description ? (
-              <TooltipProvider delay={100}>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type="button"
-                        className="text-muted-foreground/60 hover:text-primary transition-colors focus:outline-none p-1 rounded-full hover:bg-primary/10 shrink-0"
-                        aria-label={`Información sobre ${team.teamName}`}
-                      />
-                    }
-                  >
-                    <Info className="size-3.5" />
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={6}
-                    className="max-w-xs text-xs font-normal leading-relaxed p-3 shadow-lg bg-slate-900 text-slate-100 dark:bg-slate-800 dark:text-slate-100 border border-slate-700"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-primary-foreground">
-                        <Building2 className="size-3 text-primary" />
-                        <span>{team.teamName}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 leading-normal">
-                        {team.description}
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : null}
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <CardTitle className="text-sm sm:text-base font-bold text-foreground tracking-tight leading-snug break-words">
+                  {team.teamName}
+                </CardTitle>
+
+                {/* Info Icon with Hover Tooltip for description */}
+                {team.description ? (
+                  <TooltipProvider delay={100}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground/60 hover:text-primary transition-colors focus:outline-none p-0.5 rounded-full hover:bg-primary/10 inline-flex items-center justify-center shrink-0"
+                            aria-label={`Información sobre ${team.teamName}`}
+                          />
+                        }
+                      >
+                        <Info className="size-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        align="start"
+                        sideOffset={6}
+                        className="max-w-xs text-xs font-normal leading-relaxed p-3 shadow-lg bg-slate-900 text-slate-100 dark:bg-slate-800 dark:text-slate-100 border border-slate-700"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-primary-foreground">
+                            <Building2 className="size-3 text-primary" />
+                            <span>{team.teamName}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-normal">
+                            {team.description}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : null}
+              </div>
+            </div>
           </div>
 
-          {/* Candidate Count Badge */}
+          {/* Candidate Count Badge: Shrink-resistant and guaranteed whole */}
           <Badge
             variant={team.totalCandidates > 0 ? 'default' : 'outline'}
-            className={`text-xs font-mono font-medium shrink-0 ${
+            className={`text-xs font-mono font-medium shrink-0 whitespace-nowrap mt-0.5 ${
               team.totalCandidates > 0
                 ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
                 : 'text-muted-foreground'
@@ -90,7 +96,8 @@ export function TeamCard({ team }: TeamCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+      {/* Card Content with standard stats */}
+      <CardContent className="p-4 sm:p-5 space-y-4 flex-1 flex flex-col justify-between">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-muted/40 border text-center">
