@@ -407,3 +407,53 @@ Este proyecto utiliza el **Model Context Protocol (MCP)** para extender las capa
 - **Cambios en Esquema**: No aplicar SQL a ciegas; usar `mcp_supabase_list_tables` para verificar el estado actual antes de proponer una migración incremental.
 - **Integración de Código**: Al finalizar una tarea, usar `mcp_github-mcp-server_create_pull_request` para mover cambios a `main` siguiendo el flujo de trabajo oficial de la organización.
 - **Gobernanza**: El agente debe preferir herramientas MCP sobre comandos manuales (scripts ad-hoc) siempre que exista una herramienta oficial disponible para la tarea.
+
+---
+
+## 13. Catálogo Exhaustivo de Componentes de la Aplicación y sus Roles
+
+A continuación se detalla cada componente del proyecto, su ubicación en el árbol de código, su ámbito de uso (*Candidato, Evaluador, Admin o Compartido*) y su responsabilidad técnica en el sistema:
+
+### 13.1 Componentes del Candidato (`src/components/candidate/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`CandidateContext`** | `src/components/candidate/CandidateContext.tsx` | **Gestor de Estado Global del Candidato**: Controla el ciclo de vida de la prueba, el cronómetro continuo ininterrumpido (`started_at`), la persistencia del consentimiento legal (T&C y Habeas Data), el nivel educativo, y el detector de desenfoques de ventana (`visibilitychange` / `blur`). |
+| **`CandidateHeader`** | `src/components/candidate/CandidateHeader.tsx` | **Barra Superior Persistente**: Muestra la identidad del candidato, el estado del proceso y alberga en su centro el temporizador visual interactivo. |
+| **`EvaluationTimer`** | `src/components/candidate/EvaluationTimer.tsx` | **Cronómetro Regresivo**: Renderiza el tiempo restante con transiciones de color semántico (Verde $\rightarrow$ Ámbar < 10 min $\rightarrow$ Rojo pulsante < 2 min) y micro-barra de progreso. No permite pausas por parte del candidato. |
+| **`TabSwitchWarningModal`** | `src/components/candidate/TabSwitchWarningModal.tsx` | **Control de Integridad y Foco**: Despliega una advertencia visual inmediata si el candidato abandona la pestaña o minimiza la ventana, contabilizando los intentos (máx. 4 permitidos) y registrando eventos de auditoría. |
+| **`QuestionPanel`** | `src/components/candidate/QuestionPanel.tsx` | **Panel Genérico de Preguntas y Respuestas**: Renderiza preguntas teóricas o de desarrollo con persistencia de texto, autoguardado y restricciones anti-copia (`onPaste`, `onCopy` bloqueados). |
+| **`FormattedQuestion`** | `src/components/candidate/FormattedQuestion.tsx` | **Renderizador de Código IDE macOS**: Transforma bloques Markdown (` ```python ` o inline ` `code` `) en tarjetas oscuras de código con números de línea, sintaxis coloreada y botón de copiado al portapapeles. |
+| **`TelemetryChatRenderer`** | `src/components/candidate/TelemetryChatRenderer.tsx` | **Consola Interactiva de Observabilidad**: Transforma respuestas de IA en consolas APM oscuras simulando Dynatrace/Grafana, resaltando errores (HTTP 500/504), latencias (P50/P99) y chips interactivos con copiado de queries para PromQL, Loki y kubectl. |
+| **`TerminalSandbox`** | `src/components/candidate/TerminalSandbox.tsx` | **Simulador de Terminal Linux**: Emulador interactivo CLI con sistema de archivos virtual en memoria (`ls`, `ps`, `top`, `grep`, `systemctl`, `cat /var/log/syslog`) que captura comandos y los almacena en `dynamic_tests` (`TERMINAL_A1`). |
+| **`ChatbotA4`** | `src/components/candidate/ChatbotA4.tsx` | **Consola de Investigación Asistida por IA**: Interfaz de chat en vivo con Gemini 3.7 Flash para simular investigación de incidentes P1 en producción, con auto-enfoque permanente y telemetría estructurada. |
+| **`TicketEditor`** | `src/components/candidate/TicketEditor.tsx` | **Editor Formal de Tickets GLPI**: Formulario de redacción de tickets de incidente con plantilla estructurada precargada, autoguardado y modal de confirmación para restablecer la plantilla inicial. |
+| **`PromptEditorIA2`** | `src/components/candidate/PromptEditorIA2.tsx` | **Editor de Ingeniería de Prompts**: Espacio de trabajo para que el candidato diseñe prompts técnicos avanzados para observabilidad, exento de restricciones de pegado para fomentar experimentación. |
+| **`tabs/A1Tab`, `A2Tab`, `A3Tab`, `A4Tab`** | `src/components/candidate/tabs/` | **Subvistas Especializadas de Dimensión A**: Componentes modulares que orquestan las preguntas de Linux/AWS (A1), Observabilidad (A2), Git/Pandas (A3) y Troubleshooting (A4). |
+| **`tabs/B1Tab`, `IATab`** | `src/components/candidate/tabs/` | **Subvistas Especializadas de Dimensiones B y D**: Fragmentos de interfaz para la redacción del ticket GLPI (B1) y las pruebas de uso de IA (IA-1 e IA-2). |
+
+---
+
+### 13.2 Componentes del Evaluador (`src/components/evaluator/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`DimensionAEvaluation`** | `src/components/evaluator/DimensionAEvaluation.tsx` | **Panel de Calificación Técnica (50 pts)**: Consolida los submódulos A1 (15), A2 (15), A3 (10 normalizado) y A4 (10 normalizado). Proporciona guardado masivo con feedback visual explícito (`alert`) y sincronización en `evaluations.score_a`. |
+| **`DimensionBEvaluation`** | `src/components/evaluator/DimensionBEvaluation.tsx` | **Panel de Calificación de Blandas (30 pts)**: Evalúa B1 (Registro GLPI - 10 pts), B2 (Comunicación Verbal - 10 pts) y B3 (Colaboración y Presión - 10 pts) con sugerencias automáticas de la IA. |
+| **`DimensionCEvaluation`** | `src/components/evaluator/DimensionCEvaluation.tsx` | **Panel de Calificación Cultural (20 pts)**: Califica C1 (Aprendizaje Autónomo - 7 pts), C2 (Adaptabilidad - 7 pts) y C3 (Trabajo en Equipo - 6 pts). |
+| **`DimensionDEvaluation`** | `src/components/evaluator/DimensionDEvaluation.tsx` | **Panel de Calificación de IA (10 pts)**: Califica el uso conceptual (IA-1 - 5 pts) y la ingeniería de prompts (IA-2 - 5 pts) para desempate y ruta de onboarding. |
+| **`FinalScoreCard`** | `src/components/evaluator/FinalScoreCard.tsx` | **Tarjeta de Cierre y Dictamen Final**: Calcula el score global $[0, 100]$, la clasificación ejecutiva (Listo, Nivelación, Preparación, Rol actual) y ejecuta el generador de dictamen narrativo con Gemini 3.7 Flash. |
+| **`TimerAdjuster`** | `src/components/evaluator/TimerAdjuster.tsx` | **Control de Temporizador en Vivo**: Permite al evaluador añadir minutos (+5, +10, +15) o fijar un tiempo exacto en caliente, visualizando la telemetría de cambios de ventana del candidato. |
+| **`RadarChartComponent`** | `src/components/evaluator/RadarChartComponent.tsx` | **Gráfico Radial de Competencias**: Renderiza con Recharts el perfil multidimensional del candidato comparado con el estándar del rol. |
+| **`A1SubEvaluation` ... `A4SubEvaluation`** | `src/components/evaluator/dimension-a/` | **Módulos de Inspección de Evidencias**: Permiten al evaluador revisar la telemetría de terminal Linux ejecutada (A1), respuestas de observabilidad (A2), análisis de código Pandas (A3) y el historial de chat interactivo con la consola APM enriquecida (A4). |
+
+---
+
+### 13.3 Componentes Compartidos y UI Base (`src/components/ui/`, `src/components/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`CompanyLogo`** | `src/components/CompanyLogo.tsx` | Identidad corporativa oficial de SETI / Opera con soporte para modo claro/oscuro. |
+| **`ScrollToTopButton`** | `src/components/evaluator/ScrollToTopButton.tsx` | Botón flotante accesible de retorno al inicio en formularios largos de evaluación. |
+| **`ui/*`** (Card, Button, Dialog, Tooltip, Input, Textarea, Slider, Progress) | `src/components/ui/` | Primitivos atómicos de diseño basados en Shadcn UI y Tailwind CSS v4, asegurando accesibilidad y consistencia visual en toda la suite. |
+

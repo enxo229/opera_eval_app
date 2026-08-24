@@ -8,6 +8,7 @@ import NextImage from 'next/image'
 import { Bot, User, Send, ChevronDown, ChevronUp, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { handleCandidateChat, generateDynamicCaseA4 } from '@/app/actions/ai'
 import { saveA4ChatSession, getA4State, saveA4Case } from '@/app/actions/candidate/a4'
+import { TelemetryChatRenderer } from './TelemetryChatRenderer'
 
 export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: string | null; onStatusChange?: (finished: boolean) => void }) {
     const [caseText, setCaseText] = useState<string | null>(null)
@@ -200,15 +201,15 @@ export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: stri
                 <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
                     {messages.map((msg, i) => (
                         <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] rounded-lg p-3 shadow-sm border ${msg.role === 'user'
+                            <div className={`max-w-[88%] rounded-xl p-3.5 shadow-sm border ${msg.role === 'user'
                                 ? 'bg-primary/10 border-primary/20 text-foreground'
-                                : 'bg-secondary border-secondary/50 text-secondary-foreground'
+                                : 'bg-card border-border/80 text-foreground'
                                 }`}>
-                                <div className="flex items-center gap-2 mb-1 opacity-70 text-xs font-mono uppercase">
+                                <div className="flex items-center gap-2 mb-1.5 opacity-70 text-xs font-mono uppercase">
                                     {msg.role === 'user' ? <User className="w-3 h-3 text-primary" /> : <NextImage src="/icons/AIAgent.png" alt="IA" width={24} height={24} />}
-                                    {msg.role}
+                                    <span>{msg.role === 'user' ? 'Tú (Candidato)' : 'Consola de Observabilidad (IA)'}</span>
                                 </div>
-                                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                                <TelemetryChatRenderer content={msg.text} isAi={msg.role === 'ai'} />
                             </div>
                         </div>
                     ))}

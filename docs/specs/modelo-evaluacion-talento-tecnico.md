@@ -89,35 +89,35 @@ Antes de aplicar la evaluación, el candidato debe cumplir al menos uno de los s
 
 ### A4. Pensamiento Analítico Técnico / Troubleshooting (10 puntos)
 
-*Esta sección se evalúa mediante una situación práctica presentada en la plataforma.*
+*Esta sección se evalúa mediante una consola interactiva de investigación asistida por IA (`ChatbotA4` + `TelemetryChatRenderer`) que simula herramientas de observabilidad en vivo (Dynatrace, Grafana Loki, Prometheus, Kubernetes).*
 
-**Caso práctico:**
-> "Se recibe una alerta crítica de degradación de servicio en una aplicación web monitoreada con Dynatrace y Grafana. Los usuarios reportan lentitud y aumento en la tasa de errores HTTP 500. ¿Cuáles serían tus pasos estructurados para aislar la causa raíz utilizando dashboards de métricas, transacciones APM y logs?"
+**Caso práctico dinámico:**
+> Se presenta un incidente P1 en producción con degradación de transacciones, aumento en la tasa de errores HTTP 500 y picos de latencia P99. El candidato interactúa en lenguaje natural solicitando métricas de servicios, logs de excepciones, estado de pods o consultas LogQL/PromQL, interpretando la telemetría simulada en tiempo real.
 
-| Criterio de evaluación | 0 | 2 | 4 | 5 | Comentario |
-|---|---|---|---|---|---|
-| Identifica fuentes de información relevantes (métricas de servicio, traces APM, logs de excepciones) | | | | | |
-| Propone una secuencia lógica y estructurada de investigación (aislar componente degradado) | | | | | |
-| Diferencia con precisión entre el síntoma (lentitud) y la causa raíz técnica | | | | | |
-| **Subtotal A4** | *(Normalizado a 10 puntos)* | | | **/10** | |
+| Criterio de evaluación (A4.1 - A4.3) | Escala (0-3) | Ponderación |
+|---|---|---|
+| **A4.1 Identificación de Fuentes**: Solicita fuentes correctas (traces APM, logs de excepciones, métricas clave) | 0 a 3 | Base 3 |
+| **A4.2 Lógica de Investigación**: Sigue un flujo estructurado de aislamiento (sin saltos erráticos) | 0 a 3 | Base 3 |
+| **A4.3 Diagnóstico y Causa Raíz**: Llega a una conclusión técnica válida diferenciando síntoma de causa | 0 a 3 | Base 3 |
+| **Subtotal A4** | *(Puntaje obtenido / 9) × 10* | **/10** |
 
 ---
 
 ## 5. DIMENSIÓN B — HABILIDADES BLANDAS (30 puntos)
 
-### B1. Comunicación Técnica Escrita — Registro de Incidente (10 puntos)
+### B1. Comunicación Técnica Escrita — Registro de Incidente en GLPI (10 puntos)
 
-**Escenario para el candidato:**
-> Son las 2:47 a.m. del martes. Recibes una alerta crítica: *"CRITICAL – High Latency & HTTP 500 Spike – srv-prod-payments-01"*.
+**Escenario dinámico para el candidato (2 párrafos concisos, máx. 150 palabras):**
+> Alerta crítica de latencia y errores en microservicio de producción. Telemetría en Dynatrace/Grafana, escalamiento vía AlertOps y coordinación en sala de crisis de Microsoft Teams.
 > 
-> En Grafana observas que la latencia P99 subió a 4.8s y en Dynatrace el servicio `payment-gateway` registra excepciones de timeout hacia la base de datos PostgreSQL. Tras escalar al ingeniero de turno, este confirma que a las 3:15 a.m. ejecutó un reinicio del pool de conexiones y el servicio se restableció con normalidad.
-> 
-> **Tu tarea:** Documenta este incidente de la forma más completa y estructurada posible (Descripción, Impacto, Cronología, Causa Inmediata y Solución).
+> **Tu tarea:** Documentar el ticket formal de incidente en **GLPI** utilizando la plantilla institucional estructurada (*Fecha/Hora UTC, Servidor/Servicio, Prioridad, Métricas Dynatrace/Grafana, Escalamiento AlertOps/Teams, Resolución y Afectación*).
 
-**Rúbrica B1 (10 puntos):**
-- **Estructura y Campos Clave (0–3 pts)**: Claridad, secciones completas y cronología.
-- **Precisión Técnica (0–3 pts)**: Identificación de servicios, métricas, latencia y tiempos.
-- **Impacto y Acciones Documentadas (0–4 pts)**: Afectación de negocio descrita con exactitud y trazabilidad de acciones tomadas.
+**Rúbrica B1 (Normalizada a 10 puntos a partir de escala base 16):**
+- **Estructura del Registro en GLPI (1–4 pts)**: Completitud y orden de la plantilla formal.
+- **Precisión Técnica (1–4 pts)**: Identificación de hosts, servicios, excepciones y métricas reales.
+- **Acciones y Escalamiento (1–4 pts)**: Registro de guardia en AlertOps, sala de Teams y mitigación.
+- **Impacto al Negocio (1–4 pts)**: Cuantificación del tiempo de indisponibilidad y usuarios afectados.
+- **Subtotal B1**: $(\text{Puntaje Obtenido} / 16) \times 10 \rightarrow \mathbf{10\text{ pts}}$.
 
 ---
 
