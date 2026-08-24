@@ -1,15 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
+import { getTeams } from '@/app/actions/teams'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { DEFAULT_SQUADS } from '@/lib/schemas/user-form'
-import { Building2, Users, CheckCircle2, Award, Clock } from 'lucide-react'
+import { CreateTeamDialog } from '@/components/evaluator/CreateTeamDialog'
+import { Building2, Users, CheckCircle2, Award, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TeamsManagementPage() {
   const supabase = await createClient()
 
-  // 1. Fetch selection processes with team info and evaluations
+  // 1. Fetch official teams catalog from DB
+  const officialTeams = await getTeams()
+
+  // 2. Fetch selection processes with evaluations
   const { data: processes } = await supabase
     .from('selection_processes')
     .select(`
@@ -26,11 +30,13 @@ export default async function TeamsManagementPage() {
       )
     `)
 
-  // 2. Aggregate stats per squad/team
+  // 3. Aggregate stats per squad/team
   const teamStatsMap = new Map<
     string,
     {
+      id?: string
       teamName: string
+      description: string | null
       totalCandidates: number
       activeProcesses: number
       completedEvaluations: number
@@ -39,10 +45,12 @@ export default async function TeamsManagementPage() {
     }
   >()
 
-  // Initialize with default squads
-  DEFAULT_SQUADS.forEach((sq) => {
-    teamStatsMap.set(sq, {
-      teamName: sq,
+  // Initialize with official catalog from database
+  officialTeams.forEach((t) => {
+    teamStatsMap.set(t.name, {
+      id: t.id,
+      teamName: t.name,
+      description: t.description,
       totalCandidates: 0,
       activeProcesses: 0,
       completedEvaluations: 0,
@@ -51,13 +59,14 @@ export default async function TeamsManagementPage() {
     })
   })
 
-  // Populate aggregates
+  // Populate aggregates from actual processes
   if (processes) {
     processes.forEach((proc) => {
-      const teamName = (proc.team || 'Sin asignar').trim()
+      const teamName = (proc.team || 'Sin asignar').trim().toUpperCase()
       if (!teamStatsMap.has(teamName)) {
         teamStatsMap.set(teamName, {
           teamName,
+          description: null,
           totalCandidates: 0,
           activeProcesses: 0,
           completedEvaluations: 0,
@@ -84,22 +93,33 @@ export default async function TeamsManagementPage() {
     })
   }
 
-  const teamsList = Array.from(teamStatsMap.values()).sort((a, b) => b.totalCandidates - a.totalCandidates)
+  // Sort teams: first by totalCandidates DESC, then alphabetically
+  const teamsList = Array.from(teamStatsMap.values()).sort((a, b) => {
+    if (b.totalCandidates !== a.totalCandidates) {
+      return b.totalCandidates - a.totalCandidates
+    }
+    return a.teamName.localeCompare(b.teamName)
+  })
 
   return (
     <div className="space-y-6">
-      {/* Heading */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-          <Building2 className="size-7 text-primary" />
-          Equipos y Squads
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Distribución de candidatos, métricas de rendimiento y progreso por Squad del programa.
-        </p>
+      {/* Header & Create Team Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <Building2 className="size-7 text-primary" />
+            Catálogo de Equipos y Squads
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Distribución oficial de candidatos, métricas de rendimiento y cobertura técnica por célula.
+          </p>
+        </div>
+
+        {/* Modal Button to create a new team */}
+        <CreateTeamDialog />
       </div>
 
-      {/* Squad Cards Grid */}
+      {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {teamsList.map((t) => {
           const avgScore =
@@ -113,16 +133,30 @@ export default async function TeamsManagementPage() {
               className="border shadow-xs bg-card hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col"
             >
               <CardHeader className="p-5 pb-3 border-b bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <Building2 className="size-4" />
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-primary/10 text-primary shrink-0">
+                        <Building2 className="size-4" />
+                      </div>
+                      <CardTitle className="text-sm sm:text-base font-bold text-foreground tracking-tight">
+                        {t.teamName}
+                      </CardTitle>
                     </div>
-                    <CardTitle className="text-base font-semibold text-foreground">
-                      {t.teamName}
-                    </CardTitle>
+                    {t.description && (
+                      <CardDescription className="text-xs line-clamp-2 pt-0.5">
+                        {t.description}
+                      </CardDescription>
+                    )}
                   </div>
-                  <Badge variant="outline" className="text-xs font-mono font-medium">
+                  <Badge
+                    variant={t.totalCandidates > 0 ? 'default' : 'outline'}
+                    className={`text-xs font-mono font-medium shrink-0 ${
+                      t.totalCandidates > 0
+                        ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
                     {t.totalCandidates} {t.totalCandidates === 1 ? 'candidato' : 'candidatos'}
                   </Badge>
                 </div>
@@ -158,7 +192,7 @@ export default async function TeamsManagementPage() {
                       Promedio de Score:
                     </span>
                     <span className="font-mono font-bold text-foreground">
-                      {avgScore ? `${avgScore} / 100` : 'Sin datos'}
+                      {avgScore ? `${avgScore} / 100` : 'Sin evaluaciones'}
                     </span>
                   </div>
 

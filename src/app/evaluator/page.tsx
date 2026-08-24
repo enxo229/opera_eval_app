@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getTeams } from '@/app/actions/teams'
 import { KpiSummaryCards, EvaluatorKpis } from '@/components/evaluator/KpiSummaryCards'
 import { CandidatesDataTable, CandidateRowData } from '@/components/evaluator/CandidatesDataTable'
 import { DEFAULT_SQUADS } from '@/lib/schemas/user-form'
@@ -53,6 +54,14 @@ export default async function EvaluatorDashboard() {
     .select('id, candidate_email, candidate_national_id, team, status, created_at')
     .order('created_at', { ascending: false })
 
+  // 5. Fetch official teams catalog from database
+  const officialTeams = await getTeams()
+  const distinctTeams = new Set<string>(
+    officialTeams.length > 0
+      ? officialTeams.map((t) => t.name)
+      : (DEFAULT_SQUADS as unknown as string[])
+  )
+
   // Build indexes for selection processes
   const processMap = new Map<string, any>()
   const procByEmail = new Map<string, any>()
@@ -69,13 +78,13 @@ export default async function EvaluatorDashboard() {
           procByNatId.set(p.candidate_national_id.trim(), p)
         }
       }
+      if (p.team && p.team.trim()) {
+        distinctTeams.add(p.team.trim().toUpperCase())
+      }
     })
   }
 
-  // Extract distinct squads
-  const distinctTeams = new Set<string>(DEFAULT_SQUADS as unknown as string[])
-
-  // 5. Map candidates data to CandidateRowData
+  // 6. Map candidates data to CandidateRowData
   let activeCount = 0
   let completedCount = 0
   let readyCount = 0
@@ -98,7 +107,7 @@ export default async function EvaluatorDashboard() {
     }
 
     const team = linkedProcess?.team || null
-    if (team) distinctTeams.add(team.trim())
+    if (team) distinctTeams.add(team.trim().toUpperCase())
 
     const evalStatus = latestEval?.status || null
     const processStatus = linkedProcess?.status || (evalStatus === 'completed' ? 'completed' : 'active')
@@ -132,7 +141,7 @@ export default async function EvaluatorDashboard() {
     }
   })
 
-  // 6. Build KPI metrics object
+  // 7. Build KPI metrics object
   const kpis: EvaluatorKpis = {
     totalCandidates: candidates?.length || 0,
     totalEvaluators: totalEvaluators || 0,

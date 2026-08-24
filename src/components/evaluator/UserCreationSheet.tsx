@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sheet,
@@ -51,10 +51,16 @@ export function UserCreationSheet({
   const [password, setPassword] = useState('')
   const [nationalIdType, setNationalIdType] = useState('CC')
   const [nationalId, setNationalId] = useState('')
-  const [team, setTeam] = useState<string>(teams[0] || 'Squad Observabilidad')
-  const [customTeam, setCustomTeam] = useState('')
+  const [team, setTeam] = useState<string>(teams[0] || 'INTELISETISIMOS')
   const [trackId, setTrackId] = useState<string>(DEFAULT_TRACKS[0].id)
   const [observations, setObservations] = useState('')
+
+  // Sync team if teams prop updates
+  useEffect(() => {
+    if (teams && teams.length > 0 && !teams.includes(team)) {
+      setTeam(teams[0])
+    }
+  }, [teams, team])
 
   // Status feedback
   const [error, setError] = useState<string | null>(null)
@@ -67,8 +73,7 @@ export function UserCreationSheet({
     setPassword('')
     setNationalIdType('CC')
     setNationalId('')
-    setTeam(teams[0] || 'Squad Observabilidad')
-    setCustomTeam('')
+    setTeam(teams[0] || 'INTELISETISIMOS')
     setTrackId(DEFAULT_TRACKS[0].id)
     setObservations('')
     setError(null)
@@ -100,9 +105,8 @@ export function UserCreationSheet({
       return
     }
 
-    const effectiveTeam = team === '__other__' ? customTeam.trim() : team
-    if (role === 'candidate' && !effectiveTeam) {
-      setError('Debes seleccionar o ingresar un equipo para el candidato')
+    if (role === 'candidate' && !team) {
+      setError('Debes seleccionar un equipo para el candidato')
       return
     }
 
@@ -115,7 +119,7 @@ export function UserCreationSheet({
         role,
         nationalIdType,
         nationalId.trim(),
-        role === 'candidate' ? effectiveTeam : undefined,
+        role === 'candidate' ? team : undefined,
         role === 'candidate' ? observations.trim() : undefined,
         forceConfirm
       )
@@ -369,7 +373,7 @@ export function UserCreationSheet({
                     disabled={loading}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona un equipo" />
+                      <SelectValue placeholder="Selecciona un equipo del catálogo" />
                     </SelectTrigger>
                     <SelectContent>
                       {teams.map((sq) => (
@@ -377,20 +381,11 @@ export function UserCreationSheet({
                           {sq}
                         </SelectItem>
                       ))}
-                      <SelectItem value="__other__">Otro (Ingresar manualmente)...</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  {team === '__other__' && (
-                    <Input
-                      placeholder="Nombre del nuevo Squad / Equipo"
-                      value={customTeam}
-                      onChange={(e) => setCustomTeam(e.target.value)}
-                      className="mt-2 text-xs"
-                      disabled={loading}
-                      required
-                    />
-                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Los equipos disponibles provienen del catálogo oficial.
+                  </p>
                 </div>
 
                 {/* Observaciones */}

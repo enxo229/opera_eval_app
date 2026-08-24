@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getTeams } from '@/app/actions/teams'
 import { EvaluatorHeader } from '@/components/evaluator/EvaluatorHeader'
 import { EvaluatorNavTabs } from '@/components/evaluator/EvaluatorNavTabs'
 import { DEFAULT_SQUADS } from '@/lib/schemas/user-form'
@@ -26,17 +27,12 @@ export default async function EvaluatorLayout({
     userName = profile?.full_name || null
   }
 
-  // Get distinct teams from selection_processes to populate options
-  const { data: processes } = await supabase
-    .from('selection_processes')
-    .select('team')
-
-  const dynamicTeams = new Set<string>(DEFAULT_SQUADS as unknown as string[])
-  if (processes) {
-    processes.forEach((p) => {
-      if (p.team && p.team.trim()) dynamicTeams.add(p.team.trim())
-    })
-  }
+  // Get official teams catalog from database
+  const officialTeams = await getTeams()
+  const teamsList =
+    officialTeams.length > 0
+      ? officialTeams.map((t) => t.name)
+      : (DEFAULT_SQUADS as unknown as string[])
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
@@ -44,7 +40,7 @@ export default async function EvaluatorLayout({
       <EvaluatorHeader
         userEmail={user?.email}
         userName={userName}
-        teams={Array.from(dynamicTeams).sort()}
+        teams={teamsList}
       />
 
       {/* Global Navigation Tabs */}

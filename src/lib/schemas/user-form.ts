@@ -16,12 +16,25 @@ export const DEFAULT_TRACKS = [
 ] as const
 
 export const DEFAULT_SQUADS = [
-  'Squad Alpha',
-  'Squad Observabilidad',
-  'CoE SRE & Cloud',
-  'SRE Core',
-  'Operaciones TI',
-  'Infraestructura & Cloud',
+  'ALIADOS REVOLUTION',
+  'ALL-IN-ONE',
+  'ARTHEMIS',
+  'CELULAS EUROFINS',
+  'ECHO NEXUS',
+  'EQUIPO CALI',
+  'FUERZA DELTA',
+  'GRYFFINDOR',
+  'INTEGRATORS',
+  'INTELISETISIMOS',
+  'OPERA',
+  'SYNERGY',
+  'UNIO',
+  'X-FORCE',
+  'ZEUS',
+  'COE',
+  'TALENTO HUMANO',
+  'ADMINISTRATIVO Y FINANCIERO',
+  'SOPORTE TI',
 ] as const
 
 export const candidateSchema = z.object({
@@ -31,7 +44,7 @@ export const candidateSchema = z.object({
   fullName: z.string().trim().min(2, 'El nombre completo es requerido'),
   nationalIdType: z.string().min(1, 'Selecciona un tipo de documento'),
   nationalId: z.string().trim().min(3, 'Ingresa el número de identificación'),
-  team: z.string().trim().min(1, 'Selecciona o ingresa un equipo / squad'),
+  team: z.string().trim().min(1, 'Selecciona un equipo / squad'),
   trackId: z.string().optional(),
   observations: z.string().optional(),
 })
