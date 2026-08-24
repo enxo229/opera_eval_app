@@ -50,9 +50,7 @@ import {
   FileText,
   Lock,
   RotateCcw,
-  User,
   Users,
-  Filter,
   X,
   Loader2,
   Calendar,
@@ -91,10 +89,10 @@ export function CandidatesDataTable({
 }: CandidatesDataTableProps) {
   const router = useRouter()
 
-  // Filters State
+  // Filters State: Defaults to 'active' (Activos / Borrador)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<string>('active')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
   // Action Modals State
@@ -135,10 +133,17 @@ export function CandidatesDataTable({
       // 2. Status Filter
       if (statusFilter !== 'ALL') {
         const status = (row.processStatus || row.evaluationStatus || 'draft').toLowerCase()
-        if (statusFilter === 'active' && status !== 'active' && status !== 'draft') return false
-        if (statusFilter === 'in_progress' && status !== 'in_progress') return false
-        if (statusFilter === 'completed' && status !== 'completed') return false
-        if (statusFilter === 'closed' && status !== 'closed' && status !== 'archived') return false
+        if (statusFilter === 'active') {
+          // Matches any active, draft or in-progress evaluation
+          const isOngoing = status === 'active' || status === 'draft' || status === 'in_progress'
+          if (!isOngoing) return false
+        } else if (statusFilter === 'in_progress') {
+          if (status !== 'in_progress') return false
+        } else if (statusFilter === 'completed') {
+          if (status !== 'completed') return false
+        } else if (statusFilter === 'closed') {
+          if (status !== 'closed' && status !== 'archived') return false
+        }
       }
 
       // 3. Team Filter
@@ -209,11 +214,11 @@ export function CandidatesDataTable({
   const clearFilters = () => {
     setSearchTerm('')
     setDebouncedSearch('')
-    setStatusFilter('ALL')
+    setStatusFilter('active')
     setTeamFilter('ALL')
   }
 
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'ALL' || teamFilter !== 'ALL'
+  const hasNonDefaultFilters = searchTerm !== '' || statusFilter !== 'active' || teamFilter !== 'ALL'
 
   return (
     <div className="space-y-4">
@@ -242,14 +247,14 @@ export function CandidatesDataTable({
         {/* Dropdown Filters & Actions */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Filter */}
-          <div className="w-36">
+          <div className="w-40">
             <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as string)}>
-              <SelectTrigger className="h-9 text-xs">
+              <SelectTrigger className="h-9 text-xs font-medium">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Todos los Estados</SelectItem>
                 <SelectItem value="active">Activos / Borrador</SelectItem>
+                <SelectItem value="ALL">Todos los Estados ({data.length})</SelectItem>
                 <SelectItem value="in_progress">En Progreso</SelectItem>
                 <SelectItem value="completed">Completados</SelectItem>
                 <SelectItem value="closed">Cerrados / Archivados</SelectItem>
@@ -275,7 +280,7 @@ export function CandidatesDataTable({
           </div>
 
           {/* Reset Filters button */}
-          {hasActiveFilters && (
+          {hasNonDefaultFilters && (
             <Button
               variant="ghost"
               size="sm"
@@ -283,7 +288,7 @@ export function CandidatesDataTable({
               className="h-9 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
             >
               <RotateCcw className="size-3" />
-              Limpiar
+              Restablecer
             </Button>
           )}
 
@@ -320,11 +325,26 @@ export function CandidatesDataTable({
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                     <Users className="size-8 mx-auto mb-2 text-muted-foreground/50" />
-                    <p className="text-sm font-medium">No se encontraron candidatos</p>
+                    <p className="text-sm font-medium">
+                      {statusFilter === 'active'
+                        ? 'No hay evaluaciones activas o en borrador en este momento'
+                        : 'No se encontraron candidatos con los filtros seleccionados'}
+                    </p>
                     <p className="text-xs text-muted-foreground/80 mt-1">
-                      {hasActiveFilters
-                        ? 'Intenta ajustar los términos de búsqueda o filtros.'
-                        : 'Comienza creando un nuevo candidato mediante el botón superior.'}
+                      {statusFilter === 'active' ? (
+                        <span>
+                          Puedes cambiar el filtro a{' '}
+                          <button
+                            onClick={() => setStatusFilter('ALL')}
+                            className="text-primary underline font-medium hover:text-primary/80"
+                          >
+                            Todos los Estados
+                          </button>{' '}
+                          para ver los {data.length} candidatos históricos o crear uno nuevo arriba.
+                        </span>
+                      ) : (
+                        'Intenta ajustar los criterios de búsqueda.'
+                      )}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -347,7 +367,7 @@ export function CandidatesDataTable({
                           </div>
                           <div className="space-y-0.5">
                             <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
-                              <span>{candidate.fullName || 'Sin nombre registrado'}</span>
+                              <span>{candidate.fullName || 'Candidato Sin Nombre'}</span>
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-2">
                               <span>{candidate.email}</span>
@@ -527,11 +547,17 @@ export function CandidatesDataTable({
             Mostrando <strong className="text-foreground">{filteredData.length}</strong> de{' '}
             <strong className="text-foreground">{data.length}</strong> candidatos registrados
           </span>
-          {hasActiveFilters && (
-            <span className="text-amber-600 dark:text-amber-400 font-medium">
-              (Filtros activos aplicados)
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {statusFilter === 'active' ? (
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Filtro predeterminado: Activos / Borrador
+              </span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                Filtro personalizado: {statusFilter}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

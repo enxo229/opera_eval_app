@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import { UserCreationSheet } from '@/components/evaluator/UserCreationSheet'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,8 @@ interface EvaluatorHeaderProps {
 }
 
 export function EvaluatorHeader({ userEmail, userName, teams }: EvaluatorHeaderProps) {
+  const router = useRouter()
+
   return (
     <header className="border-b bg-card px-6 py-3.5 flex items-center justify-between shadow-2xs">
       {/* Brand & Project */}
@@ -36,8 +39,13 @@ export function EvaluatorHeader({ userEmail, userName, teams }: EvaluatorHeaderP
 
       {/* Quick Actions & User Info */}
       <div className="flex items-center gap-3">
-        {/* Drawer button */}
-        <UserCreationSheet teams={teams} />
+        {/* Drawer button with automatic router refresh */}
+        <UserCreationSheet
+          teams={teams}
+          onUserCreated={() => {
+            router.refresh()
+          }}
+        />
 
         <div className="h-5 w-px bg-border mx-1 hidden sm:block" />
 

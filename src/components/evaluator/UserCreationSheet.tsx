@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Sheet,
   SheetContent,
@@ -39,6 +40,7 @@ export function UserCreationSheet({
   customTrigger,
   teams = DEFAULT_SQUADS as unknown as string[],
 }: UserCreationSheetProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState<'candidate' | 'evaluator'>('candidate')
   const [loading, setLoading] = useState(false)
@@ -123,11 +125,13 @@ export function UserCreationSheet({
           `✅ ${role === 'candidate' ? 'Candidato' : 'Evaluador'} ${email} creado correctamente.`
         )
         resetForm()
+        router.refresh()
         onUserCreated?.()
         setTimeout(() => {
           setOpen(false)
           setSuccess(null)
-        }, 1200)
+          router.refresh()
+        }, 1000)
       } else if (result.warning) {
         setWarning(result.warning)
       } else {
