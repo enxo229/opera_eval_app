@@ -238,3 +238,84 @@ useEffect(() => {
 | `ScoreClassBadge` | Shadcn Badge | Badge de clasificación de puntaje con semántica de color. |
 | `ExportDataButton` | SheetJS / jsPDF / CSV | Dropdown con opciones de exportación instantánea en Excel/PDF. |
 | `ConfirmStatusModal` | Shadcn AlertDialog | Modal de confirmación para cerrar o reabrir procesos. |
+
+---
+
+## 8. Catálogo Oficial de Equipos (`public.teams`)
+
+### 8.1. Tabla de Equipos en Base de Datos
+
+Se ha implementado la tabla `public.teams` en Supabase como catálogo maestro de equipos. Los nombres se almacenan en **mayúscula sostenida** y son únicos (`UNIQUE NOT NULL`).
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `id` | `uuid` PK | Identificador único (gen_random_uuid) |
+| `name` | `text` UNIQUE NOT NULL | Nombre del equipo en mayúscula sostenida |
+| `description` | `text` | Descripción técnica del enfoque del equipo |
+| `created_at` | `timestamptz` | Fecha de creación |
+
+### 8.2. Equipos Oficiales (Seed Inicial)
+
+| Equipo | Enfoque |
+| :--- | :--- |
+| ALIADOS REVOLUTION | Datos |
+| ALL-IN-ONE | Operación de TI |
+| ARTHEMIS | Operación de TI |
+| CELULAS EUROFINS | Operación de TI |
+| COE | Centro de Excelencia Operativa |
+| ECHO NEXUS | Operación de TI |
+| EQUIPO CALI | Operación de TI |
+| FUERZA DELTA | Desarrollo |
+| GRYFFINDOR | Operación de TI |
+| INTEGRATORS | Operación de TI |
+| INTELISETISIMOS | Operación de TI |
+| OPERA | Operación de TI |
+| SYNERGY | Operación de TI |
+| UNIO | Operación de TI |
+| X-FORCE | Desarrollo |
+| ZEUS | Operación de TI |
+| TALENTO HUMANO | Gestión del Talento Humano |
+| ADMINISTRATIVO Y FINANCIERO | Administración y Finanzas |
+| SOPORTE TI | Soporte de Tecnologías de la Información |
+
+### 8.3. Reglas de Negocio
+
+1. **Normalización Forzada**: Al crear un equipo, el nombre se convierte automáticamente a mayúscula sostenida (`name.trim().toUpperCase()`).
+2. **Validación de Duplicados**: Server-side, se verifica con `ilike` antes de insertar para prevenir equipos duplicados.
+3. **Referencia Lógica**: `selection_processes.team` almacena el `name` del equipo (no el `id`), manteniendo compatibilidad con procesos históricos.
+4. **Backfill Histórico**: Los procesos previos con equipos no oficiales (ej. `Soprte`, `soporte`, `COE`, `coe`, `Soporte N1`, `Monitoreo`, `Sin asignar`) fueron migrados a equipos oficiales. El valor original se preservó concatenado en el campo `observations` para trazabilidad: `[Equipo previo: <valor_original>]`.
+5. **RLS**: Lectura pública (`SELECT` abierto para todos). Escritura restringida a evaluadores.
+
+### 8.4. Integración en la UI
+
+- **Formulario de Creación de Usuario (`UserCreationSheet`)**: El campo "Equipo / Squad" es un `<Select>` poblado dinámicamente desde `getTeams()`. No se permite texto libre.
+- **Búsqueda Histórica (`/evaluator/history`)**: El filtro de equipo es un `<Select>` desplegable con la opción "Todos los Equipos" por defecto.
+- **Vista de Equipos (`/evaluator/teams`)**: Tarjetas interactivas (`TeamCard`) con tooltip de descripción y botón de creación (`CreateTeamDialog`).
+
+---
+
+## 9. Mejoras de Responsividad y UX
+
+### 9.1. Tabla Responsiva con Acciones Sticky
+
+Para garantizar la usabilidad de la tabla en pantallas con múltiples columnas visibles:
+
+- La columna **"Acciones"** usa `sticky right-0` con sombra sutil (`shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]`) para mantener visibilidad permanente al hacer scroll horizontal.
+- Las celdas de acciones incluyen un fondo sólido (`bg-background`) para evitar transparencia al superponer contenido.
+
+### 9.2. Paginación Client-Side
+
+- **10 registros por página** con selector de página y botones de navegación (anterior/siguiente, primera/última).
+- Estado de paginación controlado en el cliente sin recarga de servidor.
+
+### 9.3. Auto-Refresh al Crear Usuario
+
+- Al completar la creación de un usuario en el `UserCreationSheet`, se ejecuta `router.refresh()` para actualizar tanto la tabla como los KPIs superiores sin necesidad de recarga manual.
+
+### 9.4. Filtro por Defecto
+
+- La tabla principal del evaluador carga por defecto con el filtro de estado en **"Activos / Borrador"**, mostrando únicamente los procesos en curso.
+
+### 9.5. Layout de Tarjetas de Equipo
+
+- Las tarjetas de equipo (`TeamCard`) usan un layout flex con `min-w-0` y `whitespace-nowrap shrink-0` en los badges numéricos para evitar compresión de nombres largos como `ADMINISTRATIVO Y FINANCIERO`.
