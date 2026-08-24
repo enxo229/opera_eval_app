@@ -4,12 +4,12 @@
 
 /** Available observability tool options for A2 evaluation */
 export const TOOL_OPTIONS = [
-    { value: 'Grafana', label: 'Grafana' },
-    { value: 'Elasticsearch/Kibana', label: 'Elasticsearch / Kibana' },
-    { value: 'Zabbix', label: 'Zabbix' },
     { value: 'Dynatrace', label: 'Dynatrace' },
+    { value: 'Grafana', label: 'Grafana' },
+    { value: 'AWS CloudWatch', label: 'AWS CloudWatch' },
     { value: 'Datadog', label: 'Datadog' },
-    { value: 'Otra herramienta de monitoreo', label: 'Otra' },
+    { value: 'Zabbix', label: 'Zabbix' },
+    { value: 'Otra herramienta de observabilidad', label: 'Otra' },
 ] as const
 
 /** Education level display labels */

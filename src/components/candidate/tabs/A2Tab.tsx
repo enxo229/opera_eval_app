@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { HelpCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { A2Question } from '@/app/actions/ai'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 import { TOOL_OPTIONS } from '@/lib/constants'
 import { useCandidateContext } from '@/context/CandidateContext'
 
@@ -43,10 +44,10 @@ export function A2Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <HelpCircle className="h-5 w-5 text-primary" />
-                A2. Observabilidad y Monitoreo
+                A2. Observabilidad, SRE & APM
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-                Selecciona la herramienta de observabilidad que mejor conozcas. Las preguntas se adaptarán a tu experiencia.
+                Selecciona la plataforma de observabilidad que conozcas (Dynatrace, Grafana, CloudWatch, etc.). Se evaluarán pilares, conceptos SRE (SLI/SLO), dashboards y diagnóstico de alertas.
             </p>
 
             {!a2SelectedTool ? (
@@ -81,7 +82,7 @@ export function A2Tab({
                                         <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                         <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground select-none pointer-events-none">{q.question}</p>
+                                    <FormattedQuestion text={q.question} />
                                     <textarea
                                         value={a2Answers[q.subcategory] || ''}
                                         onChange={(e) => setA2Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}

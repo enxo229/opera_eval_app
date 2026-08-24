@@ -8,17 +8,17 @@ import { analyzeAiLikelihood } from '@/app/actions/ai-detector'
  * Fuerza la generación de feedback usando el modelo Lite.
  */
 export async function generateNarrativeFeedbackLite(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
-Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+Tu objetivo es consolidar los resultados de una evaluación para un candidato a Analista de Observabilidad Junior.
 
-CONTEXTO DE LA EVALUACIÓN:
+CONTEXTO DE LA EVALUACIÓN (Linux, AWS Cloud, Dynatrace, Grafana, Git, Pandas, GLPI, AlertOps, Teams):
 ${context}
 
 INSTRUCCIONES:
-1. Analiza el desempeño global.
-2. Genera un "Relato Final" de 2-3 párrafos profesional y constructivo.
+1. Analiza el desempeño global y la clasificación obtenida.
+2. Genera un "Relato Final" de 2-3 párrafos profesional, constructivo y de mentoría.
 3. Identifica una lista de "Fortalezas" (mínimo 3).
-4. Identifica una lista de "Brechas" (mínimo 2).
+4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2).
 
 Responde ÚNICAMENTE con JSON:
 {
@@ -77,20 +77,26 @@ export type AINarrativeReport = {
 
 /**
  * Genera un feedback narrativo consolidado, fortalezas y brechas basado en toda la evaluación.
- * Usa la cadena de modelos de REPORTE (Gemma 4 31B -> 26B -> Gemini Flash Lite).
+ * Usa la cadena de modelos de REPORTE (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite).
  */
 export async function generateNarrativeFeedback(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y SRE. 
-Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un rol de Analista de Observabilidad Junior.
+    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un candidato a Analista de Observabilidad Junior.
 
-CONTEXTO DE LA EVALUACIÓN (Scores, Comentarios del Evaluador y Respuestas del Candidato):
+STACK Y ÁREAS EVALUADAS:
+- Dimensión A (Técnica /50): Linux & AWS Cloud Core (A1), Observabilidad/SRE con Dynatrace y Grafana (A2), Git & Analítica/Automatización con Python y Pandas (A3), Troubleshooting y Causa Raíz (A4).
+- Dimensión B (Blandas /30): Documentación formal de incidentes en GLPI (B1), Comunicación Verbal con Stakeholders (B2), Colaboración y Priorización de Alertas con AlertOps/Teams (B3).
+- Dimensión C (Actitudinal /20): Aprendizaje Autónomo (C1), Adaptabilidad al Cambio (C2), Proyección hacia SRE (C3).
+- Dimensión IA (/10): Criterio y Prompt Engineering aplicado a Observabilidad.
+
+CONTEXTO DE LA EVALUACIÓN (Scores, Comentarios del Evaluador y Evidencias):
 ${context}
 
 INSTRUCCIONES:
-1. Analiza el desempeño global.
-2. Genera un "Relato Final" (narrativa) de unos 2-3 párrafos que sea profesional, constructivo y directamente compartible con el candidato. Debe tener un tono de mentoría.
-3. Identifica una lista de "Fortalezas" (mínimo 3).
-4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2).
+1. Analiza el desempeño global y la clasificación obtenida.
+2. Genera un "Relato Final" (narrativa ejecutiva) de 2-3 párrafos profesional, constructivo y con tono de mentoría técnica para el candidato.
+3. Identifica una lista de "Fortalezas" (mínimo 3) destacando sus mejores competencias demostradas.
+4. Identifica una lista de "Brechas o Áreas de Mejora" (mínimo 2) alineadas al plan de formación del CoE.
 
 Responde ÚNICAMENTE con un JSON válido con esta estructura:
 {
@@ -122,9 +128,9 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura:
 
 // NUEVO: Handler para el Chat interactivo A4 llamado desde Client Component
 export async function handleCandidateChat(history: string, userInput: string): Promise<string> {
-    const prompt = `Eres una simulación de consola de logs/backend (Grafana/Kibana) durante un incidente P1. 
-Responde de forma técnica y concisa simulando el resultado que arrojarían los logs o métricas según lo que el usuario pida.
-Intenta ser realista: si pide logs sin filtrar, dile que hay demasiada data. Si pide logs específicos, dáselos.
+    const prompt = `Eres una simulación de consola de observabilidad y logs (Dynatrace / Grafana Loki) durante un incidente P1 en producción. 
+Responde de forma técnica y concisa simulando el resultado que arrojarían las métricas, trazas o logs según lo que el usuario pida.
+Intenta ser realista: si pide logs sin filtrar, dile que hay demasiada data. Si pide logs o métricas específicas, dáselos.
 
 Historial:
 ${history}
@@ -247,35 +253,35 @@ Formato exacto:
         ? 'Pregunta exploratoria: "¿Conoce el concepto de X? Si es así, ¿podría explicarlo en sus palabras?"'
         : 'Pregunta de explicación directa: "Explique en sus palabras X y cómo se aplica"'
 
-    const prompt = `Eres un evaluador técnico de infraestructura para Analistas de Observabilidad Junior.
-Genera exactamente 5 preguntas en español, una por cada subcategoría de A1, adaptadas al nivel educativo "${educationLevel}".
+    const prompt = `Eres un evaluador técnico de infraestructura y sistemas para Analistas de Observabilidad Junior.
+Genera exactamente 5 preguntas en español, una por cada subcategoría de A1 (Linux y Cloud Computing AWS), adaptadas al nivel educativo "${educationLevel}".
 
 Estilo de preguntas a usar: ${questionStyle}
 
 Subcategorías:
-1. A1.1 — Linux: administración básica (navegar filesystem, permisos, procesos, logs)
-2. A1.2 — Windows Server: servicios, visor de eventos
-3. A1.3 — Redes: modelo OSI, TCP/IP, puertos, DNS
-4. A1.4 — Contenedores: qué es Docker, para qué se usa
-5. A1.5 — Cloud: IaaS/PaaS/SaaS, diferencia on-premise vs cloud
+1. A1.1 — Linux Filesystem & Permisos: navegar directorios, permisos chmod/chown, gestión de archivos
+2. A1.2 — Linux Procesos & Servicios: listar y detener procesos (ps, top, kill), gestión de servicios (systemctl status/restart)
+3. A1.3 — Linux Logs & Troubleshooting: inspección de logs del sistema (/var/log, journalctl, tail -f, grep)
+4. A1.4 — Fundamentos Cloud Computing: modelos IaaS / PaaS / SaaS, alta disponibilidad y escalabilidad en nube
+5. A1.5 — AWS Core Services & Seguridad: servicios core (EC2, S3, CloudWatch), Modelo de Responsabilidad Compartida
 
 Contexto: El candidato viene de un rol de soporte (NOC/Soporte Nivel 1). NO es un examen de ingeniería.
-Se evalúa comprensión conceptual y capacidad de explicar, no resolución de problemas avanzados.
+Se evalúa comprensión conceptual y capacidad de explicar procedimientos operativos en Linux y conceptos esenciales de Cloud AWS.
 
 Reglas:
+- NO incluyas preguntas sobre Windows Server, redes OSI/TCP ni Docker/contenedores.
 - Cada pregunta debe poder responderse en 2-4 oraciones.
-- Las preguntas deben ser justas para el nivel ${educationLevel}.
-- Cada pregunta debe plantear una situación o problema práctico del mundo real en infraestructura (ej: "Tienes que buscar un log de error en el directorio X...", "Un servidor reporta lentitud..."). Evita preguntas directas de definición teórica (como "¿Qué es X?").
+- Cada pregunta debe plantear una situación o problema práctico del mundo real (ej: "Tienes que buscar un log de error en /var/log...", "Un servicio se detuvo en Linux y debes reiniciarlo...", "Un cliente pregunta qué servicio de AWS usar para almacenar archivos estáticos...").
 - Usa variación (seed: ${seed}) para generar preguntas diferentes cada vez.
 - Responde ÚNICAMENTE con un JSON array de 5 objetos.
 
 Formato exacto:
 [
-  {"subcategory": "A1.1", "label": "Linux", "question": "..."},
-  {"subcategory": "A1.2", "label": "Windows Server", "question": "..."},
-  {"subcategory": "A1.3", "label": "Redes", "question": "..."},
-  {"subcategory": "A1.4", "label": "Contenedores", "question": "..."},
-  {"subcategory": "A1.5", "label": "Cloud", "question": "..."}
+  {"subcategory": "A1.1", "label": "Linux Filesystem", "question": "..."},
+  {"subcategory": "A1.2", "label": "Linux Procesos", "question": "..."},
+  {"subcategory": "A1.3", "label": "Linux Logs", "question": "..."},
+  {"subcategory": "A1.4", "label": "Cloud Computing", "question": "..."},
+  {"subcategory": "A1.5", "label": "AWS Core Services", "question": "..."}
 ]`
 
     const raw = await generateContentWithRetry(prompt)
@@ -288,11 +294,11 @@ Formato exacto:
     } catch (e) {
         log.ai.error('Error parseando preguntas A1', e as Error, { raw });
         return [
-            { subcategory: 'A1.1', label: 'Linux', question: '¿Conoce cómo navegar el sistema de archivos en Linux? Explique.' },
-            { subcategory: 'A1.2', label: 'Windows Server', question: '¿Sabe dónde revisar los eventos del sistema en Windows Server?' },
-            { subcategory: 'A1.3', label: 'Redes', question: '¿Conoce el modelo OSI? ¿Podría explicarlo?' },
-            { subcategory: 'A1.4', label: 'Contenedores', question: '¿Conoce qué es Docker y para qué se usa?' },
-            { subcategory: 'A1.5', label: 'Cloud', question: '¿Conoce la diferencia entre IaaS, PaaS y SaaS?' },
+            { subcategory: 'A1.1', label: 'Linux Filesystem', question: '¿Cómo buscarías un archivo en el sistema de archivos de Linux y cómo verificarías sus permisos de lectura y ejecución?' },
+            { subcategory: 'A1.2', label: 'Linux Procesos', question: 'Si un proceso consume demasiado CPU en un servidor Linux, ¿qué comandos usarías para identificarlo y detenerlo de forma segura?' },
+            { subcategory: 'A1.3', label: 'Linux Logs', question: '¿En qué directorio de Linux se almacenan habitualmente los logs del sistema y qué comando usarías para ver los logs en tiempo real?' },
+            { subcategory: 'A1.4', label: 'Cloud Computing', question: '¿Cuál es la principal diferencia entre IaaS y PaaS en entornos de nube? Explica con un ejemplo.' },
+            { subcategory: 'A1.5', label: 'AWS Core Services', question: '¿Qué función cumplen servicios como Amazon EC2, Amazon S3 y CloudWatch en una arquitectura básica de AWS?' },
         ]
     }
 }
@@ -317,21 +323,24 @@ export async function evaluateAnswersA1(
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de infraestructura y observabilidad. Evalúa las siguientes respuestas del candidato.
+    const prompt = `Eres un evaluador técnico senior de infraestructura y cloud TI. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Linux & AWS Cloud).
 
 ESCALA DE VALORACIÓN (aplica estrictamente):
 - 0 (Sin conocimiento): No conoce el concepto ni ha tenido contacto. Respuesta vacía, irrelevante o incorrecta.
 - 1 (Básico): Ha escuchado el concepto, puede describirlo vagamente pero no lo ha aplicado. Respuesta parcial.
-- 2 (Funcional): Lo ha aplicado en contexto real con supervisión. Respuesta correcta con comprensión técnica.
-- 3 (Autónomo / Experto): Lo aplica sin supervisión, demuestra profundidad y puede justificar trade-offs. Respuesta completa y articulada.
+- 2 (Funcional): Lo ha aplicado en contexto real con supervisión. Respuesta correcta con comprensión técnica/básica.
+- 3 (Autónomo): Lo aplica sin supervisión y puede explicarlo a otros. Respuesta completa y articulada.
+
+IMPORTANTE: NO es un examen de ingeniería senior. Es una evaluación de comprensión conceptual y operativa para soporte NOC/Observabilidad.
+Sé justo y proporcional. Un candidato que explica correctamente un concepto básico merece al menos un 2.
 
 RESPUESTAS A EVALUAR:
 
 ${qaBlock}
 
-Responde ÚNICAMENTE con un JSON array de objetos:
+Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
 [
-  {"subcategory": "A1.1", "label": "Linux", "score": 2, "justification": "Explica correctamente la arquitectura..."},
+  {"subcategory": "A1.1", "label": "Linux Filesystem", "score": 2, "justification": "..."},
   ...
 ]`
 
@@ -383,8 +392,7 @@ Responde ÚNICAMENTE con un JSON array de objetos:
 }
 
 /**
- * Genera 5 preguntas A2 (1 por subcategoría) adaptadas a la herramienta y nivel educativo.
- * A2.5 genera una alerta simulada que el candidato debe interpretar (entry-level).
+ * Genera 5 preguntas A2 (1 por subcategoría) adaptadas a Observabilidad, SRE, Dynatrace y Grafana.
  */
 export type A2Question = { subcategory: string; label: string; question: string }
 
@@ -430,34 +438,26 @@ Formato exacto:
     }
 
     const prompt = `Eres un evaluador técnico de observabilidad para Analistas Junior (entry-level).
-Genera exactamente 5 preguntas en español, una por cada subcategoría de A2, adaptadas a la herramienta "${tool}".
-
-IMPORTANTE: El nivel es ENTRY-LEVEL / Junior, sin importar el nivel educativo del candidato (${educationLevel}).
-Las preguntas deben ser conceptuales y prácticas básicas, NO de configuración avanzada.
+Genera exactamente 5 preguntas en español, una por cada subcategoría de A2, alineadas a Observabilidad, SRE (SLI/SLO), Dynatrace APM y Grafana Dashboards.
 
 Subcategorías:
-1. A2.1 — Monitoreo reactivo vs observabilidad proactiva: ¿cuál es la diferencia?
-2. A2.2 — Tres pilares de la observabilidad: Métricas, Logs y Trazas (que pueda definir cada uno)
-3. A2.3 — Uso de ${tool}: navegación, lectura de dashboards, filtros básicos
-4. A2.4 — Búsqueda de logs: cómo buscar logs, filtrar por campo y rango de tiempo en ${tool} u otra herramienta
-5. A2.5 — Interpretación de alertas: Genera una ALERTA SIMULADA realista (ejemplo: "ALERTA: CPU Usage > 90% en servidor web-prod-03 desde hace 15 minutos") y pide al candidato que la interprete. ¿Qué indica? ¿Qué haría como primer paso?
-
-La alerta de A2.5 debe ser realista, técnica pero comprensible para un junior.
+1. A2.1 — Pilares de Observabilidad: Métricas, Logs y Trazas; monitoreo reactivo vs observabilidad proactiva.
+2. A2.2 — SRE Fundamentals: Conceptos y diferencias entre SLI, SLO, SLA y qué representa un Error Budget.
+3. A2.3 — Dynatrace APM & IA: Monitoreo de rendimiento de aplicaciones (APM), transacciones de servicios y detección de anomalías con IA.
+4. A2.4 — Grafana Dashboards & Visualización: Interpretación de paneles, filtros temporales, dashboards unificados y fuentes de datos.
+5. A2.5 — Interpretación de Alertas: Genera una ALERTA SIMULADA realista de Dynatrace o Grafana (ej: "ALERTA: HTTP 500 error rate > 5% en servicio auth-service y latencia P95 > 3.2s") y pide al candidato que la interprete y proponga primeros pasos de diagnóstico.
 
 Reglas:
-- Cada pregunta debe poder responderse en 2-4 oraciones.
-- Las preguntas deben ser justas para nivel entry-level.
-- Cada pregunta debe plantear una situación o problema práctico del mundo real en observabilidad de sistemas (ej: "Tienes que investigar un bajón de tráfico en el dashboard X...", "Un servidor reporta uso de memoria Y..."). Evita preguntas directas de definición teórica (como "¿Qué es X?" o "¿Cuál es la diferencia entre A y B?").
-- Usa variación (seed: ${seed}).
-- Responde ÚNICAMENTE con un JSON array de 5 objetos.
-
-Formato exacto:
+- NO incluyas preguntas de Elasticsearch ni Kibana.
+- Nivel entry-level / junior (${educationLevel}).
+- Cada pregunta debe ser práctica y contextualizada.
+- Responde ÚNICAMENTE con un JSON array de 5 objetos:
 [
-  {"subcategory": "A2.1", "label": "Monitoreo vs Observabilidad", "question": "..."},
-  {"subcategory": "A2.2", "label": "Tres Pilares", "question": "..."},
-  {"subcategory": "A2.3", "label": "Dashboards en ${tool}", "question": "..."},
-  {"subcategory": "A2.4", "label": "Búsqueda de Logs", "question": "..."},
-  {"subcategory": "A2.5", "label": "Interpretación de Alertas", "question": "ALERTA: ... [alerta simulada]. ¿Qué indica esta alerta y cuáles serían tus primeros pasos?"}
+  {"subcategory": "A2.1", "label": "Pilares Observabilidad", "question": "..."},
+  {"subcategory": "A2.2", "label": "SRE (SLI/SLO)", "question": "..."},
+  {"subcategory": "A2.3", "label": "Dynatrace APM", "question": "..."},
+  {"subcategory": "A2.4", "label": "Grafana Dashboards", "question": "..."},
+  {"subcategory": "A2.5", "label": "Interpretación de Alertas", "question": "ALERTA: ... ¿Qué indica esta alerta y cuáles serían tus primeros pasos?"}
 ]`
 
     const raw = await generateContentWithRetry(prompt)
@@ -470,11 +470,11 @@ Formato exacto:
     } catch (e) {
         log.ai.error('Error parseando preguntas A2', e as Error, { raw });
         return [
-            { subcategory: 'A2.1', label: 'Monitoreo vs Observabilidad', question: '¿Cuál es la diferencia entre monitoreo reactivo y observabilidad proactiva? Explique con un ejemplo.' },
-            { subcategory: 'A2.2', label: 'Tres Pilares', question: '¿Cuáles son los tres pilares de la observabilidad? Defina cada uno brevemente.' },
-            { subcategory: 'A2.3', label: `Dashboards en ${tool}`, question: `¿Cómo navegaría un dashboard en ${tool} para identificar un problema de rendimiento?` },
-            { subcategory: 'A2.4', label: 'Búsqueda de Logs', question: '¿Cómo buscaría logs de error de los últimos 30 minutos? ¿Qué filtros usaría?' },
-            { subcategory: 'A2.5', label: 'Interpretación de Alertas', question: 'ALERTA: Memory Usage > 95% en servidor app-prod-01 desde hace 20 minutos. ¿Qué indica esta alerta y cuáles serían tus primeros pasos para investigar?' },
+            { subcategory: 'A2.1', label: 'Pilares Observabilidad', question: '¿Cuáles son los tres pilares de la observabilidad (métricas, logs, trazas) y en qué se diferencia el monitoreo reactivo de la observabilidad proactiva?' },
+            { subcategory: 'A2.2', label: 'SRE (SLI/SLO)', question: 'En SRE, ¿cuál es la diferencia entre un SLI (Indicador de Nivel de Servicio) y un SLO (Objetivo de Nivel de Servicio)? ¿Qué es un Error Budget?' },
+            { subcategory: 'A2.3', label: 'Dynatrace APM', question: '¿Cómo ayuda una herramienta de APM como Dynatrace a identificar rápidamente qué servicio o base de datos está causando lentitud en una aplicación?' },
+            { subcategory: 'A2.4', label: 'Grafana Dashboards', question: '¿Cómo utilizarías los filtros y variables de un dashboard en Grafana para analizar la tasa de errores y latencia de un microservicio específico?' },
+            { subcategory: 'A2.5', label: 'Interpretación de Alertas', question: 'ALERTA: Error rate > 8% y latencia P95 > 4.5s en servicio checkout-service durante los últimos 10 minutos. ¿Qué indica esta alerta y qué pasos iniciales tomarías para aislar el fallo?' },
         ]
     }
 }
@@ -499,9 +499,9 @@ export async function evaluateAnswersA2(
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de observabilidad. Evalúa las siguientes respuestas del candidato.
+    const prompt = `Eres un evaluador técnico senior de observabilidad y SRE. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Observabilidad, SRE, Dynatrace, Grafana).
 
-ESCALA DE VALORACIÓN (aplica strictly):
+ESCALA DE VALORACIÓN (aplica estrictamente):
 - 0 (Sin conocimiento): Respuesta vacía, irrelevante o incorrecta.
 - 1 (Básico): Conocimiento conceptual parcial sin aplicación profunda.
 - 2 (Funcional): Comprensión técnica adecuada y aplicación correcta.
@@ -511,9 +511,9 @@ RESPUESTAS A EVALUAR:
 
 ${qaBlock}
 
-Responde ÚNICAMENTE con un JSON array de objetos:
+Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
 [
-  {"subcategory": "A2.1", "label": "Monitoreo vs Observabilidad", "score": 2, "justification": "..."},
+  {"subcategory": "A2.1", "label": "Pilares Observabilidad", "score": 2, "justification": "..."},
   ...
 ]`
 
@@ -562,13 +562,15 @@ Responde ÚNICAMENTE con un JSON array de objetos:
 }
 
 /**
- * Genera 4 preguntas A3 (1 por subcategoría) adaptadas al nivel educativo.
- * A3.3 usa el concepto genérico de "herramienta ITSM" (no solo GLPI).
+ * Genera 3 preguntas A3 (Git & Análisis/Automatización con Python & Pandas).
+ * Para A3.2 y A3.3, incluye fragmentos de código Python en el enunciado para evaluar
+ * la capacidad del analista de interpretar qué hace el código, sus parámetros de entrada y sus salidas esperadas.
  */
 export type A3Question = { subcategory: string; label: string; question: string }
 
 export async function generateQuestionsA3(educationLevel: string, profileTrack?: string): Promise<A3Question[]> {
     const seed = Math.floor(Math.random() * 10000)
+    const isEntry = educationLevel === 'tecnico_sena' || educationLevel === 'bachiller'
 
     if (profileTrack === 'otel_expert') {
         const prompt = `Eres un evaluador técnico para ingenieros SRE Expertos en OpenTelemetry.
@@ -607,30 +609,39 @@ REGLAS CRÍTICAS DE CONCISIÓN:
         }
     }
 
-    const prompt = `Eres un evaluador técnico para Analistas Junior (entry-level) de Observabilidad.
-Genera exactamente 4 preguntas en español, una por cada subcategoría de A3.
+    const prompt = `Eres un líder técnico y evaluador de talento para Analistas de Observabilidad Junior (entry-level).
+Genera exactamente 3 preguntas prácticas en español para la subsección A3 (Control de Versiones Git, Analítica con Pandas y Automatización con Python).
+Nivel educativo del candidato: "${educationLevel}" (${isEntry ? 'Formación Técnica / Bachiller: lenguaje muy accesible, directo y práctico' : 'Tecnólogo / Profesional: razonamiento analítico y operativo'}).
 
-CONTEXTO DEL SANDBOX (Terminal):
-- Existe una carpeta /scripts con: backup.sh (Bash) y monitor.py (Python).
-- El candidato puede explorarlos usando 'cat'.
+Instrucciones por Subcategoría:
 
-Subcategorías y Tareas:
-1. A3.1 — Git básico: Pregunta sobre un flujo común (ej. qué harías si trabajas en una rama y quieres llevar tus cambios al repositorio remoto).
-2. A3.2 — Scripting: Pide al candidato que explore la carpeta /scripts en la terminal, elija el script que mejor se adapte a su experiencia (Python o Bash) y explique brevemente qué entiende que hace el script (sin indicarle qué comandos usar para leerlo).
-3. A3.3 — Gestión ITSM: Describe el siguiente problema: "Varios usuarios reportan que no pueden acceder al módulo de facturación (Error 502). El equipo de red ya confirmó que la conectividad es OK." Pide al candidato que registre el incidente. (Nota: Se le proveerá una plantilla de campos en el formulario).
-4. A3.4 — Documentación: Pide al candidato que redacte una breve guía de troubleshooting o un "paso a paso" inicial para que otro analista pueda revisar el problema del Error 502 mencionado en A3.3.
+1. A3.1 — Git: Flujo y Ramas:
+   - Plantea una situación de colaboración cotidiana en observabilidad (ej: clonar repositorio, crear una rama de trabajo 'feature/alertas', hacer commit con mensaje claro y subir cambios al remoto con 'git push').
+   - Pide al candidato explicar el flujo o secuencia de comandos básicos para cumplir la tarea.
+
+2. A3.2 — Analítica de Datos con Pandas (Interpretación de Código):
+   - INCLUYE obligatoriamente en el texto de la pregunta un fragmento corto y claro de código en Python usando Pandas (4 a 6 líneas) que lea un CSV de logs/métricas y filtre o calcule algo (ej. filtrar filas con latency_ms > 1000 o status_code == 500, o calcular promedio de latencia).
+   - Pide al analista que interprete y responda:
+     a) ¿Qué hace el script y cuál es su objetivo?
+     b) ¿Qué datos o columnas de entrada analiza?
+     c) Ante un caso hipotético con datos de prueba, ¿qué resultado o salida entregará?
+
+3. A3.3 — Automatización Simple en Python (Interpretación de Código):
+   - INCLUYE obligatoriamente en el texto de la pregunta un script o función corta en Python (5 a 8 líneas) de automatización de observabilidad (ej: una función que evalúa el uso de CPU/memoria o tasa de errores y asigna un estado 'OK', 'WARNING' o 'CRITICAL' y una acción de alerta).
+   - Pide al analista que interprete y responda:
+     a) ¿Cuál es el objetivo y flujo lógico de esta función de automatización?
+     b) ¿Qué parámetros de entrada recibe y qué condición dispara la alerta?
+     c) Si se ejecuta con valores de prueba específicos (ej: cpu=92, memoria=65), ¿cuál será el resultado que retornará?
 
 Reglas:
-- Nivel Junior/Entry (escolaridad: ${educationLevel}).
-- Cada pregunta debe ser práctica y basada en escenarios (ej: "Tienes que subir una corrección de bug en Git...", "Revisa el siguiente código del script..."). Evita preguntas abstractas o definiciones genéricas.
-- A3.3 NO debe ser aleatoria, usa el problema del Error 502.
-- A3.4 debe estar correlacionada con A3.3.
-- Responde ÚNICAMENTE con un JSON array de 4 objetos:
+- NO pidas que el candidato escriba código complejo desde cero. Debe interpretar, entender entradas, lógica y salidas.
+- NO incluyas preguntas de tickets ni GLPI (se evalúan en B1).
+- Usa variación (seed: ${seed}).
+- Responde ÚNICAMENTE con un JSON array de 3 objetos:
 [
-  {"subcategory": "A3.1", "label": "Git Básico", "question": "..."},
-  {"subcategory": "A3.2", "label": "Scripting", "question": "..."},
-  {"subcategory": "A3.3", "label": "Gestión ITSM", "question": "..."},
-  {"subcategory": "A3.4", "label": "Documentación", "question": "..."}
+  {"subcategory": "A3.1", "label": "Git: Ramas y Flujo", "question": "..."},
+  {"subcategory": "A3.2", "label": "Pandas: Análisis de Datos", "question": "Analiza el siguiente script en Python con Pandas:\n\n[fragmento de código Python]\n\nResponde:\n1) ...\n2) ...\n3) ..."},
+  {"subcategory": "A3.3", "label": "Python: Automatización", "question": "Analiza la siguiente función de automatización en Python:\n\n[función de código Python]\n\nResponde:\n1) ...\n2) ...\n3) ..."}
 ]`
 
     const raw = await generateContentWithRetry(prompt)
@@ -638,21 +649,33 @@ Reglas:
     const cleaned = arrayMatch ? arrayMatch[0] : raw.replace(/```json/gi, '').replace(/```/g, '').trim()
     try {
         const parsed = JSON.parse(cleaned)
-        log.ai.info('Preguntas A3 generadas exitosamente');
+        log.ai.info('Preguntas A3 generadas exitosamente con interpretación de código');
         return parsed
     } catch (e) {
         log.ai.error('Error parseando preguntas A3', e as Error, { raw });
         return [
-            { subcategory: 'A3.1', label: 'Git Básico', question: '¿Para qué sirve Git en el trabajo diario de un equipo técnico? ¿Puedes explicar qué es un "commit" y para qué se usa?' },
-            { subcategory: 'A3.2', label: 'Scripting', question: '¿Has ejecutado o leído algún script en Bash o Python? ¿Puedes explicar qué haría un script que lee un archivo y cuenta las líneas?' },
-            { subcategory: 'A3.3', label: 'Gestión ITSM', question: '¿Cómo registrarías un incidente de producción en una herramienta de gestión de tickets (GLPI, JIRA, ServiceNow, etc.)? ¿Qué campos completarías?' },
-            { subcategory: 'A3.4', label: 'Documentación', question: '¿Has documentado procedimientos técnicos en alguna herramienta como Confluence, wikis, o similares? ¿Qué incluirías en una guía de troubleshooting?' },
+            {
+                subcategory: 'A3.1',
+                label: 'Git: Ramas y Flujo',
+                question: 'En un equipo de observabilidad, estás trabajando en la mejora de un script de monitoreo. ¿Cuál es el flujo básico de comandos en Git que debes ejecutar para: 1) Crear y cambiarte a una nueva rama de trabajo ("feature/alertas"), 2) Guardar tus modificaciones con un mensaje de commit descriptivo, y 3) Subir tu rama al repositorio remoto para revisión?'
+            },
+            {
+                subcategory: 'A3.2',
+                label: 'Pandas: Análisis de Datos',
+                question: 'Analiza el siguiente script en Python con Pandas:\n\n```python\nimport pandas as pd\n\n# Carga de métricas de servicios\ndf = pd.read_csv("api_metrics.csv")\n\n# Filtrado de transacciones críticas\nalertas = df[(df["latency_ms"] > 1500) | (df["status_code"] == 500)]\nprint(f"Total eventos críticos: {len(alertas)}")\nprint(alertas[["service_name", "endpoint", "latency_ms"]])\n```\n\nResponde:\n1) ¿Qué hace este script y cuál es su objetivo en observabilidad?\n2) ¿Qué columnas y condiciones de entrada evalúa del archivo "api_metrics.csv"?\n3) Si el archivo contiene 100 registros en total, donde 3 tienen latencia de 2000 ms (status 200) y 2 tienen status 500 (latencia 300 ms), ¿cuántos eventos críticos reportará el script?'
+            },
+            {
+                subcategory: 'A3.3',
+                label: 'Python: Automatización',
+                question: 'Analiza la siguiente función de automatización en Python:\n\n```python\ndef evaluar_salud_nodo(host, cpu_usage, memory_usage):\n    if cpu_usage > 90 or memory_usage > 85:\n        estado = "CRITICAL"\n        accion = "Disparar alerta prioritaria a Guardia NOC"\n    elif cpu_usage > 75 or memory_usage > 70:\n        estado = "WARNING"\n        accion = "Registrar advertencia en log de monitoreo"\n    else:\n        estado = "HEALTHY"\n        accion = "Operación normal"\n    \n    return {"host": host, "estado": estado, "accion": accion}\n```\n\nResponde:\n1) ¿Cuál es el objetivo de esta función de automatización?\n2) ¿Qué parámetros de entrada recibe y qué condición exacta activa el estado "CRITICAL"?\n3) Si ejecutamos evaluar_salud_nodo("srv-db-01", cpu_usage=93, memory_usage=55), ¿cuál será el resultado que retornará la función?'
+            },
         ]
     }
 }
 
 /**
- * Evalúa las respuestas de A3 usando la escala 0-3.
+ * Evalúa las 3 respuestas de A3 usando la escala 0-3.
+ * Valora la comprensión lógica, identificación de entradas y deducción de salidas.
  */
 export type A3EvaluationResult = {
     subcategory: string
@@ -666,7 +689,7 @@ export async function evaluateAnswersA3(
     profileTrack?: string
 ): Promise<A3EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
-        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
+        `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta y Código: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
     if (profileTrack === 'otel_expert') {
@@ -702,32 +725,29 @@ Responde ÚNICAMENTE con un JSON array de objetos matching the length of the inp
         }
     }
 
-    const prompt = `Eres un evaluador técnico senior. Evalúa las respuestas de un candidato entry-level para el rol de Analista de Observabilidad Junior.
+    const prompt = `Eres un evaluador técnico senior y mentor de observabilidad. Evalúa las respuestas de un candidato para el rol de Analista de Observabilidad Junior sobre Git, Analítica con Pandas y Automatización con Python.
 
-CONTEXTO TÉCNICO (Sandbox):
-- El candidato tenía acceso a /scripts/backup.sh y /scripts/monitor.py.
-- backup.sh: Respalda logs de /var/log en /mnt/backup usando tar.
-- monitor.py: Chequea salud de nginx, postgresql y redis. Nginx se reporta como CRITICAL.
+Criterios de Evaluación:
+- A3.1 (Git): Comprensión del ciclo básico (ramas, commit, push) y trabajo en equipo.
+- A3.2 (Pandas - Interpretación de Código): Capacidad de entender qué hace el script, qué columnas/filtros usa y deducir correctamente la salida ante el caso de prueba.
+- A3.3 (Python Automatización - Interpretación de Código): Comprensión del flujo condicional (if/else), parámetros de entrada y deducción del resultado devuelto.
 
-Subcategorías A3:
-- A3.1 (Git): Flujo básico.
-- A3.2 (Scripting): Capacidad de lectura y comprensión lógica de scripts existentes.
-- A3.3 (ITSM): Registro de incidente por Error 502 en facturación. Valora el uso de campos (Títulos, Prioridad, Descripción técnica).
-- A3.4 (Documentación): Claridad y coherencia con el fallo del Error 502.
+ESCALA DE VALORACIÓN (0-3):
+- 0 (Sin conocimiento): Respuesta vacía, incoherente o completamente errónea.
+- 1 (Básico): Identifica partes del código pero no explica el flujo completo o se equivoca en la salida esperada.
+- 2 (Funcional): Explica correctamente la lógica general, entiende las entradas y deduce la salida con sentido común (incluso sin lenguaje formal).
+- 3 (Autónomo): Explicación impecable, clara y bien estructurada del objetivo, parámetros y salida exacta.
 
-ESCALA DE VALORACIÓN:
-- 0 (Sin conocimiento): No conoce el concepto o respuesta irrelevante.
-- 1 (Básico): Entiende el concepto pero la respuesta es muy superficial o incompleta.
-- 2 (Funcional): Respuesta correcta y coherente que demuestra capacidad operativa básica.
-- 3 (Autónomo): Respuesta detallada, precisa o que aporta valor extra sobre el proceso.
+IMPORTANTE: Sé empático y formativo. Se evalúa capacidad de razonamiento lógico y lectura de código, no memoria de sintaxis.
 
 QA A EVALUAR:
 ${qaBlock}
 
-Responde ÚNICAMENTE con un JSON array de 4 objetos:
+Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
 [
-  {"subcategory": "A3.1", "label": "Git Básico", "score": 2, "justification": "..."},
-  ...
+  {"subcategory": "A3.1", "label": "Git: Ramas y Flujo", "score": 2, "justification": "..."},
+  {"subcategory": "A3.2", "label": "Pandas: Análisis de Datos", "score": 2, "justification": "..."},
+  {"subcategory": "A3.3", "label": "Python: Automatización", "score": 2, "justification": "..."}
 ]`
 
     const raw = await evaluateContentWithRetry(prompt)
@@ -751,25 +771,33 @@ Responde ÚNICAMENTE con un JSON array de 4 objetos:
 
 /**
  * Genera un caso de incidente único en español para el módulo B1.
- * Cada caso es diferente: diferentes servicios, errores, horarios, impactos.
+ * Escenario conciso (2 párrafos, ~120-150 palabras) alineado con las herramientas del equipo:
+ * Monitoreo: Dynatrace / Grafana, Alertas/Guardias: AlertOps, Coordinación: Microsoft Teams, Registro: GLPI.
  */
-export async function generateIncidentCaseB1(): Promise<string> {
+export async function generateIncidentCaseB1(profileTrack?: string): Promise<string> {
     const seed = Math.floor(Math.random() * 10000)
-    const prompt = `Eres un generador de escenarios de incidentes técnicos de producción para evaluaciones de soporte NOC/SRE.
+    const prompt = `Eres un generador de escenarios de incidentes de producción para evaluaciones de soporte NOC/SRE.
 
-Genera UN escenario de incidente único y realista en español. El candidato debe usar este escenario para documentar un ticket de incidente como si lo fuera a ingresar en un sistema de gestión (GLPI).
+Genera UN escenario de incidente conciso, claro y realista en español de EXACTAMENTE 2 párrafos cortos (máximo 150 palabras en total).
+El candidato usará este escenario para documentar un ticket formal de incidente en el sistema GLPI.
 
-Requisitos del escenario:
-- Incluye hora exacta, nombre del servidor (formato srv-prod-XXX-01), servicio afectado
-- Incluye una alerta con asunto del correo
-- Incluye datos de lo que se observa en una herramienta de monitoreo (Grafana, Elasticsearch, Kibana)
-- Incluye logs específicos con mensajes de error realistas
-- Incluye un intento de contacto con el equipo de escalamiento
-- Incluye resolución final (rollback, restart, fix temporal)
-- Incluye duración del impacto
-- Usa variación (seed: ${seed}) para que cada caso sea completamente diferente
+Estructura y Requisitos Obligatorios:
+1. Párrafo 1 — Detección y Métricas:
+   - Hora exacta en formato UTC.
+   - Nombre del servidor (formato srv-prod-XXX-01) y nombre del microservicio afectado.
+   - Asunto de la alerta crítica recibida en AlertOps (ej: "[CRITICAL] [ALERTOPS] High HTTP 500 Rate on order-service").
+   - Métricas o síntomas concretos observados en Dynatrace o Grafana (ej: latencia P95 subió a 4.2s o tasa de errores 500 alcanzó el 30%).
 
-Formato: Escribe el escenario como una narrativa en segunda persona ("Recibes una alerta...") de máximo 4 párrafos. No incluyas instrucciones sobre qué hacer.`
+2. Párrafo 2 — Escalamiento, Resolución e Impacto:
+   - Escalamiento al ingeniero on-call a través de AlertOps y apertura de sala de crisis en Microsoft Teams.
+   - Causa identificada y acción de resolución ejecutada (ej: rollback de versión en pipeline o reinicio secuencial de instancias).
+   - Hora de normalización de métricas y duración total del impacto (ej: 25 a 35 minutos de indisponibilidad parcial).
+
+Reglas Estrictas:
+- Usa ÚNICAMENTE estas herramientas: Dynatrace o Grafana (monitoreo), AlertOps (alertas y guardia on-call), Microsoft Teams (sala de crisis), GLPI (sistema de tickets).
+- PROHIBIDO mencionar PagerDuty, Slack, Elasticsearch, Kibana, Docker o Kubernetes.
+- Debe ser directo y conciso (máximo 150 palabras). No agregues instrucciones ni títulos adicionales.
+- Usa variación (seed: ${seed}) para que los nombres de servicio y horarios varíen cada vez.`
 
     return generateContentWithRetry(prompt)
 }
@@ -785,45 +813,45 @@ export type B1RubricEvaluation = {
 }
 
 /**
- * Evalúa un ticket B1 con la rúbrica detallada de 4 criterios.
+ * Evalúa un ticket B1 con la rúbrica detallada de 4 criterios para GLPI.
  * Retorna puntaje por criterio (1-4 cada uno) + puntaje normalizado a /7.
  */
 export async function evaluateTicketB1Detailed(ticketText: string, caseContext: string): Promise<B1RubricEvaluation> {
-    const prompt = `Eres un evaluador senior de SRE. Evalúa el siguiente ticket de incidente documentado por un candidato de soporte NOC.
+    const prompt = `Eres un evaluador senior de SRE y líder de mesa de ayuda GLPI. Evalúa el siguiente ticket de incidente documentado por un candidato de soporte NOC.
 
 CONTEXTO DEL INCIDENTE:
 ${caseContext}
 
-TICKET DOCUMENTADO POR EL CANDIDATO:
+TICKET DOCUMENTADO POR EL CANDIDATO (GLPI):
 ${ticketText}
 
 REGLA LIMITANTE Y ESTRICTA: Si la respuesta del candidato tiene menos de 10 palabras, contiene solo afirmaciones genéricas (ej: "Se presentan errores", "Hubo falla") o carece por completo de los detalles técnicos mínimos provistos en el escenario, DEBES calificar con 1 TODOS los criterios. No asumas conocimiento que no está escrito explícitamente en el ticket.
 
-Evalúa con la siguiente rúbrica (1-4 por criterio):
+Evalúa con la siguiente rúbrica para tickets en GLPI (1-4 por criterio):
 
-1. ESTRUCTURA DEL REGISTRO (1-4):
-   1 = Solo describe lo que pasó sin orden
-   2 = Tiene inicio y fin pero le faltan campos clave  
-   3 = Cubre todos los campos relevantes del ticket
-   4 = Estructura clara, reutilizable como plantilla
+1. ESTRUCTURA DEL REGISTRO EN GLPI (1-4):
+   1 = Solo describe lo que pasó sin orden ni formato
+   2 = Tiene inicio y fin pero le faltan campos clave (título, prioridad, servicio)
+   3 = Cubre todos los campos relevantes de un ticket formal en GLPI
+   4 = Estructura impecable, profesional y reutilizable como plantilla de incidente
 
 2. PRECISIÓN TÉCNICA (1-4):
    1 = Omite datos técnicos o los confunde
-   2 = Menciona el error pero sin contexto (proceso, duración)
-   3 = Incluye proceso, error, duración y métricas
-   4 = Incluye evidencia técnica y cronología completa
+   2 = Menciona el error pero sin contexto (host, métricas o herramientas)
+   3 = Incluye host (srv-prod-...), servicio, error, métricas de Dynatrace/Grafana
+   4 = Incluye evidencia técnica precisa, cronología de horas UTC y herramientas correctas
 
-3. ACCIONES DOCUMENTADAS (1-4):
+3. ACCIONES Y ESCALAMIENTO DOCUMENTADOS (1-4):
    1 = Solo el problema, sin acciones tomadas
-   2 = Menciona que escaló pero sin detalle
-   3 = Documenta pasos propios y respuesta del escalado
-   4 = Cronología de acciones con responsables y tiempos
+   2 = Menciona que escaló pero sin detalle de AlertOps ni Teams
+   3 = Documenta escalamiento vía AlertOps, sala en Microsoft Teams y solución aplicada
+   4 = Cronología completa de acciones con responsables, herramientas y tiempos exactos
 
 4. IMPACTO DESCRITO (1-4):
    1 = No menciona el impacto al servicio
    2 = Menciona que hubo impacto sin cuantificar
-   3 = Indica servicio afectado y duración
-   4 = Cuantifica afectación con datos concretos
+   3 = Indica servicio afectado y duración estimada
+   4 = Cuantifica con exactitud el tiempo de impacto (minutos) y la afectación a usuarios
 
 Responde ÚNICAMENTE con un JSON válido:
 {

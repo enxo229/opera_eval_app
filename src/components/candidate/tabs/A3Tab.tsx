@@ -2,6 +2,7 @@ import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
 import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle, FileText } from 'lucide-react'
 import { A3Question } from '@/app/actions/ai'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A3TabProps {
     a3QuestionsGenerated: boolean
@@ -39,12 +40,12 @@ export function A3Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <GitBranch className="h-5 w-5 text-primary" />
-                {isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Herramientas y Automatización Básica'}
+                {isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Git & Análisis de Datos con Pandas'}
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
                 {isOtelExpert 
                     ? 'Analiza el archivo de configuración del OpenTelemetry Collector provisto y responde las preguntas sobre el pipeline de procesamiento y reglas de transformación (OTTL).'
-                    : 'Responde las preguntas sobre Git, scripting, gestión de tickets y documentación.'}
+                    : 'Responde las preguntas prácticas sobre control de versiones en Git y manipulación/análisis de métricas con Python & Pandas.'}
             </p>
 
             {!a3QuestionsGenerated ? (
@@ -151,7 +152,7 @@ export function A3Tab({
                                     <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-bold">{q.subcategory}</span>
                                     <span className="text-sm font-semibold text-foreground">{q.label}</span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{q.question}</p>
+                                <FormattedQuestion text={q.question} />
                                 <textarea
                                     value={a3Answers[q.subcategory] || ''}
                                     onChange={(e) => setA3Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}

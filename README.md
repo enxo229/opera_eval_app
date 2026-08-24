@@ -7,12 +7,9 @@ Plataforma de evaluación de talento técnico para equipos de infraestructura y 
 - **Framework**: Next.js 16.1.6 (App Router, Turbopack)
 - **UI**: React 19.2.3, Tailwind CSS v4, Shadcn UI v4 (Base UI)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **IA**: Google Gemini — 3 cadenas de modelos con fallback automático:
-  - **Generación** (Preguntas, Chat): `gemini-3.5-flash-lite` → `gemini-2.5-flash` → `gemini-2.5-flash-lite`
-  - **Evaluación** (Scoring JSON): `gemini-2.5-flash` → `gemini-3.5-flash-lite` → `gemini-2.5-flash-lite`
-  - **Reportes** (Narrativa): `gemini-3.6-flash` → `gemini-2.5-flash` → `gemini-3.5-flash-lite`
+- **IA**: Google Gemini (Gemini 3.7 Flash + Gemini 3.5 Flash Lite + Gemini 2.5 Flash Lite) con fallback automático y respaldo manual
 - **📊 Observability Full Stack**: Instrumentación con OpenTelemetry (OTel) para Trazas, Métricas y Logs (Integrado con Grafana/Loki/Alloy).
-- **🛡️ AI Resilience Strategy**: Cadena de fallback automática con backup manual (modelo Lite).
+- **🛡️ AI Resilience Strategy**: Cadena de fallback automática con backup manual.
 - **🔍 AI Likelihood Detector**: Motor dual (heurístico + Gemini) para detectar respuestas generadas por IA (0-100%).
 - **Animaciones**: Framer Motion v12.35
 - **Despliegue**: Vercel (auto-deploy desde `main`)
@@ -46,7 +43,7 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 - 5 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`
 - RLS policies optimizadas para alto rendimiento (InitPlan optimization & Policy Consolidation)
 - Campos de auditoría legal: `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` en `evaluations`
-- Campos de temporizador: `started_at`, `test_duration_minutes` (default 60), `paused_at`, `total_paused_ms`, `pause_count`
+- Campos de temporizador e integridad: `started_at`, `test_duration_minutes` (default 60), `tab_switch_count` (máx. 4 cambios de ventana)
 - Campo `profile_track` en `selection_processes` (`general` | `otel_expert`)
 - Campo `ai_likelihood` en `dynamic_tests` — porcentaje de probabilidad de IA (0-100)
 - Función RPC `get_user_email`
@@ -65,9 +62,8 @@ El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). I
 1.  **Autenticación**: Login vía Supabase Auth.
 2.  **Onboarding Legal**: Consentimiento expreso e informado (Ley 1581 Habeas Data). Incluye lectura in-app de Términos y Condiciones y Política de Tratamiento de Datos mediante ventanas modales.
 3.  **Información Académica**: Selección de nivel de formación con tooltips informativos por nivel.
-4.  **Pregeneración**: Al completar onboarding, se pre-generan todas las preguntas (A1-A4, B2-B6, C1-C4) para evitar latencia durante el examen.
-5.  **Evaluación Técnica**: Acceso a los módulos con temporizador de 60 minutos.
-6.  **Temporizador**: Cronómetro global en sticky header con sistema de pausas (máx. 3) y auto-pausa al cambiar de pestaña.
+4.  **Pregeneración & Evaluación Técnica**: Al completar el onboarding se preparan los módulos del candidato con temporizador de 60 minutos.
+5.  **Temporizador y Control de Foco**: Cronómetro continuo ininterrumpido en sticky header con control de cambios de ventana (máx. 4 advertencias) y ajuste de tiempo en vivo por el evaluador.
 
 ```
 src/

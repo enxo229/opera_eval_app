@@ -11,31 +11,29 @@
 La evaluación técnica de O11y SkillFlow fue diseñada originalmente con una duración de **90 minutos**.  
 Tras observaciones operativas, se determina que 60 minutos es suficiente para evaluar las competencias requeridas sin comprometer la calidad de la medición.
 
-## 2. Inventario de Módulos
+## 2. Inventario de Módulos (Actualizado a Ruta de Formación)
 
-La evaluación consta de **6 módulos** independientes:
+La evaluación consta de módulos técnicos y prácticos alineados a la ruta de formación (Linux, SRE, Dynatrace, Grafana, Git, Pandas e IA):
 
 | Módulo | Nombre | Tipo | Nº Preguntas / Actividades | Complejidad |
 |--------|--------|------|----------------------------|-------------|
-| **A1** | Fundamentos de Infraestructura y Sistemas | Terminal Linux interactiva + 5 preguntas (Linux, Windows Server, Redes, Contenedores, Cloud) | 1 sandbox + 5 respuestas escritas | Media |
-| **A2** | Observabilidad | Selección de herramienta + 5 preguntas (Monitoreo vs Observabilidad, 3 Pilares, Dashboards, Logs, Alertas) | 1 selección + 5 respuestas escritas | Media |
-| **A3** | Herramientas y Automatización | 4 preguntas (Git, Scripting, Gestión ITSM, Documentación) | 4 respuestas escritas | Media-Baja |
-| **A4** | Pensamiento Analítico Técnico | Chatbot de investigación de caso práctico (análisis de causa raíz) | Interacción libre por chat | Alta |
-| **B1** | Comunicación Técnica Escrita | Redacción de ticket de incidente estilo GLPI | 1 formulario estructurado | Media |
-| **D** | Dimensión IA (Prompt Engineering) | Redacción de prompt para automatización | 1 editor interactivo | Baja |
-
-**Total de actividades:** ~22 ítems evaluables
+| **A1** | Linux & Cloud Computing AWS | Terminal Linux interactiva + 5 preguntas (Comandos Linux, Filesystem, Procesos, Logs, Cloud AWS Core) | 1 sandbox + 5 respuestas escritas | Media |
+| **A2** | Observabilidad, SRE & APM | Selección de herramienta + 5 preguntas (Pilares Observabilidad, SRE SLI/SLO, Dynatrace APM, Grafana Dashboards, Alertas) | 1 selección + 5 respuestas escritas | Media |
+| **A3** | Git & Análisis de Datos con Pandas | Editor de código + preguntas prácticas (Git branches/commits, Pandas filtrado, agregaciones groupby y detección de anomalías) | 3 respuestas prácticas / código | Media |
+| **A4** | Pensamiento Analítico / Troubleshooting | Chatbot de investigación de incidente práctico en Dynatrace / Grafana | Interacción dinámica por chat | Media-Alta |
+| **B1** | Comunicación Técnica Escrita | Redacción estructurada de ticket de incidente | 1 formulario estructurado | Media |
+| **D** | Dimensión IA (Prompt Engineering) | Redacción de prompt para consultas en observabilidad (Dynatrace / Grafana Loki) | 1 editor interactivo | Baja |
 
 ## 3. Distribución de Tiempo Propuesta (60 min)
 
 | Módulo | Tiempo Sugerido | Justificación |
 |--------|----------------|---------------|
-| **A1: Infraestructura** | 12 min | 3 min para explorar la terminal + ~1.5 min por pregunta (5 preguntas). Preguntas conceptuales, no requieren investigación externa. |
-| **A2: Observabilidad** | 12 min | 1 min para seleccionar herramienta + ~2 min por pregunta (5 preguntas). Incluye interpretación de alerta simulada. |
-| **A3: Herramientas** | 10 min | ~2.5 min por pregunta (4 preguntas). Preguntas prácticas con correlación entre ITSM y documentación. |
-| **A4: Caso Analítico** | 12 min | Módulo más complejo: lectura del caso + interacciones con el chatbot de investigación. |
-| **B1: Ticket** | 10 min | Redacción estructurada de un incidente. Formulario con campos predefinidos. |
-| **Dim. D: IA** | 4 min | Módulo más ligero: redacción de un prompt. |
+| **A1: Linux & Cloud** | 12 min | 3 min para comandos en terminal + ~1.8 min por pregunta (5 preguntas). |
+| **A2: SRE & Observabilidad** | 12 min | ~2.4 min por pregunta conceptual y práctica (5 preguntas). |
+| **A3: Git & Pandas** | 10 min | ~3 min por ejercicio de Git y análisis de series de tiempo con Pandas. |
+| **A4: Troubleshooting** | 12 min | Lectura del caso e interacción investigativa con el asistente de incidentes. |
+| **B1: Ticket** | 10 min | Redacción estructurada del reporte de incidente. |
+| **Dim. D: IA** | 4 min | Formulación de prompt técnico en el editor. |
 | **Total** | **60 min** | — |
 
 ## 4. Análisis de Viabilidad
@@ -59,7 +57,7 @@ La evaluación consta de **6 módulos** independientes:
 | Riesgo | Mitigación |
 |--------|-----------|
 | Candidato lento leyendo | Las instrucciones son breves y claras |
-| Candidato con conexión inestable | Sistema de pausas (máx. 3) sigue activo |
+| Candidato con eventualidades | Reloj continuo con control de foco (máx. 4 cambios) y tiempo extra administrado exclusivamente por el evaluador |
 | Presión excesiva | La distribución da ~2 min/pregunta promedio, alineado con estándares de certificación IT |
 
 ## 5. Cambio Técnico Requerido

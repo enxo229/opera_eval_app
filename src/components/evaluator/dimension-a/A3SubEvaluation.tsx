@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
-import { RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { A3_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
 import { A3_EVALUATOR_GUIDANCE, A3_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A3SubEvaluationProps {
     a3QData: any[]
@@ -44,7 +45,7 @@ export function A3SubEvaluation({
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>{isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Herramientas y Automatización Básica'}</span>
+                    <span>{isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Git & Análisis de Datos con Pandas'}</span>
                     <div className="flex items-center gap-2">
                         {!readOnly && (
                             <>
@@ -96,7 +97,7 @@ export function A3SubEvaluation({
                             {qData && (
                                 <div className="space-y-2 bg-secondary/20 rounded-md p-3">
                                     <p className="text-xs font-bold text-muted-foreground uppercase">Pregunta:</p>
-                                    <p className="text-sm text-foreground">{qData.prompt_context}</p>
+                                    <FormattedQuestion text={qData.prompt_context || ''} />
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
                                     {qData.ai_score !== null && (
@@ -156,7 +157,7 @@ export function A3SubEvaluation({
 
                 {/* A3 Summary (Normalized) */}
                 {(() => {
-                    const maxScore = a3Subs.length * 3
+                    const maxScore = a3Subs && a3Subs.length > 0 ? a3Subs.length * 3 : 9
                     const pct = maxScore > 0 ? a3Total / maxScore : 0
                     const level = a3Total <= (maxScore * 0.25) ? 0 : a3Total <= (maxScore * 0.5) ? 1 : a3Total <= (maxScore * 0.75) ? 2 : 3
                     const c = TOTAL_COLORS[level]

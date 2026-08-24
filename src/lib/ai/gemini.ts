@@ -23,25 +23,25 @@ const genAI = new GoogleGenerativeAI(apiKey)
 // Usaremos un modelo primario y si falla por Hard Limits (429, 503)
 // se saltará al siguiente modelo en la cadena de prioridad.
 
-// Cadena de prioridad (Primary -> Fallback) para generación de contenido (Preguntas, Chat A4)
+// Cadena de prioridad (Primary -> Fallback) para generación de contenido (Preguntas, Casos, Chat A4)
 const GENERATION_MODEL_CHAIN = [
-    'gemini-3.5-flash-lite',  // 1. Principal: Ultra-rápido (~1.8s), económico ($0.30/1M) y respuesta directa
-    'gemini-2.5-flash',       // 2. Fallback: Alta creatividad y contexto extenso
-    'gemini-2.5-flash-lite'   // 3. Fallback Universal: Ultra-económico ($0.10/1M) y resistente
+    'gemini-3.7-flash',      // 1. Principal: Máxima velocidad (~3.7s), razonamiento y creatividad adaptada
+    'gemini-3.5-flash-lite', // 2. Fallback rápido: Ultra-rápido (~1.7s) y directo
+    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Económico y resistente
 ]
 
 // Cadena de prioridad para evaluación (scoring estricto en JSON, rúbricas, IA-2)
 const EVALUATION_MODEL_CHAIN = [
-    'gemini-2.5-flash',       // 1. Principal: Máxima consistencia en scoring JSON y rúbricas
-    'gemini-3.5-flash-lite',  // 2. Fallback: Ultra-rápido y estructurado
-    'gemini-2.5-flash-lite'   // 3. Fallback Universal: Anti-caídas
+    'gemini-3.7-flash',      // 1. Principal: Máxima precisión analítica, consistencia en JSON (~3.3s)
+    'gemini-2.5-flash',      // 2. Fallback: Capacidad analítica profunda
+    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Anti-caídas
 ]
 
 // Cadena de prioridad para Reportes Ejecutivos (Narrativa de alta calidad)
 const REPORT_MODEL_CHAIN = [
-    'gemini-3.6-flash',       // 1. Principal: Máxima calidad narrativa y razonamiento sintético
-    'gemini-2.5-flash',       // 2. Fallback: Gran capacidad analítica
-    'gemini-3.5-flash-lite'   // 3. Fallback: Rápido y estructurado
+    'gemini-3.7-flash',      // 1. Principal: Síntesis ejecutiva y razonamiento narrativo (~3.8s)
+    'gemini-3.5-flash-lite', // 2. Fallback rápido: Estructurado y fluido
+    'gemini-2.5-flash-lite'  // 3. Fallback Universal: Resistente
 ]
 
 
@@ -148,7 +148,7 @@ async function callWithRetry(modelChain: string[], prompt: string, maxRetries = 
 
 /**
  * Genera contenido (preguntas, casos, chat)
- * Usa la cadena de modelos de generación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
+ * Usa la cadena de modelos de generación (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite)
  * Usa una temperatura alta de 0.85 para propiciar creatividad y dinamismo
  */
 export async function generateContentWithRetry(prompt: string, maxRetries = 3, temperature = 0.85): Promise<string> {
@@ -157,7 +157,7 @@ export async function generateContentWithRetry(prompt: string, maxRetries = 3, t
 
 /**
  * Evalúa/analiza contenido (scoring, rúbricas, JSON estricto)
- * Usa la cadena de modelos de evaluación (Gemma 3 27B -> Gemma 3 12B -> Gemini 2.5 Flash Lite)
+ * Usa la cadena de modelos de evaluación (Gemini 3.7 Flash -> Gemini 2.5 Flash -> Gemini 2.5 Flash Lite)
  * Usa una temperatura baja de 0.15 para precisión y consistencia estrictas
  */
 export async function evaluateContentWithRetry(prompt: string, maxRetries = 3, temperature = 0.15): Promise<string> {
@@ -166,7 +166,7 @@ export async function evaluateContentWithRetry(prompt: string, maxRetries = 3, t
 
 /**
  * Genera feedback narrativo para reportes ejecutivos.
- * Usa la cadena de modelos de reporte (Gemma 4 31B -> Gemma 4 26B -> Gemini 2.5 Flash Lite)
+ * Usa la cadena de modelos de reporte (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite)
  * Usa una temperatura media de 0.70 para fluidez narrativa y formalidad
  */
 export async function generateReportFeedbackWithRetry(prompt: string, maxRetries = 3, temperature = 0.7): Promise<string> {
@@ -174,7 +174,7 @@ export async function generateReportFeedbackWithRetry(prompt: string, maxRetries
 }
 
 /**
- * Fuerza la generación usando exclusivamente Gemini 2.5 Flash Lite (Estrategia de respaldo manual).
+ * Fuerza la generación usando exclusivamente modelos Flash Lite (Estrategia de respaldo manual ultra-rápida).
  */
 export async function generateReportFeedbackLite(prompt: string): Promise<string> {
     return callWithRetry(['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite'], prompt, 2, 0.7)
@@ -185,12 +185,12 @@ export async function generateReportFeedbackLite(prompt: string): Promise<string
  * Analiza 5 dimensiones de Ingeniería de Contexto (Prompt Engineering) y sugiere un score riguroso.
  */
 export async function evaluateIA2Prompt(prompt: string): Promise<string> {
-    const systemPrompt = `Eres un evaluador ESTRICTO y experto en Ingeniería de Prompts (Prompt Engineering) evaluando candidatos para un rol de NOC/SRE.
+    const systemPrompt = `Eres un evaluador ESTRICTO y experto en Ingeniería de Prompts (Prompt Engineering) evaluando candidatos para un rol de NOC/SRE/Observabilidad.
 
 El candidato participó en un ejercicio práctico donde se le dio este enunciado textual:
-"Usando la herramienta de IA que prefieras, pregúntale cómo buscarías en Elasticsearch todos los logs de error del servidor srv-prod-payments-01 del día de ayer."
+"Usando la herramienta de IA que prefieras, pregúntale cómo buscarías en Grafana Loki los logs de error con código HTTP 500 del servicio payments-service del día de ayer o cómo aislarías una traza de alta latencia en Dynatrace."
 
-A continuación, te presentaré el prompt EXACTO que el candidato ingresó en su herramienta de IA (ChatGPT/Copilot/etc.).
+A continuación, te presentaré el prompt EXACTO que el candidato ingresó en su herramienta de IA (ChatGPT/Copilot/Gemini/etc.).
 
 IMPORTANTE: NO estás evaluando si el candidato mencionó los parámetros del enunciado. Eso es lo MÍNIMO esperado (el enunciado ya se los dio). 
 Lo que evalúas es si el candidato demostró HABILIDAD DE INGENIERÍA DE PROMPTS al formular su consulta. Un candidato que simplemente parafrasea o copia el enunciado NO demuestra habilidad de prompting.
@@ -198,26 +198,26 @@ Lo que evalúas es si el candidato demostró HABILIDAD DE INGENIERÍA DE PROMPTS
 Debes analizar RIGUROSAMENTE estas 5 dimensiones técnicas de Prompt Engineering:
 
 1. ASIGNACIÓN DE ROL (0 o 1 punto): ¿Le asignó un rol, persona o nivel de expertise al modelo? 
-   Ejemplo que SÍ puntúa: "Actúa como un ingeniero SRE experto en Elasticsearch..."
+   Ejemplo que SÍ puntúa: "Actúa como un ingeniero SRE experto en Grafana Loki / Dynatrace..."
    Ejemplo que NO puntúa: No asignar rol alguno (simplemente preguntar directamente).
 
-2. CONTEXTO TÉCNICO (0 o 1 punto): ¿Incluyó los 4 parámetros clave del escenario?
-   - Herramienta: "Elasticsearch"
-   - Tipo de log: "logs de error" / "level: ERROR"
-   - Servidor: "srv-prod-payments-01"
+2. CONTEXTO TÉCNICO (0 o 1 punto): ¿Incluyó los parámetros clave del escenario?
+   - Herramienta: "Grafana Loki" / "Dynatrace"
+   - Tipo de log/métrica: "logs de error" / "HTTP 500" / "latencia"
+   - Servicio: "payments-service"
    - Marco temporal: "ayer" / "últimas 24 horas"
    NOTA CRÍTICA: Si el candidato simplemente reformuló el enunciado que le dieron sin agregar valor, esto le da 1 punto en esta dimensión PERO NO en las demás. Parafrasear no es ingeniería de prompts.
 
 3. FORMATO DE SALIDA (0 o 1 punto): ¿Especificó cómo quiere recibir la respuesta?
-   Ejemplo que SÍ puntúa: "Dame la query en formato JSON de Elasticsearch DSL", "Respóndeme paso a paso", "Muéstrame el query con comentarios explicativos"
+   Ejemplo que SÍ puntúa: "Dame la query en sintaxis LogQL con comentarios", "Muéstrame paso a paso cómo filtrar en el explorador de Loki", "Estructura la respuesta en una tabla"
    Ejemplo que NO puntúa: No indicar formato alguno (dejar que el modelo decida libremente).
 
 4. RESTRICCIONES / GUARDRAILS (0 o 1 punto): ¿Acotó el alcance para evitar respuestas genéricas o ambiguas?
-   Ejemplo que SÍ puntúa: "Usa el campo @timestamp para el rango de fecha y level para filtrar errores", "No incluyas aggregations, solo la búsqueda básica"
+   Ejemplo que SÍ puntúa: "Usa el label {app='payments-service'} y filtra por status=500", "No incluyas explicaciones teóricas, solo la consulta exacta y filtros"
    Ejemplo que NO puntúa: Preguntas abiertas sin restricciones técnicas.
 
 5. SOFISTICACIÓN / ITERACIÓN (0 o 1 punto): ¿Demostró madurez más allá de una pregunta plana?
-   Ejemplo que SÍ puntúa: Pedir explicación de cada parte del query, solicitar variantes alternativas, pedir validación del resultado, incluir un escenario de follow-up.
+   Ejemplo que SÍ puntúa: Pedir explicación de los operadores LogQL, solicitar agregaciones de tasa de errores (rate/count_over_time), pedir validación de sintaxis o pasos de seguimiento.
    Ejemplo que NO puntúa: Una sola pregunta directa sin profundidad.
 
 ESCALA DE PUNTUACIÓN (suma de las 5 dimensiones):
@@ -228,7 +228,7 @@ ESCALA DE PUNTUACIÓN (suma de las 5 dimensiones):
 - 1/5: Prompt vago. Faltan parámetros clave o es demasiado genérico.
 - 0/5: Irrelevante. No tiene relación con el ejercicio.
 
-REGLA ANTI-INFLACIÓN: Si el candidato SOLO reformuló el enunciado original (mencionando Elasticsearch, logs de error, el servidor y ayer) SIN añadir rol, formato, restricciones ni sofisticación, el puntaje MÁXIMO es 2. No importa qué tan "clara" sea la reformulación: parafrasear no es prompt engineering.
+REGLA ANTI-INFLACIÓN: Si el candidato SOLO reformuló el enunciado original SIN añadir rol, formato, restricciones ni sofisticación, el puntaje MÁXIMO es 2. No importa qué tan "clara" sea la reformulación: parafrasear no es prompt engineering.
 
 Prompt enviado por el candidato:
 """

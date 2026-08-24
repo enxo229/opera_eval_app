@@ -46,12 +46,12 @@ const EVALUATOR_GUIDES: Record<string, {
         ],
     },
     'IA-2': {
-        description: 'Entrega al candidato el siguiente enunciado y permítele usar cualquier herramienta de IA de su preferencia (ChatGPT, Gemini, Copilot, Claude, etc.) en su celular o computador:\n\n"Usando la herramienta de IA que prefieras, pregúntale cómo buscarías en Elasticsearch todos los logs de error del servidor srv-prod-payments-01 del día de ayer. Cuando tengas la respuesta, explícame si crees que es correcta y por qué."\n\nSe evalúan 5 dimensiones de Ingeniería de Contexto (Prompt Engineering):\n1. Asignación de Rol — ¿Le asignó un rol o persona al modelo?\n2. Contexto Técnico — ¿Incluyó los 4 parámetros clave del escenario?\n3. Formato de Salida — ¿Especificó cómo quiere la respuesta?\n4. Restricciones / Guardrails — ¿Acotó el alcance para evitar respuestas genéricas?\n5. Sofisticación / Iteración — ¿Demostró madurez más allá de una pregunta plana?',
+        description: 'Entrega al candidato el siguiente enunciado y permítele usar cualquier herramienta de IA de su preferencia (ChatGPT, Gemini, Copilot, Claude, etc.) en su celular o computador:\n\n"Usando la herramienta de IA que prefieras, formúlale una instrucción para obtener la consulta en Grafana Loki (LogQL) que filtre los logs de error con código HTTP 500 del servicio payments-service del día de ayer, o cómo aislar la traza de mayor latencia en Dynatrace. Cuando tengas la respuesta, copia tu prompt exacto aquí."\n\nSe evalúan 5 dimensiones de Ingeniería de Contexto (Prompt Engineering):\n1. Asignación de Rol — ¿Le asignó un rol o persona al modelo?\n2. Contexto Técnico — ¿Incluyó los parámetros clave del escenario?\n3. Formato de Salida — ¿Especificó cómo quiere la respuesta?\n4. Restricciones / Guardrails — ¿Acotó el alcance para evitar respuestas genéricas?\n5. Sofisticación / Iteración — ¿Demostró madurez más allá de una pregunta plana?',
         positive: [
-            'Asigna un rol o persona al modelo (ej: "Actúa como un SRE experto en Elasticsearch").',
-            'Especifica el formato de salida deseado (ej: "Dame la query en formato JSON DSL").',
-            'Incluye restricciones técnicas para acotar el alcance (ej: "Usa @timestamp y level:ERROR").',
-            'Demuestra sofisticación: pide explicaciones, variantes o validación del resultado.',
+            'Asigna un rol o persona al modelo (ej: "Actúa como un SRE experto en Grafana Loki / Dynatrace").',
+            'Especifica el formato de salida deseado (ej: "Dame la query en sintaxis LogQL con comentarios").',
+            'Incluye restricciones técnicas para acotar el alcance (ej: "Usa {app=\'payments-service\'} y status=500").',
+            'Demuestra sofisticación: pide explicaciones, cálculo de tasa de error o validación de sintaxis.',
         ],
         alert: [
             'Solo parafrasea o copia el enunciado sin añadir técnicas de prompting (máximo 2/5).',
@@ -60,7 +60,7 @@ const EVALUATOR_GUIDES: Record<string, {
             'Nunca ha usado una herramienta de IA y no sabe cómo acceder a ella.',
         ],
         scoring: [
-            { score: 5, desc: 'Prompt profesional/senior. Incluye rol + los 4 parámetros + formato de salida + restricciones técnicas + sofisticación (pide explicación, variantes o validación).' },
+            { score: 5, desc: 'Prompt profesional/senior. Incluye rol + parámetros + formato de salida + restricciones técnicas + sofisticación (pide explicación, agregaciones o validación).' },
             { score: 4, desc: 'Prompt avanzado. Incluye rol + parámetros + formato de salida o restricciones. Demuestra intención clara de guiar al modelo.' },
             { score: 3, desc: 'Prompt funcional. Incluye los parámetros técnicos y al menos un elemento avanzado (rol O formato). Obtendría respuesta útil pero no óptima.' },
             { score: 2, desc: 'Prompt básico / paráfrasis. Menciona los parámetros clave pero es una reformulación plana del enunciado sin técnicas de prompting.' },
@@ -80,11 +80,11 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
     const [isSaving, setIsSaving] = useState(false)
 
     const getInitialScore = (categoryId: string) => {
-        const found = existingScores.find(s => s.dimension === 'D' && s.category === categoryId)
+        const found = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === categoryId)
         return found ? found.raw_score : 0
     }
     const getInitialComment = (categoryId: string) => {
-        const found = existingScores.find(s => s.dimension === 'D' && s.category === categoryId)
+        const found = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === categoryId)
         return found?.comments || ''
     }
 
@@ -145,17 +145,32 @@ export function DimensionDEvaluation({ evaluationId, existingScores, readOnly }:
     const handleSave = async () => {
         setIsSaving(true)
         const supabase = createClient()
-        for (const cat of CATEGORIES) {
-            const { data: existing } = await supabase.from('dimension_scores').select('id')
-                .eq('evaluation_id', evaluationId).eq('dimension', 'D').eq('category', cat.id).single()
-            if (existing) {
-                await supabase.from('dimension_scores').update({ raw_score: scores[cat.id], comments: comments[cat.id] }).eq('id', existing.id)
-            } else {
-                await supabase.from('dimension_scores').insert({ evaluation_id: evaluationId, dimension: 'D', category: cat.id, raw_score: scores[cat.id], comments: comments[cat.id] })
+        try {
+            for (const cat of CATEGORIES) {
+                const ext = existingScores.find(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === cat.id)
+                const { error: upsertErr } = await supabase.from('dimension_scores').upsert({
+                    ...(ext ? { id: ext.id } : {}),
+                    evaluation_id: evaluationId,
+                    dimension: 'IA',
+                    category: cat.id,
+                    raw_score: scores[cat.id],
+                    comments: comments[cat.id]
+                })
+                if (upsertErr) throw upsertErr
             }
+
+            // Actualizar total IA en tabla evaluations
+            const totalIA = (scores['IA-1'] || 0) + (scores['IA-2'] || 0)
+            await supabase.from('evaluations').update({ score_ia: totalIA }).eq('id', evaluationId)
+
+            router.refresh()
+            alert('Dimensión D guardada exitosamente.')
+        } catch (error: any) {
+            console.error('Error guardando Dimensión D:', error)
+            alert('Error al guardar Dimensión D: ' + (error?.message || 'Error desconocido'))
+        } finally {
+            setIsSaving(false)
         }
-        setIsSaving(false)
-        router.refresh()
     }
 
     return (

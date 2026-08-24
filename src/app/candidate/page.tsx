@@ -20,8 +20,7 @@ import { Button } from '@/components/ui/button'
 
 // Components
 import { TimeUpOverlay } from '@/components/candidate/TimeUpOverlay'
-import { PauseOverlay } from '@/components/candidate/PauseOverlay'
-import { startEvaluationTimer, pauseEvaluation } from '@/app/actions/candidate/evaluation'
+import { startEvaluationTimer, recordTabSwitch } from '@/app/actions/candidate/evaluation'
 
 // Custom Hooks
 import { useCandidateContext } from '@/context/CandidateContext'
@@ -47,6 +46,7 @@ export default function CandidateEvaluationFlow() {
     // Completion states for tabs that don't export them via hooks
     const [a4Submitted, setA4Submitted] = useState(false)
     const [b1Submitted, setB1Submitted] = useState(false)
+    const [b2Submitted, setB2Submitted] = useState(false)
     const [d2Submitted, setD2Submitted] = useState(false)
 
     // Legal Guard
@@ -61,32 +61,26 @@ export default function CandidateEvaluationFlow() {
         ctx.reloadContext()
     }, [])
 
-    // Auto-Pause Logic (Network & Visibility)
+    // Tab Switch / Focus Loss Detection (Max 4 integrity warnings)
     useEffect(() => {
-        // Only trigger auto-pause if evaluation has started, isn't already paused, and hasn't ended
-        if (!ctx.evaluationId || !ctx.startedAt || ctx.isPaused || ctx.isTimeUp) return
+        if (!ctx.evaluationId || !ctx.startedAt || ctx.isTimeUp) return
 
-        const triggerAutoPause = async () => {
-            if (ctx.pauseCount >= 3) return
-
-            const res = await pauseEvaluation(ctx.evaluationId!)
-            if (res.success) {
-                ctx.setPausedAt(new Date().toISOString())
-                ctx.setPauseCount((prev: number) => prev + 1)
+        const handleFocusLoss = async () => {
+            if (document.hidden) {
+                const res = await recordTabSwitch(ctx.evaluationId!)
+                if (res.success) {
+                    ctx.setTabSwitchCount(res.newCount)
+                    ctx.setShowTabSwitchWarning(true)
+                }
             }
         }
 
-        const handleOffline = () => triggerAutoPause()
-        const handleVisibility = () => { if (document.hidden) triggerAutoPause() }
-
-        window.addEventListener('offline', handleOffline)
-        document.addEventListener('visibilitychange', handleVisibility)
+        document.addEventListener('visibilitychange', handleFocusLoss)
 
         return () => {
-            window.removeEventListener('offline', handleOffline)
-            document.removeEventListener('visibilitychange', handleVisibility)
+            document.removeEventListener('visibilitychange', handleFocusLoss)
         }
-    }, [ctx.evaluationId, ctx.startedAt, ctx.isPaused, ctx.isTimeUp, ctx.pauseCount, ctx.setPausedAt, ctx.setPauseCount])
+    }, [ctx.evaluationId, ctx.startedAt, ctx.isTimeUp, ctx.setTabSwitchCount, ctx.setShowTabSwitchWarning])
 
     const handleStartEvaluation = async () => {
         if (!ctx.evaluationId) return
@@ -127,18 +121,16 @@ export default function CandidateEvaluationFlow() {
                                 ¿Listo para comenzar?
                             </CardTitle>
                             <CardDescription className="text-base">
-                                Al hacer clic en el botón, el cronómetro de <strong>{ctx.testDuration} minutos</strong> comenzará a correr.
-                                No podrás detenerlo excepto con las pausas disponibles.
+                                Al hacer clic en el botón, el cronómetro de <strong>{ctx.testDuration} minutos</strong> comenzará a correr de forma ininterrumpida.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4 pb-6">
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 space-y-1">
-                                <p className="font-bold flex items-center gap-1.5">⚠️ Importante:</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-xs ml-1">
-                                    <li>Tienes <strong>{ctx.testDuration} minutos</strong> para completar todas las secciones.</li>
-                                    <li>Dispones de <strong>máximo 3 pausas</strong> durante la prueba.</li>
-                                    <li>Si cambias de pestaña o pierdes conexión, se activará una pausa automática.</li>
-                                    <li>Asegúrate de tener una conexión estable antes de iniciar.</li>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3.5 text-sm text-amber-900 dark:text-amber-200 space-y-1.5">
+                                <p className="font-bold flex items-center gap-1.5">⚠️ Normas de Integridad:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs ml-1">
+                                    <li>El cronómetro es <strong>continuo y no se detiene</strong> durante toda la evaluación.</li>
+                                    <li>Se permite un <strong>máximo de 4 cambios de ventana/pestaña</strong> con advertencia.</li>
+                                    <li>Cualquier salida adicional quedará registrada en tu reporte técnico para el evaluador.</li>
                                 </ul>
                             </div>
                             <Button
@@ -165,7 +157,7 @@ export default function CandidateEvaluationFlow() {
             {/* Time Up Blocker */}
             {ctx.isTimeUp && <TimeUpOverlay />}
 
-            <div className={`space-y-6 transition-all duration-500 ${ctx.isPaused ? 'opacity-0 scale-95 blur-xl pointer-events-none' : 'opacity-100 scale-100 blur-0'}`}>
+            <div className="space-y-6 transition-all duration-300">
                 {/* Candidate Identity Header */}
                 <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -218,8 +210,8 @@ export default function CandidateEvaluationFlow() {
                             {b1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="b2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
-                            B2-B6
-                            {b2.b2Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
+                            {ctx.profileTrack === 'otel_expert' ? 'B2-B6' : 'B2-B3'}
+                            {(ctx.profileTrack === 'otel_expert' ? b2.b2Submitted : b2Submitted) && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="c" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">
                             C
@@ -305,30 +297,56 @@ export default function CandidateEvaluationFlow() {
                         <div className="space-y-4">
                             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-primary" />
-                                B1. Comunicación Técnica Escrita
+                                B1. Comunicación Técnica Escrita (Documentación en GLPI)
                             </h2>
                             <p className="text-muted-foreground text-sm">
-                                Lee el escenario del incidente con atención y documenta el ticket como si lo fueras a ingresar en GLPI o JIRA.
+                                Lee el escenario del incidente con atención y documenta el ticket técnico como si lo fueras a ingresar en GLPI.
                             </p>
                             <TicketEditor evaluationId={ctx.evaluationId} onComplete={() => setB1Submitted(true)} />
                         </div>
                     </TabsContent>
 
-                    {/* ===== B2-B6: Habilidades Blandas Situacionales ===== */}
+                    {/* ===== B2: Habilidades Blandas ===== */}
                     <TabsContent value="b2" className="space-y-6">
-                        <B2Tab
-                            b2QuestionsGenerated={b2.b2QuestionsGenerated}
-                            b2QuestionsLoading={b2.b2QuestionsLoading}
-                            b2Questions={b2.b2Questions}
-                            b2Answers={b2.b2Answers}
-                            setB2Answers={b2.setB2Answers}
-                            b2Submitted={b2.b2Submitted}
-                            b2Submitting={b2.b2Submitting}
-                            evaluationId={ctx.evaluationId}
-                            allB2Answered={b2.allB2Answered}
-                            handleGenerateB2Questions={b2.handleGenerateB2Questions}
-                            handleSubmitB2={b2.handleSubmitB2}
-                        />
+                        {ctx.profileTrack === 'otel_expert' ? (
+                            <B2Tab
+                                b2QuestionsGenerated={b2.b2QuestionsGenerated}
+                                b2QuestionsLoading={b2.b2QuestionsLoading}
+                                b2Questions={b2.b2Questions}
+                                b2Answers={b2.b2Answers}
+                                setB2Answers={b2.setB2Answers}
+                                b2Submitted={b2.b2Submitted}
+                                b2Submitting={b2.b2Submitting}
+                                evaluationId={ctx.evaluationId}
+                                allB2Answered={b2.allB2Answered}
+                                handleGenerateB2Questions={b2.handleGenerateB2Questions}
+                                handleSubmitB2={b2.handleSubmitB2}
+                            />
+                        ) : (
+                            <Card className="border border-indigo-200 shadow-md bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:border-indigo-800/30">
+                                <CardHeader className="text-center pb-4 pt-8">
+                                    <div className="mx-auto w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
+                                        <HelpCircle className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <CardTitle className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">Evaluación Sincrónica (B2-B3)</CardTitle>
+                                    <CardDescription className="text-base mt-2 max-w-xl mx-auto dark:text-indigo-200">
+                                        Esta sección mide tus habilidades blandas (comunicación verbal con stakeholders, colaboración bajo presión y priorización). Se realiza mediante preguntas guiadas por tu evaluador.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="text-center pb-8 border-t border-indigo-100 dark:border-indigo-800/30 pt-6 mt-4">
+                                    <p className="font-bold text-lg text-indigo-700 dark:text-indigo-300 mb-6">
+                                        ✋ ¡Alto! Por favor, indica a tu líder técnico/evaluador que has llegado a este punto para que dirija las preguntas.
+                                    </p>
+                                    <Button 
+                                        onClick={() => setB2Submitted(true)}
+                                        disabled={b2Submitted}
+                                        className={`font-semibold transition-all ${b2Submitted ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                                    >
+                                        {b2Submitted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Sección B2-B3 Completada</> : 'Marcar sección como completada'}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                     </TabsContent>
 
                     {/* ===== C: Cultura SRE ===== */}

@@ -46,10 +46,14 @@ interface CandidateContextType {
     restoredA3: RestoredA3 | null
     // Timer
     startedAt: string | null
-    setStartedAt: (val: string | null) => void
+    setStartedAt: (val: string) => void
     testDuration: number
     remainingSeconds: number | null
     isTimeUp: boolean
+    tabSwitchCount: number
+    setTabSwitchCount: React.Dispatch<React.SetStateAction<number>>
+    showTabSwitchWarning: boolean
+    setShowTabSwitchWarning: (val: boolean) => void
     pausedAt: string | null
     setPausedAt: (val: string | null) => void
     totalPausedMs: number
@@ -78,11 +82,13 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [restoredA2, setRestoredA2] = useState<RestoredA2 | null>(null)
     const [restoredA3, setRestoredA3] = useState<RestoredA3 | null>(null)
 
-    // Timer State
+    // Timer State — Continuous countdown
     const [startedAt, setStartedAt] = useState<string | null>(null)
     const [testDuration, setTestDuration] = useState<number>(60)
     const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
     const [isTimeUp, setIsTimeUp] = useState(false)
+    const [tabSwitchCount, setTabSwitchCount] = useState<number>(0)
+    const [showTabSwitchWarning, setShowTabSwitchWarning] = useState<boolean>(false)
     const [pausedAt, setPausedAt] = useState<string | null>(null)
     const [totalPausedMs, setTotalPausedMs] = useState<number>(0)
     const [pauseCount, setPauseCount] = useState<number>(0)
@@ -152,9 +158,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                     if (evalData?.legal_consent_tc && evalData?.legal_consent_data) setLegalAccepted(true)
                     if (evalData?.started_at) setStartedAt(evalData.started_at)
                     if (evalData?.test_duration_minutes) setTestDuration(evalData.test_duration_minutes)
-                    if (evalData?.paused_at) setPausedAt(evalData.paused_at)
-                    if (evalData?.total_paused_ms) setTotalPausedMs(Number(evalData.total_paused_ms))
-                    if (evalData?.pause_count) setPauseCount(evalData.pause_count)
+                    if (evalData?.pause_count) setTabSwitchCount(evalData.pause_count)
 
                     // Load saved responses and map them correctly
                     const [rA1, rA2, rA3] = await Promise.all([
@@ -174,10 +178,10 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                                 r.subcategory === 'A1.3' ? 'Protocolo OTLP & Transportes' :
                                 r.subcategory === 'A1.4' ? 'Profiling & eBPF Telemetry' : 'Cloud'
                             ) : (
-                                r.subcategory === 'A1.1' ? 'Linux' :
-                                r.subcategory === 'A1.2' ? 'Windows Server' :
-                                r.subcategory === 'A1.3' ? 'Redes' :
-                                r.subcategory === 'A1.4' ? 'Contenedores' : 'Cloud'
+                                r.subcategory === 'A1.1' ? 'Linux Filesystem' :
+                                r.subcategory === 'A1.2' ? 'Linux Procesos' :
+                                r.subcategory === 'A1.3' ? 'Linux Logs' :
+                                r.subcategory === 'A1.4' ? 'Cloud Computing' : 'Cloud AWS'
                             ),
                             question: r.question,
                         }))
@@ -198,7 +202,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                                 r.subcategory === 'A2.1' ? 'Monitoreo vs Observabilidad' :
                                 r.subcategory === 'A2.2' ? 'Tres Pilares' :
                                 r.subcategory === 'A2.3' ? `Dashboards` :
-                                r.subcategory === 'A2.4' ? 'Búsqueda de Logs' : 'Interpretación de Alertas'
+                                r.subcategory === 'A2.4' ? 'APM & Tracing' : 'Alertas & SLOs'
                             ),
                             question: r.question,
                         }))
@@ -213,9 +217,8 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                             label: track === 'otel_expert' ? (
                                 r.subcategory === 'A3.1' ? 'Análisis de Pipeline & Muestreo' : 'Reglas OTTL & Procesamiento'
                             ) : (
-                                r.subcategory === 'A3.1' ? 'Git Básico' :
-                                r.subcategory === 'A3.2' ? 'Scripting' :
-                                r.subcategory === 'A3.3' ? 'Gestión ITSM' : 'Documentación'
+                                r.subcategory === 'A3.1' ? 'Git: Ramas y Flujo' :
+                                r.subcategory === 'A3.2' ? 'Pandas: Carga y Filtrado' : 'Pandas: Agregaciones y Detección'
                             ),
                             question: r.question,
                         }))
@@ -241,19 +244,19 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
         loadContext()
     }, [reloadCounter])
 
-    // Timer countdown
+    // Timer countdown — strictly continuous, never freezes
     useEffect(() => {
         if (!startedAt) return
         const interval = setInterval(() => {
             const start = new Date(startedAt).getTime()
-            const now = pausedAt ? new Date(pausedAt).getTime() : new Date().getTime()
-            const elapsed = now - start - Number(totalPausedMs)
+            const now = new Date().getTime()
+            const elapsed = now - start
             const remaining = Math.max(0, Math.floor((testDuration * 60 * 1000 - elapsed) / 1000))
             setRemainingSeconds(remaining)
             if (remaining <= 0) setIsTimeUp(true)
         }, 1000)
         return () => clearInterval(interval)
-    }, [startedAt, testDuration, pausedAt, totalPausedMs])
+    }, [startedAt, testDuration])
 
     // Poll for evaluator time adjustments (every 30s)
     useEffect(() => {
@@ -276,9 +279,12 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
         <CandidateContext.Provider value={{
             educationLevel, setEducationLevel, evaluationId, profileTrack, contextLoaded, candidateName, candidateEmail, legalAccepted, setLegalAccepted,
             restoredA1, restoredA2, restoredA3,
-            startedAt, setStartedAt, testDuration, remainingSeconds, isTimeUp, 
-            pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, pauseCount, setPauseCount,
-            isPaused: !!pausedAt,
+            startedAt, setStartedAt: (val: string) => setStartedAt(val), testDuration, remainingSeconds, isTimeUp, 
+            tabSwitchCount, setTabSwitchCount,
+            showTabSwitchWarning, setShowTabSwitchWarning,
+            pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, 
+            pauseCount: tabSwitchCount, setPauseCount: setTabSwitchCount,
+            isPaused: false,
             bypassPasteCount, incrementBypassCount, reloadContext
         }}>
             {children}

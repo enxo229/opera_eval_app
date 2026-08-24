@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Terminal, Sparkles, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
 import { A1Question } from '@/app/actions/ai'
 import { useCandidateContext } from '@/context/CandidateContext'
+import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A1TabProps {
     a1QuestionsGenerated: boolean
@@ -46,13 +47,13 @@ export function A1Tab({
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <Terminal className="h-5 w-5 text-primary" />
-                A1. Fundamentos de Infraestructura y Observabilidad
+                {isOtelExpert ? 'A1. Fundamentos de Arquitectura OpenTelemetry & OTLP' : 'A1. Fundamentos de Infraestructura y Linux'}
             </h2>
             
             {!isOtelExpert && (
                 <>
                     <p className="text-muted-foreground text-sm mb-4">
-                        Usa la terminal para demostrar tu manejo de entornos Linux. Intenta tareas como: consultar tu usuario activo y el nombre del host, mostrar en qué ruta te encuentras, ir al directorio raíz y listar su contenido, o revisar los procesos del sistema.
+                        Usa la terminal interactiva para demostrar tu manejo de comandos en Linux (archivos, permisos, procesos, logs) y responde las preguntas de Linux y Fundamentos Cloud AWS.
                         Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
                     </p>
                     <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
@@ -91,7 +92,7 @@ export function A1Tab({
                                     </span>
                                     <span className="text-xs font-semibold text-muted-foreground">{q.label}</span>
                                 </div>
-                                <p className="text-sm text-foreground select-none pointer-events-none">{q.question}</p>
+                                <FormattedQuestion text={q.question} />
                                 <textarea
                                     value={a1Answers[q.subcategory] || ''}
                                     onChange={(e) => setA1Answers((prev: Record<string, string>) => ({ ...prev, [q.subcategory]: e.target.value }))}

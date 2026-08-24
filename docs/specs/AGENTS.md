@@ -14,7 +14,7 @@
 | UI | React + Tailwind CSS v4 + Shadcn UI v4 (base-ui) | React 19.2.3 |
 | Lenguaje | TypeScript | ^5 |
 | Base de datos | Supabase (PostgreSQL + Auth + RLS) | SDK 2.98 |
-| IA Generativa | Google Gemini (3 cadenas de modelos) | SDK 0.24.1 |
+| IA Generativa | Google Gemini (Gemini 3.7 Flash, 3.5 Flash Lite, 2.5 Flash Lite) | SDK 0.24.1 |
 | Gráficos | Recharts | ^3.8 |
 | Animaciones | Framer Motion | ^12.35 |
 | Iconos | Lucide React | ^0.577 |
@@ -25,18 +25,16 @@
 
 ## 3. Modelos de IA (Fallback & Resiliency Strategy)
 
-Configuración en `src/lib/ai/gemini.ts`. Se utilizan **3 cadenas diferenciadas** por tipo de tarea para optimizar latencia vs. calidad:
+Configuración en `src/lib/ai/gemini.ts`.
 
-### 3.1 Cadenas de Modelos
-
-| Tipo de Tarea | Modelo 1 (Principal) | Modelo 2 (Fallback) | Modelo 3 (Universal) |
+| Tipo de Tarea | Modelo Principal (Intento 1) | Fallback 1 (Intento 2) | Fallback 2 (Intento 3) |
 |---|---|---|---|
-| **Generación** (Preguntas, Chat A4) | `gemini-3.5-flash-lite` | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
-| **Evaluación** (Scoring JSON, Rúbricas, IA-2) | `gemini-2.5-flash` | `gemini-3.5-flash-lite` | `gemini-2.5-flash-lite` |
-| **Reportes** (Narrativa Ejecutiva) | `gemini-3.6-flash` | `gemini-2.5-flash` | `gemini-3.5-flash-lite` |
+| **Generación** | `gemini-3.7-flash` (~3.7s) | `gemini-3.5-flash-lite` (~1.7s) | `gemini-2.5-flash-lite` (~1.2s) |
+| **Evaluación** (JSON) | `gemini-3.7-flash` (~3.3s) | `gemini-2.5-flash` | `gemini-2.5-flash-lite` |
+| **Reportes** (Narrativa) | `gemini-3.7-flash` (~3.8s) | `gemini-3.5-flash-lite` | `gemini-2.5-flash-lite` |
 
-- **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
-- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente al modelo lite para garantizar la generación en situaciones de alta latencia o agotamiento de cuota.
+- **Resiliencia (Fallback)**: Si un modelo falla por cuota (429) o disponibilidad (503/500/404/400), el sistema conmuta automáticamente hacia el siguiente en la cadena tras un delay exponencial (2s × 2^attempt).
+- **Manual Backup Strategy**: Se ha implementado un botón "Regenerar con IA (Back up)" en la interfaz del reporte. Este botón ignora la cadena de fallback y llama directamente a la cadena ultrarrápida `['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite']` para garantizar la generación en situaciones de alta latencia.
 - **PII Filter**: Eliminado intencionalmente. El usuario ha confirmado que desea capturar `prompt` y `completion` incluso en producción para auditoría técnica.
 - **Variable de entorno**: Usa `APP_GEMINI_API_KEY` (NO `GEMINI_API_KEY`) para evitar colisiones con el entorno del sistema.
 - **Observability**: Toda llamada a la IA debe registrarse usando `metricsApp.recordAiRequest()` y envolverse en un Span de OTel (`tracer.startActiveSpan`).
@@ -251,63 +249,140 @@ El sistema soporta múltiples perfiles de evaluación. El track se almacena en `
 
 ---
 
-## 8. Temporizador y Sistema de Pausas
+## 8. Temporizador y Control de Integridad (Reloj Continuo y Control de Foco)
 
 ### Configuración
-- **Duración por defecto**: 60 minutos (configurable por evaluador en tiempo real).
-- **Máximo de pausas**: 3 por evaluación.
-- **Auto-pausa**: Se activa al cambiar de pestaña del navegador o perder conexión (si quedan pausas disponibles).
+- **Duración por defecto**: 60 minutos (configurable y extensible por el evaluador en tiempo real).
+- **Reloj Continuo**: El cronómetro nunca se detiene bajo ninguna circunstancia del lado del candidato (no existen pausas que congelen el tiempo).
+- **Límite de Cambios de Ventana/Pestaña**: Máximo 4 advertencias por evaluación (`recordTabSwitch`).
+- **Modal de Integridad (`TabSwitchWarningModal.tsx`)**: Se despliega automáticamente al salir de la pestaña o minimizar la ventana, indicando el número de intento ($X$ de 4) y recordando que el reloj sigue avanzando sin detenerse.
+- **Auditoría de Foco**: Si el candidato supera los 4 cambios permitidos, los eventos adicionales quedan registrados en `dynamic_tests` (`test_type: 'TAB_SWITCH_EVENT'`) como telemetría de integridad para el evaluador.
 
 ### Arquitectura del Timer
-- **Server Actions** (`src/app/actions/candidate/evaluation.ts`): `startEvaluationTimer()`, `pauseEvaluation()`, `resumeEvaluation()`. Las acciones actualizan la DB pero **no usan `revalidatePath`** — el estado se maneja de forma optimista en el cliente.
-- **Estado optimista**: `CandidateContext` expone `setPausedAt()`, `setPauseCount()`, `setTotalPausedMs()`, `setStartedAt()`. Los callbacks en `CandidateHeader` y `PauseOverlay` actualizan el contexto inmediatamente.
+- **Server Actions** (`src/app/actions/candidate/evaluation.ts`): `startEvaluationTimer()`, `recordTabSwitch()`, `getTimerState()`. Las acciones actualizan la DB sin interferir con la continuidad del reloj.
+- **Estado optimista y continuo**: `CandidateContext` calcula el tiempo restante de forma estrictamente lineal:
+  $$\text{elapsed} = \text{now} - \text{startedAt}$$
+  $$\text{remaining} = \max(0, \text{testDuration} \times 60 - \lfloor \text{elapsed} / 1000 \rfloor)$$
 - **Polling de duración**: El `CandidateContext` hace polling cada 30 segundos de `test_duration_minutes` para reflejar ajustes del evaluador sin recargar la página.
-- **Posición visual**: El timer se renderiza en el centro del **sticky header** (`CandidateHeader.tsx`), que permanece fijo en la parte superior de la pantalla.
+- **Posición visual**: El timer se renderiza en el centro del **sticky header** (`CandidateHeader.tsx`), con cambio de color según urgencia (verde > 10 min, ámbar < 10 min, rojo pulsante < 2 min).
 
 ### Ajuste de Tiempo por el Evaluador
 - **Server Action** (`src/app/actions/evaluator/timer.ts`): `adjustEvaluationTime(evaluationId, 'add'|'set', minutes)`. Validación: 1-180 minutos.
-- **Widget UI** (`TimerAdjuster.tsx`): Botones rápidos (+5, +10, +15 min) + input para fijar un valor exacto. Ubicado en el sidebar de `/evaluator/evaluate/[id]`.
+- **Widget UI** (`TimerAdjuster.tsx`): Botones rápidos (+5, +10, +15 min) + input para fijar un valor exacto + badge de telemetría de cambios de ventana ($X$ / 4). Ubicado en el sidebar de `/evaluator/evaluate/[id]`.
 
 ---
 
 ## 9. Flujos Especiales
 
 - **Persistencia de Preguntas (A1, A2, A3)**: Las preguntas generadas por IA se persisten inmediatamente en `dynamic_tests` vía `saveA*QuestionsOnly()`. Esto previene la pérdida de datos por recarga de página. Solo se regeneran si el evaluador ejecuta un _reset_.
-- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad. La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda. En perfil `otel_expert`, la herramienta predeterminada es "Grafana".
-- **A4 (Caso Práctico)**: Generación persistente de incidente en DB (`A4_CASE`). Chat interactivo (`IA_CHAT`) que se bloquea al finalizar. Evaluación IA en 3 subcategorías.
-- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios (Estructura, Precisión, Acciones, Impacto). También evalúa B6 (Colaboración Asíncrona) en 3 criterios adicionales (Handoff, Bloqueos, Seguimiento).
-- **B2-B6 (Preguntas Situacionales Autónomas)**: Preguntas abiertas generadas por IA (`QUESTIONS_B2`), respondidas por el candidato, evaluadas automáticamente por IA con scoring (0-3) y AI Likelihood (0-100%). Persistidas en `dynamic_tests` con upsert de `dimension_scores` para el evaluador.
-- **C1-C4 (Preguntas de Filosofía/Cultura Autónomas)**: Mismo flujo que B2-B6. Tipo `QUESTIONS_C`. Preguntas sobre filosofía SRE, blameless culture, adaptabilidad y SLOs.
-- **IA-2 (Prompting)**: El candidato ingresa el prompt que usó fuera de la plataforma. Gemini analiza el prompt en 5 dimensiones de Ingeniería de Contexto (Rol, Contexto Técnico, Formato de Salida, Restricciones, Sofisticación) y sugiere un score riguroso al evaluador en `DimensionDEvaluation`. Un simple parafraseo del enunciado sin técnicas de prompting obtiene máximo 2/5. **Solo aplica para perfil `general`.**
+- **A1 (Telemetría de Terminal Linux)**: Registro automático de los comandos ejecutados en la sandbox en `dynamic_tests` (`TERMINAL_A1`), visibles para el evaluador como evidencia cualitativa de soltura en CLI (oculto para perfil `otel_expert`).
+- **A2 (Herramienta)**: El candidato selecciona su herramienta de observabilidad (Dynatrace / Grafana Loki). La selección y las preguntas se persisten con `candidate_response = ''` hasta que el candidato las responda. En perfil `otel_expert`, la herramienta predeterminada es "Grafana".
+- **A3 (Git, Pandas & OTel YAML)**: Ejercicios prácticos de control de versiones con Git y análisis de datos con Pandas (escala normalizada base 9 $\rightarrow$ 10). En perfil `otel_expert`, incluye editor YAML para pipelines OTTL y Colector.
+- **A4 (Caso Práctico)**: Generación persistente de incidente en DB (`A4_CASE`). Chat interactivo (`IA_CHAT`) con consola APM enriquecida (`TelemetryChatRenderer`) que se bloquea al finalizar. Evaluación IA en 3 subcategorías.
+- **B1 (Ticket)**: Escenario dinámico (`B1_CASE`). Evaluación vía IA basada en rúbrica de 4 criterios en GLPI (Estructura, Precisión, Acciones, Impacto).
+- **B2-B6 y C (Preguntas Situacionales Autónomas para OTel)**: Preguntas abiertas evaluadas automáticamente por IA con scoring (0-3) y detector de AI Likelihood (0-100%).
+- **IA-2 (Prompting)**: El candidato ingresa el prompt técnico para consultas en Dynatrace / Grafana Loki. Gemini evalúa la sofisticación del contexto y sugiere puntaje al evaluador (solo aplica para perfil `general`).
 
 ---
 
-## 9. Base de Datos
+## 10. Base de Datos & Diagrama Entidad-Relación (ER)
 
-### Tablas
+### Diagrama Entidad-Relación
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ SELECTION_PROCESSES : "evaluator_id"
+    PROFILES ||--o{ EVALUATIONS : "candidate_id / evaluator_id"
+    SELECTION_PROCESSES ||--o{ EVALUATIONS : "selection_process_id"
+    EVALUATIONS ||--o{ DIMENSION_SCORES : "evaluation_id"
+    EVALUATIONS ||--o{ DYNAMIC_TESTS : "evaluation_id"
+
+    PROFILES {
+        uuid id PK "auth.users.id"
+        text full_name
+        text role "check: evaluator, candidate"
+        text education_level "bachiller, tecnico_sena, tecnologo, profesional"
+        text national_id_type "check: CC, CE, TI, PPT, PEP, Pasaporte"
+        text national_id "Número de identificación"
+        timestamptz created_at
+    }
+
+    SELECTION_PROCESSES {
+        uuid id PK
+        text candidate_email "Indexed"
+        text candidate_national_id
+        uuid evaluator_id FK "profiles.id"
+        text team
+        text observations
+        text status "check: active, completed, archived"
+        timestamptz created_at
+    }
+
+    EVALUATIONS {
+        uuid id PK
+        uuid candidate_id FK "profiles.id"
+        uuid evaluator_id FK "profiles.id"
+        uuid selection_process_id FK "selection_processes.id"
+        text status "check: draft, completed"
+        numeric score_a "Max 50"
+        numeric score_b "Max 30"
+        numeric score_c "Max 20"
+        numeric score_ia "Max 10 (Desempate)"
+        numeric final_score "Max 100"
+        text classification "Listo, Nivelación, Preparación, Rol actual"
+        jsonb ai_insights
+        jsonb final_feedback_ai "Narrativa, Fortalezas, Brechas"
+        timestamptz completed_at
+        boolean legal_consent_tc
+        boolean legal_consent_data
+        timestamptz legal_accepted_at
+        timestamptz started_at
+        int test_duration_minutes "Default 60"
+        timestamptz paused_at
+        bigint total_paused_ms
+        int pause_count
+        int tab_switch_count "Auditoría desenfoques (máx 4)"
+    }
+
+    DIMENSION_SCORES {
+        uuid id PK
+        uuid evaluation_id FK "evaluations.id ON DELETE CASCADE"
+        text dimension "check: A, B, C, IA, D"
+        text category "A1.1..A1.5, A2.1..A2.5, A3.1..A3.3, A4.1..A4.3, B1..B3, C1..C3, IA-1..IA-2"
+        integer raw_score
+        text comments
+    }
+
+    DYNAMIC_TESTS {
+        uuid id PK
+        uuid evaluation_id FK "evaluations.id ON DELETE CASCADE"
+        text test_type "check: A4_CASE, B1_CASE, B1_TICKET, IA_CHAT, TERMINAL_A1, QUESTIONS_A1..A4, PROMPT_IA2, TAB_SWITCH_EVENT"
+        text subcategory
+        text prompt_context
+        text ai_generated_content
+        text candidate_response
+        integer ai_score
+        text ai_justification
+    }
+```
+
+### Tablas y Propósito
 
 | Tabla | Propósito |
 |---|---|
 | `profiles` | Datos del usuario (nombre, rol, nivel educativo, documento de identidad) |
 | `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones, `profile_track`) |
-| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal) |
+| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal y timer) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
-| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, `ai_likelihood` |
+| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal, `ai_likelihood` y eventos de foco |
 
-### Campos del Timer (tabla `evaluations`)
-
-| Campo | Tipo | Propósito |
-|---|---|---|
-| `started_at` | timestamptz | Marca de inicio de la evaluación |
-| `test_duration_minutes` | int (default 60) | Duración total configurable por evaluador |
-| `paused_at` | timestamptz | Marca de última pausa (null si no está pausado) |
-| `total_paused_ms` | bigint (default 0) | Milisegundos totales pausados acumulados |
-| `pause_count` | int (default 0) | Número de pausas utilizadas (máx. 3) |
-
-### Campos de Auditoría Legal (tabla `evaluations`)
+### Campos del Timer, Foco y Auditoría (tabla `evaluations`)
 
 | Campo | Tipo | Propósito |
 |---|---|---|
+| `started_at` | timestamptz | Marca de inicio ininterrumpido de la evaluación |
+| `test_duration_minutes` | int (default 60) | Duración total configurable exclusivamente por evaluador |
+| `tab_switch_count` | int (default 0) | Contador de cambios de ventana / desenfoques detectados (máx. 4 permitidos) |
 | `legal_consent_tc` | boolean | Aceptación de Términos y Condiciones |
 | `legal_consent_data` | boolean | Autorización de Tratamiento de Datos |
 | `legal_accepted_at` | timestamptz | Estampa de tiempo del consentimiento |
@@ -336,16 +411,17 @@ La plataforma soporta los siguientes tipos de documento nacional colombiano:
 
 El tipo se almacena en `profiles.national_id_type` y el número en `profiles.national_id`.
 
-### RLS Policies
+### RLS Policies y Rendimiento
 
 - **RLS Performance**: 
-    - Se ha implementado el patrón **InitPlan Optimization** envolviendo las llamadas a `auth.uid()` en subqueries: `(select auth.uid())`. Esto previene la re-evaluación fila por fila.
-    - **Consolidación**: Se han fusionado múltiples políticas permisivas (ej. Candidato + Evaluador) en una sola regla con lógica `OR` para reducir la sobrecarga del motor de reglas de Supabase.
-- **Indexación**: Se han indexado las llaves foráneas en `dimension_scores`, `dynamic_tests`, `evaluations` y `selection_processes` para optimizar los JOINs y el filtrado por `evaluation_id`.
+    - Se ha implementado el patrón **InitPlan Optimization** envolviendo las llamadas a `auth.uid()` y `auth.jwt()` en subqueries: `(select auth.uid())`, `((select auth.jwt()) ->> 'email')`. Esto previene la re-evaluación fila por fila.
+    - **Consolidación**: Se han fusionado múltiples políticas permisivas en una sola regla con lógica `OR` para reducir la sobrecarga del motor de reglas de Supabase.
+- **Seguridad RPC**: La función `get_user_email(uuid)` tiene permisos revocados para `anon` y restringidos únicamente a `authenticated`.
+- **Indexación**: Índices dedicados en llaves foráneas (`evaluation_id`, `candidate_id`, `selection_process_id`, `candidate_email`, `test_type`).
 
 ---
 
-## 10. Convenciones Técnicas
+## 11. Convenciones Técnicas
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
@@ -400,9 +476,10 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | **B2-B6 y C Autónomos** | Las secciones de blandas y cultural son preguntas abiertas con scoring IA en vez de sliders manuales | 2026-08-05 |
 | **AI Likelihood Detector** | Motor dual (heurístico + Gemini) para detectar respuestas generadas por IA (0-100%) | 2026-08-05 |
 | **Pregeneración Batch** | Todas las preguntas se pre-generan al completar onboarding para evitar latencia durante el examen | 2026-08-05 |
-| **Cadenas de Modelos Diferenciadas** | Separar Generation/Evaluation/Report en cadenas distintas para optimizar latencia vs. calidad | 2026-08-05 |
 | **Bypass Paste Counter** | Contador de intentos de copy/paste como evidencia de conducta para el evaluador | 2026-08-05 |
 | **Omisión de Dim D en OTel Expert** | El track concentra 100 pts en A+B+C sin sección de IA complementaria | 2026-08-05 |
+| **Alineación Ruta Observabilidad** | A1 (Linux/AWS Core), A2 (SRE/Dynatrace/Grafana), A3 (Git/Pandas), Dim B (B1-B3) y C (C1-C3) | 2026-08-21 |
+| **Reloj Continuo e Integridad (Máx 4)** | Eliminación de pausas; reloj ininterrumpido y límite de 4 cambios de ventana con modal de advertencia | 2026-08-21 |
 
 ---
 
@@ -423,3 +500,53 @@ Este proyecto utiliza el **Model Context Protocol (MCP)** para extender las capa
 - **Cambios en Esquema**: No aplicar SQL a ciegas; usar `mcp_supabase_list_tables` para verificar el estado actual antes de proponer una migración incremental.
 - **Integración de Código**: Al finalizar una tarea, usar `mcp_github-mcp-server_create_pull_request` para mover cambios a `main` siguiendo el flujo de trabajo oficial de la organización.
 - **Gobernanza**: El agente debe preferir herramientas MCP sobre comandos manuales (scripts ad-hoc) siempre que exista una herramienta oficial disponible para la tarea.
+
+---
+
+## 13. Catálogo Exhaustivo de Componentes de la Aplicación y sus Roles
+
+A continuación se detalla cada componente del proyecto, su ubicación en el árbol de código, su ámbito de uso (*Candidato, Evaluador, Admin o Compartido*) y su responsabilidad técnica en el sistema:
+
+### 13.1 Componentes del Candidato (`src/components/candidate/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`CandidateContext`** | `src/components/candidate/CandidateContext.tsx` | **Gestor de Estado Global del Candidato**: Controla el ciclo de vida de la prueba, el cronómetro continuo ininterrumpido (`started_at`), la persistencia del consentimiento legal (T&C y Habeas Data), el nivel educativo, y el detector de desenfoques de ventana (`visibilitychange` / `blur`). |
+| **`CandidateHeader`** | `src/components/candidate/CandidateHeader.tsx` | **Barra Superior Persistente**: Muestra la identidad del candidato, el estado del proceso y alberga en su centro el temporizador visual interactivo. |
+| **`EvaluationTimer`** | `src/components/candidate/EvaluationTimer.tsx` | **Cronómetro Regresivo**: Renderiza el tiempo restante con transiciones de color semántico (Verde $\rightarrow$ Ámbar < 10 min $\rightarrow$ Rojo pulsante < 2 min) y micro-barra de progreso. No permite pausas por parte del candidato. |
+| **`TabSwitchWarningModal`** | `src/components/candidate/TabSwitchWarningModal.tsx` | **Control de Integridad y Foco**: Despliega una advertencia visual inmediata si el candidato abandona la pestaña o minimiza la ventana, contabilizando los intentos (máx. 4 permitidos) y registrando eventos de auditoría. |
+| **`QuestionPanel`** | `src/components/candidate/QuestionPanel.tsx` | **Panel Genérico de Preguntas y Respuestas**: Renderiza preguntas teóricas o de desarrollo con persistencia de texto, autoguardado y restricciones anti-copia (`onPaste`, `onCopy` bloqueados). |
+| **`FormattedQuestion`** | `src/components/candidate/FormattedQuestion.tsx` | **Renderizador de Código IDE macOS**: Transforma bloques Markdown (` ```python ` o inline ` `code` `) en tarjetas oscuras de código con números de línea, sintaxis coloreada y botón de copiado al portapapeles. |
+| **`TelemetryChatRenderer`** | `src/components/candidate/TelemetryChatRenderer.tsx` | **Consola Interactiva de Observabilidad**: Transforma respuestas de IA en consolas APM oscuras simulando Dynatrace/Grafana, resaltando errores (HTTP 500/504), latencias (P50/P99) y chips interactivos con copiado de queries para PromQL, Loki y kubectl. |
+| **`TerminalSandbox`** | `src/components/candidate/TerminalSandbox.tsx` | **Simulador de Terminal Linux**: Emulador interactivo CLI con sistema de archivos virtual en memoria (`ls`, `ps`, `top`, `grep`, `systemctl`, `cat /var/log/syslog`) que captura comandos y los almacena en `dynamic_tests` (`TERMINAL_A1`). |
+| **`ChatbotA4`** | `src/components/candidate/ChatbotA4.tsx` | **Consola de Investigación Asistida por IA**: Interfaz de chat en vivo con Gemini 3.7 Flash para simular investigación de incidentes P1 en producción, con auto-enfoque permanente y telemetría estructurada. |
+| **`TicketEditor`** | `src/components/candidate/TicketEditor.tsx` | **Editor Formal de Tickets GLPI**: Formulario de redacción de tickets de incidente con plantilla estructurada precargada, autoguardado y modal de confirmación para restablecer la plantilla inicial. |
+| **`PromptEditorIA2`** | `src/components/candidate/PromptEditorIA2.tsx` | **Editor de Ingeniería de Prompts**: Espacio de trabajo para que el candidato diseñe prompts técnicos avanzados para observabilidad, exento de restricciones de pegado para fomentar experimentación. |
+| **`tabs/A1Tab`, `A2Tab`, `A3Tab`, `A4Tab`** | `src/components/candidate/tabs/` | **Subvistas Especializadas de Dimensión A**: Componentes modulares que orquestan las preguntas de Linux/AWS (A1), Observabilidad (A2), Git/Pandas (A3) y Troubleshooting (A4). |
+| **`tabs/B1Tab`, `IATab`** | `src/components/candidate/tabs/` | **Subvistas Especializadas de Dimensiones B y D**: Fragmentos de interfaz para la redacción del ticket GLPI (B1) y las pruebas de uso de IA (IA-1 e IA-2). |
+
+---
+
+### 13.2 Componentes del Evaluador (`src/components/evaluator/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`DimensionAEvaluation`** | `src/components/evaluator/DimensionAEvaluation.tsx` | **Panel de Calificación Técnica (50 pts)**: Consolida los submódulos A1 (15), A2 (15), A3 (10 normalizado) y A4 (10 normalizado). Proporciona guardado masivo con feedback visual explícito (`alert`) y sincronización en `evaluations.score_a`. |
+| **`DimensionBEvaluation`** | `src/components/evaluator/DimensionBEvaluation.tsx` | **Panel de Calificación de Blandas (30 pts)**: Evalúa B1 (Registro GLPI - 10 pts), B2 (Comunicación Verbal - 10 pts) y B3 (Colaboración y Presión - 10 pts) con sugerencias automáticas de la IA. |
+| **`DimensionCEvaluation`** | `src/components/evaluator/DimensionCEvaluation.tsx` | **Panel de Calificación Cultural (20 pts)**: Califica C1 (Aprendizaje Autónomo - 7 pts), C2 (Adaptabilidad - 7 pts) y C3 (Trabajo en Equipo - 6 pts). |
+| **`DimensionDEvaluation`** | `src/components/evaluator/DimensionDEvaluation.tsx` | **Panel de Calificación de IA (10 pts)**: Califica el uso conceptual (IA-1 - 5 pts) y la ingeniería de prompts (IA-2 - 5 pts) para desempate y ruta de onboarding. |
+| **`FinalScoreCard`** | `src/components/evaluator/FinalScoreCard.tsx` | **Tarjeta de Cierre y Dictamen Final**: Calcula el score global $[0, 100]$, la clasificación ejecutiva (Listo, Nivelación, Preparación, Rol actual) y ejecuta el generador de dictamen narrativo con Gemini 3.7 Flash. |
+| **`TimerAdjuster`** | `src/components/evaluator/TimerAdjuster.tsx` | **Control de Temporizador en Vivo**: Permite al evaluador añadir minutos (+5, +10, +15) o fijar un tiempo exacto en caliente, visualizando la telemetría de cambios de ventana del candidato. |
+| **`RadarChartComponent`** | `src/components/evaluator/RadarChartComponent.tsx` | **Gráfico Radial de Competencias**: Renderiza con Recharts el perfil multidimensional del candidato comparado con el estándar del rol. |
+| **`A1SubEvaluation` ... `A4SubEvaluation`** | `src/components/evaluator/dimension-a/` | **Módulos de Inspección de Evidencias**: Permiten al evaluador revisar la telemetría de terminal Linux ejecutada (A1), respuestas de observabilidad (A2), análisis de código Pandas (A3) y el historial de chat interactivo con la consola APM enriquecida (A4). |
+
+---
+
+### 13.3 Componentes Compartidos y UI Base (`src/components/ui/`, `src/components/`)
+
+| Componente | Archivo | Rol y Responsabilidad Técnica |
+|---|---|---|
+| **`CompanyLogo`** | `src/components/CompanyLogo.tsx` | Identidad corporativa oficial de SETI / Opera con soporte para modo claro/oscuro. |
+| **`ScrollToTopButton`** | `src/components/evaluator/ScrollToTopButton.tsx` | Botón flotante accesible de retorno al inicio en formularios largos de evaluación. |
+| **`ui/*`** (Card, Button, Dialog, Tooltip, Input, Textarea, Slider, Progress) | `src/components/ui/` | Primitivos atómicos de diseño basados en Shadcn UI y Tailwind CSS v4, asegurando accesibilidad y consistencia visual en toda la suite. |
+

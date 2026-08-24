@@ -4,6 +4,7 @@ import NextImage from 'next/image'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, ChevronDown, ChevronUp, Eye } from 'lucide-react'
 import { A4_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
 import { RefObject } from 'react'
+import { TelemetryChatRenderer } from '@/components/candidate/TelemetryChatRenderer'
 
 interface A4SubEvaluationProps {
     a4Data: any[]
@@ -79,26 +80,55 @@ export function A4SubEvaluation({
                             <span className="flex items-center gap-2"><Eye className="h-4 w-4" /> Ver Historial de Chat Completo</span>
                             {expandedEvidence === 'A4' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </button>
-                        {expandedEvidence === 'A4' && (
-                            <div
-                                ref={a4HistoryRef}
-                                className="bg-slate-900 rounded-lg p-4 font-mono text-xs max-h-[400px] overflow-y-auto space-y-4 border border-slate-700 shadow-inner"
-                            >
-                                {a4History.split('\n').map((line, idx) => {
-                                    const isUser = line.startsWith('USER:')
-                                    const isAi = line.startsWith('AI:')
-                                    if (!isUser && !isAi) return <div key={idx} className="text-slate-500 italic">{line}</div>
-                                    return (
-                                        <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[85%] p-2 rounded ${isUser ? 'bg-blue-900/40 text-blue-100 border border-blue-800' : 'bg-slate-800 text-slate-100 border border-slate-700'}`}>
-                                                <span className="font-bold opacity-50 block mb-1 uppercase text-[10px]">{line.split(':')[0]}</span>
-                                                {line.split(':').slice(1).join(':')}
+                        {expandedEvidence === 'A4' && (() => {
+                            const parsedMessages: { role: 'user' | 'ai'; text: string }[] = []
+                            let currentRole: 'user' | 'ai' = 'ai'
+                            let currentBuffer: string[] = []
+
+                            a4History.split('\n').forEach((line) => {
+                                if (line.startsWith('USER:')) {
+                                    if (currentBuffer.length > 0) {
+                                        parsedMessages.push({ role: currentRole, text: currentBuffer.join('\n') })
+                                        currentBuffer = []
+                                    }
+                                    currentRole = 'user'
+                                    currentBuffer.push(line.replace(/^USER:\s*/, ''))
+                                } else if (line.startsWith('AI:') || line.startsWith('SISTEMA SIMULADO:')) {
+                                    if (currentBuffer.length > 0) {
+                                        parsedMessages.push({ role: currentRole, text: currentBuffer.join('\n') })
+                                        currentBuffer = []
+                                    }
+                                    currentRole = 'ai'
+                                    currentBuffer.push(line.replace(/^(AI|SISTEMA SIMULADO):\s*/, ''))
+                                } else {
+                                    currentBuffer.push(line)
+                                }
+                            })
+                            if (currentBuffer.length > 0) {
+                                parsedMessages.push({ role: currentRole, text: currentBuffer.join('\n') })
+                            }
+
+                            return (
+                                <div
+                                    ref={a4HistoryRef}
+                                    className="bg-[#0b0f19] rounded-xl p-4 font-mono text-xs max-h-[420px] overflow-y-auto space-y-4 border border-slate-800 shadow-inner"
+                                >
+                                    {parsedMessages.map((msg, idx) => (
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[90%] p-3.5 rounded-xl shadow-sm border ${msg.role === 'user'
+                                                ? 'bg-blue-950/40 text-blue-100 border-blue-800/80'
+                                                : 'bg-[#131722] text-slate-100 border-slate-700/80'
+                                                }`}>
+                                                <span className="font-bold opacity-60 block mb-1 uppercase text-[10px] tracking-wider">
+                                                    {msg.role === 'user' ? '👤 Candidato' : '🖥️ Consola de Observabilidad (IA)'}
+                                                </span>
+                                                <TelemetryChatRenderer content={msg.text} isAi={msg.role === 'ai'} />
                                             </div>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )
+                        })()}
 
                         {/* Per-subcategory scoring */}
                         {A4_SUBS.map(sub => {

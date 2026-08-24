@@ -9,9 +9,10 @@ interface Props {
     evaluationId: string
     initialDuration: number
     isStarted: boolean
+    tabSwitchCount?: number
 }
 
-export function TimerAdjuster({ evaluationId, initialDuration, isStarted }: Props) {
+export function TimerAdjuster({ evaluationId, initialDuration, isStarted, tabSwitchCount = 0 }: Props) {
     const [currentDuration, setCurrentDuration] = useState(initialDuration)
     const [customMinutes, setCustomMinutes] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,23 +53,42 @@ export function TimerAdjuster({ evaluationId, initialDuration, isStarted }: Prop
         setIsSubmitting(false)
     }
 
+    const isExceeded = tabSwitchCount >= 4
+
     return (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Timer className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Temporizador</p>
-                        <p className="text-lg font-black text-slate-800 font-mono">{currentDuration} min</p>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Temporizador</p>
+                        <p className="text-lg font-black text-foreground font-mono">{currentDuration} min</p>
                     </div>
                 </div>
                 {isStarted && (
-                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 uppercase">
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 uppercase">
                         En curso
                     </span>
                 )}
+            </div>
+
+            {/* Tab switch / window change integrity telemetry badge */}
+            <div className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${
+                tabSwitchCount === 0
+                    ? 'bg-muted/40 text-muted-foreground border-border'
+                    : isExceeded
+                        ? 'bg-red-500/10 text-red-600 border-red-500/30 font-semibold'
+                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 font-medium'
+            }`}>
+                <span className="flex items-center gap-1.5">
+                    <AlertTriangle className={`h-3.5 w-3.5 ${isExceeded ? 'text-red-600' : 'text-amber-600'}`} />
+                    Cambios de ventana:
+                </span>
+                <span className="font-mono font-bold">
+                    {tabSwitchCount} / 4 {isExceeded ? '(Límite Superado)' : ''}
+                </span>
             </div>
 
             {/* Quick Add Buttons */}

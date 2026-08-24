@@ -37,99 +37,104 @@ export async function startEvaluationTimer(evaluationId: string) {
 }
 
 /**
- * Gets the current timer state for an evaluation, including pause information.
+ * Gets the current timer state for an evaluation.
+ * Note: Timer is strictly continuous and cannot be paused.
  */
 export async function getTimerState(evaluationId: string) {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('evaluations')
-        .select('started_at, test_duration_minutes, paused_at, total_paused_ms, pause_count')
+        .select('started_at, test_duration_minutes, pause_count')
         .eq('id', evaluationId)
         .single()
 
     if (error) {
         return { 
             startedAt: null, 
-            duration: 90, 
-            pausedAt: null, 
-            totalPausedMs: 0,
-            pauseCount: 0
+            duration: 60, 
+            tabSwitchCount: 0
         }
     }
 
     return {
         startedAt: data.started_at,
         duration: data.test_duration_minutes || 60,
-        pausedAt: data.paused_at,
-        totalPausedMs: data.total_paused_ms || 0,
-        pauseCount: data.pause_count || 0
+        tabSwitchCount: data.pause_count || 0
     }
 }
 
 /**
- * Pauses the evaluation timer.
- * Increments pause_count and sets paused_at.
+ * Records a window/tab switch attempt for integrity tracking.
+ * Increments pause_count (used as tab switch counter) and logs to dynamic_tests.
+ * Returns the updated switch count and whether the limit of 4 was reached/exceeded.
  */
-export async function pauseEvaluation(evaluationId: string) {
+export async function recordTabSwitch(evaluationId: string): Promise<{
+    success: boolean
+    newCount: number
+    limitReached: boolean
+    error?: string
+}> {
     const supabase = await createClient()
     const now = new Date().toISOString()
-    
-    // Check pause count
+
+    // Fetch current count
     const { data: current, error: fetchError } = await supabase
         .from('evaluations')
-        .select('pause_count, paused_at')
+        .select('pause_count')
         .eq('id', evaluationId)
         .single()
-        
-    if (fetchError) return { success: false, error: fetchError.message }
-    if (current?.paused_at) return { success: true } // Already paused
-    if ((current?.pause_count || 0) >= 3) return { success: false, error: 'Has alcanzado el límite máximo de 3 pausas.' }
 
-    const { error } = await supabase
+    if (fetchError) {
+        console.error('Error fetching tab switch count:', fetchError)
+        return { success: false, newCount: 0, limitReached: false, error: fetchError.message }
+    }
+
+    const newCount = (current?.pause_count || 0) + 1
+
+    // Update count in evaluations
+    const { error: updateError } = await supabase
         .from('evaluations')
-        .update({
-            paused_at: now,
-            pause_count: (current?.pause_count || 0) + 1
-        })
+        .update({ pause_count: newCount })
         .eq('id', evaluationId)
-    
-    if (error) return { success: false, error: error.message }
-    
-    return { success: true }
+
+    if (updateError) {
+        console.error('Error updating tab switch count:', updateError)
+        return { success: false, newCount, limitReached: newCount >= 4, error: updateError.message }
+    }
+
+    // Log the event in dynamic_tests for audit telemetry
+    await supabase.from('dynamic_tests').insert({
+        evaluation_id: evaluationId,
+        test_type: 'TAB_SWITCH_EVENT',
+        subcategory: `INTENTO_${newCount}`,
+        prompt_context: `Cambio de ventana/pestaña #${newCount} detectado a las ${now}`,
+        candidate_response: JSON.stringify({
+            attempt: newCount,
+            timestamp: now,
+            maxAllowed: 4,
+            isExceeded: newCount > 4
+        })
+    })
+
+    return {
+        success: true,
+        newCount,
+        limitReached: newCount >= 4
+    }
 }
 
 /**
- * Resumes the evaluation timer.
- * Calculates elapsed pause time and adds it to total_paused_ms.
+ * @deprecated Use recordTabSwitch instead. Preserved for backward compatibility.
  */
-export async function resumeEvaluation(evaluationId: string) {
-    const supabase = await createClient()
-    const now = new Date()
-    
-    // Get current pause state
-    const { data: current, error: fetchError } = await supabase
-        .from('evaluations')
-        .select('paused_at, total_paused_ms')
-        .eq('id', evaluationId)
-        .single()
-        
-    if (fetchError) return { success: false, error: fetchError.message }
-    if (!current?.paused_at) return { success: true } // Not paused
+export async function pauseEvaluation(evaluationId: string) {
+    const res = await recordTabSwitch(evaluationId)
+    return { success: res.success, error: res.error }
+}
 
-    const pausedAt = new Date(current.paused_at)
-    const deltaMs = now.getTime() - pausedAt.getTime()
-    const newTotalMs = Number(current.total_paused_ms || 0) + deltaMs
-
-    const { error } = await supabase
-        .from('evaluations')
-        .update({
-            paused_at: null,
-            total_paused_ms: newTotalMs
-        })
-        .eq('id', evaluationId)
-        
-    if (error) return { success: false, error: error.message }
-    
+/**
+ * @deprecated Preserved for backward compatibility. Timer is continuous and does not require resume.
+ */
+export async function resumeEvaluation(evaluationId: string): Promise<{ success: boolean; error?: string }> {
     return { success: true }
 }
 

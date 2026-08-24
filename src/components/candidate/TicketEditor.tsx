@@ -6,13 +6,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { generateIncidentCaseB1 } from '@/app/actions/ai'
 import { saveB1Response, getB1State, saveB1Case } from '@/app/actions/candidate/b1'
-import { AlertCircle, Loader2, FileText, CheckCircle2, Compass, ChevronDown, ChevronUp, Sparkles, RotateCcw } from 'lucide-react'
+import { AlertCircle, Loader2, FileText, CheckCircle2, RotateCcw, Compass, ChevronDown, ChevronUp } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCandidateContext } from '@/context/CandidateContext'
 
-interface TicketEditorProps {
-    evaluationId: string | null
-    onComplete?: (ticket: string, caseContext: string) => void
-}
+const DEFAULT_GLPI_TEMPLATE = `[GLPI - INCIDENTE] 
+Fecha y Hora (UTC): 
+Servidor / Microservicio: 
+Prioridad: 
+Descripción Técnica y Métricas (Dynatrace / Grafana): 
+Escalamiento (AlertOps / Microsoft Teams): 
+Resolución Aplicada: 
+Impacto al Negocio / Tiempo Total: `
 
 const FORMAL_TICKET_TEMPLATE = `[INCIDENTE P1/P2] - [Título o Resumen del Incidente]
 
@@ -33,19 +38,36 @@ const FORMAL_TICKET_TEMPLATE = `[INCIDENTE P1/P2] - [Título o Resumen del Incid
 • Escalado / Responsables: [Equipo o rol asignado para seguimiento]
 • Acciones preventivas: [Recomendaciones para prevenir reincidencia]`
 
+interface TicketEditorProps {
+    evaluationId: string | null
+    onComplete?: (ticket: string, caseContext: string) => void
+}
+
 export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
-    const ctx = useCandidateContext()
-    const [ticket, setTicket] = useState('')
+    let profileTrack = 'general'
+    let incrementBypassCount = () => {}
+    try {
+        const ctx = useCandidateContext()
+        if (ctx?.profileTrack) profileTrack = ctx.profileTrack
+        if (ctx?.incrementBypassCount) incrementBypassCount = ctx.incrementBypassCount
+    } catch {
+        // Fallback if rendered outside provider
+    }
+
+    const defaultTemplate = profileTrack === 'otel_expert' ? FORMAL_TICKET_TEMPLATE : DEFAULT_GLPI_TEMPLATE
+
+    const [ticket, setTicket] = useState(defaultTemplate)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [caseText, setCaseText] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [guideCollapsed, setGuideCollapsed] = useState(false)
     const [caseCollapsed, setCaseCollapsed] = useState(false)
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
 
     const handleBypassAttempt = (e: React.SyntheticEvent) => {
         e.preventDefault()
-        ctx.incrementBypassCount()
+        incrementBypassCount()
     }
 
     // Notify parent
@@ -69,7 +91,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                 if (state.caseText) {
                     setCaseText(state.caseText)
                 } else {
-                    const generated = await generateIncidentCaseB1()
+                    const generated = await generateIncidentCaseB1(profileTrack)
                     const res = await saveB1Case(evaluationId, generated)
                     if (res.success) {
                         setCaseText(generated)
@@ -79,8 +101,13 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                     }
                 }
 
-                if (state.isFinished && state.ticketText) {
+                if (state.ticketText) {
                     setTicket(state.ticketText)
+                } else {
+                    setTicket(defaultTemplate)
+                }
+
+                if (state.isFinished) {
                     setSubmitted(true)
                 }
 
@@ -91,7 +118,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
             }
         }
         loadState()
-    }, [evaluationId])
+    }, [evaluationId, defaultTemplate, profileTrack])
 
     async function handleSubmit() {
         if (!caseText || !evaluationId) return
@@ -130,21 +157,21 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
                 <button
                     onClick={() => setGuideCollapsed(!guideCollapsed)}
-                    className="w-full flex items-center justify-between text-left"
+                    className="w-full flex items-center justify-between text-left cursor-pointer"
                 >
                     <h4 className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2 text-sm">
                         <Compass className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                        Guía del Módulo — ¿Cómo redactar tu ticket de incidente SRE?
+                        Guía del Módulo — ¿Cómo redactar tu ticket de incidente?
                     </h4>
                     {guideCollapsed ? <ChevronDown className="h-4 w-4 text-amber-600" /> : <ChevronUp className="h-4 w-4 text-amber-600" />}
                 </button>
                 {!guideCollapsed && (
                     <div className="text-xs text-amber-900/90 dark:text-amber-200/90 space-y-2 pt-2 border-t border-amber-500/20">
-                        <p className="font-semibold">Sigue estos 4 pasos para completar tu documentación de Ticket ITSM/GLPI/Jira:</p>
+                        <p className="font-semibold">Sigue estos pasos para completar tu documentación de Ticket en {profileTrack === 'otel_expert' ? 'ITSM' : 'GLPI'}:</p>
                         <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
-                            <li><strong>Lee el Escenario:</strong> Revisa la alerta P1/P2 y los síntomas reportados en la tarjeta azul.</li>
-                            <li><strong>Cubre los 4 aspectos clave:</strong> Severidad, Impacto en SLOs/Usuarios, Causa Raíz identificada y Próximos Pasos con responsables.</li>
-                            <li><strong>Usa la plantilla si la necesitas:</strong> Puedes presionar el botón <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold text-[10px]">Insertar Plantilla ITSM</span> para guiar tu redacción.</li>
+                            <li><strong>Lee el Escenario:</strong> Revisa la alerta y los síntomas reportados en la tarjeta informativa.</li>
+                            <li><strong>Cubre los aspectos clave:</strong> Severidad, Impacto en Usuarios/Negocio, Diagnóstico Técnico y Acciones de Mitigación/Escalamiento.</li>
+                            <li><strong>Usa la plantilla:</strong> Completa los campos solicitados para estructurar formalmente tu entrega.</li>
                             <li><strong>Envía tu registro:</strong> Haz clic en el botón <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded font-bold text-[10px]">Enviar y Finalizar B1</span> al terminar.</li>
                         </ol>
                     </div>
@@ -156,7 +183,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                 <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
                     <button
                         onClick={() => setCaseCollapsed(!caseCollapsed)}
-                        className="w-full flex items-center justify-between text-left"
+                        className="w-full flex items-center justify-between text-left cursor-pointer"
                     >
                         <h4 className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 text-sm">
                             <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" /> ESCENARIO DEL INCIDENTE B1 — LÉELO CON ATENCIÓN
@@ -165,7 +192,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                     </button>
                     {!caseCollapsed && (
                         <div className="mt-3 text-sm text-blue-950 dark:text-blue-200 whitespace-pre-wrap leading-relaxed border-l-2 border-blue-500/40 pl-3 italic">
-                            "{caseText}"
+                            {caseText}
                         </div>
                     )}
                 </div>
@@ -175,7 +202,7 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
             <Card className="bg-card border-border shadow-sm overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between gap-4 bg-muted/30 py-3 border-b border-border">
                     <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" /> B1: Documentación del Ticket (ITSM)
+                        <FileText className="h-5 w-5 text-primary" /> {profileTrack === 'otel_expert' ? 'B1: Documentación del Ticket (ITSM)' : 'B1: Comunicación Técnica Escrita (Registro en GLPI)'}
                     </CardTitle>
                     {submitted && (
                         <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full font-bold text-xs border border-emerald-500/20">
@@ -186,37 +213,68 @@ export function TicketEditor({ evaluationId, onComplete }: TicketEditorProps) {
                 <CardContent className="space-y-4 pt-4">
                     {!submitted ? (
                         <div className="space-y-3">
-                            {/* Action chips for template insertion */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/20 p-2.5 rounded-lg border border-border">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                                        <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Herramientas de redacción:
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTicket(FORMAL_TICKET_TEMPLATE)}
-                                        className="text-xs bg-background hover:bg-primary/10 hover:border-primary/40 border border-border text-foreground px-2.5 py-1 rounded-md transition-all font-semibold flex items-center gap-1 cursor-pointer shadow-xs"
-                                    >
-                                        📋 Insertar Plantilla ITSM
-                                    </button>
-                                    {ticket.trim() && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setTicket('')}
-                                            className="text-xs bg-background hover:bg-rose-500/10 hover:border-rose-500/40 text-muted-foreground hover:text-rose-600 border border-border px-2 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
-                                        >
-                                            <RotateCcw className="h-3 w-3" /> Limpiar
-                                        </button>
-                                    )}
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium text-foreground">Tu documentación del Ticket</label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Completa la plantilla formal con los datos del escenario y las métricas observadas.
+                                    </p>
                                 </div>
-                                <span className={`font-mono text-xs font-bold ${wordCount >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                                    {wordCount} palabras (Sugerido: ~60-120)
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`font-mono text-xs font-bold ${wordCount >= 40 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
+                                        {wordCount} palabras
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowRestoreConfirm(true)}
+                                        className="text-xs h-8 gap-1.5 text-primary border-primary/20 hover:bg-primary/10 transition-colors shrink-0 cursor-pointer"
+                                        title="Restablecer los campos base de la plantilla"
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        Restaurar Plantilla
+                                    </Button>
+                                </div>
+
+                                {/* Confirmation Dialog */}
+                                <Dialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-lg flex items-center gap-2 text-foreground">
+                                                <RotateCcw className="h-5 w-5 text-amber-500" />
+                                                ¿Restaurar plantilla inicial?
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-2 text-sm text-muted-foreground leading-relaxed">
+                                            Esta acción reemplazará todo lo que hayas redactado en el editor por los campos base de la plantilla. ¿Deseas continuar?
+                                        </div>
+                                        <div className="flex justify-end gap-3 mt-4">
+                                            <Button 
+                                                variant="outline" 
+                                                type="button"
+                                                onClick={() => setShowRestoreConfirm(false)}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                            <Button 
+                                                type="button"
+                                                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                                onClick={() => {
+                                                    setTicket(defaultTemplate)
+                                                    setShowRestoreConfirm(false)
+                                                }}
+                                            >
+                                                Restaurar Plantilla
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
 
                             <Textarea
-                                placeholder="Escribe aquí el ticket de incidente (ej: [INCIDENTE P1] Alto consumo CPU en srv-prod...)"
-                                className="min-h-[280px] bg-background border-border text-foreground font-mono resize-none focus-visible:ring-primary text-sm p-4 leading-relaxed"
+                                placeholder={defaultTemplate}
+                                className="min-h-[280px] bg-background border-border text-foreground font-mono resize-y focus-visible:ring-primary text-sm p-4 leading-relaxed"
                                 value={ticket}
                                 onChange={(e) => setTicket(e.target.value)}
                                 onPaste={handleBypassAttempt}

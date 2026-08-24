@@ -1,56 +1,50 @@
 /**
  * Guía estática para el evaluador en A3 (no generada por IA).
- * Incluye comandos Git sugeridos, contexto ITSM y expectativas entry-level.
+ * Incluye comandos Git y sintaxis / conceptos clave de Pandas en Python.
  * 
  * Separado de ai.ts porque archivos 'use server' solo pueden exportar funciones async.
  */
 export const A3_EVALUATOR_GUIDANCE: Record<string, { title: string; content: string }> = {
   'A3.1': {
-    title: '📋 Guía para el evaluador — Comandos Git',
-    content: `Si desea evaluar habilidad práctica, pida al candidato que explique o ejecute estos comandos básicos:
+    title: '📋 Guía para el evaluador — Control de Versiones Git',
+    content: `Flujo básico esperado en Git:
+• git clone <url>         → Clonar un repositorio remoto
+• git checkout -b fix/xxx → Crear y cambiar a una nueva rama de trabajo
+• git add <archivos>      → Pasar cambios al área de preparación (staging)
+• git commit -m "..."     → Guardar un punto de control con mensaje descriptivo
+• git push origin <rama>  → Publicar los commits locales en el repositorio remoto
 
-• git clone <url>         → Clonar un repositorio
-  ✅ Esperado: "Descarga una copia del repositorio remoto a mi máquina local"
-  
-  💡 Repositorio de ejemplo para la prueba:
-  HTTPS: https://github.com/opera-eval/demo-project.git
-  SSH:   git@github.com:opera-eval/demo-project.git
+Para nivel Junior/Entry: Es suficiente con comprender el ciclo de vida de una rama y cómo colaborar sin sobreescribir la rama principal (main).`,
+  },
+  'A3.2': {
+    title: '📋 Guía para el evaluador — Pandas: Análisis de Datos (Interpretación de Código)',
+    content: `Criterios esperados en la interpretación del script de Pandas:
+• Identificación del objetivo:
+  El candidato explica con claridad que el script carga métricas y aísla transacciones lentas o con error.
+• Comprensión de parámetros y filtros:
+  Identifica las columnas del DataFrame (ej. latency_ms, status_code) y la lógica booleana del filtro.
+• Deducción del resultado:
+  Calcula o deduce correctamente la salida ante los datos de prueba presentados.
 
-• git checkout -b mi-rama → Crear y cambiar a una nueva rama
-  ✅ Esperado: "Crea una rama nueva y me mueve a ella para trabajar sin afectar main"
-
-• git add .               → Agregar cambios al staging
-  ✅ Esperado: "Prepara los archivos modificados para ser incluidos en el próximo commit"
-
-• git commit -m "mensaje" → Hacer commit
-  ✅ Esperado: "Guarda un punto de control con los cambios que tengo en staging"
-
-• git push origin mi-rama → Subir cambios al remoto
-  ✅ Esperado: "Envía mis commits locales al servidor para que otros los vean"
-
-Para entry-level, es suficiente con que comprenda el flujo: clone → branch → add → commit → push.`,
+Escala:
+- 1 (Básico): Identifica que usa Pandas pero su explicación de las salidas es confusa.
+- 2 (Funcional): Explica el objetivo y deduce las salidas con sentido común y lógica.
+- 3 (Autónomo): Explicación impecable del flujo, parámetros y deducción exacta del resultado.`,
   },
   'A3.3': {
-    title: '📋 Contexto — Herramientas ITSM',
-    content: `A3.3 evalúa la capacidad de gestionar tickets de incidentes en cualquier herramienta ITSM.
-Ejemplos de herramientas: GLPI, JIRA Service Management, ServiceNow, Zendesk, ManageEngine.
+    title: '📋 Guía para el evaluador — Python: Automatización de Observabilidad',
+    content: `Criterios esperados en la interpretación de la función de automatización:
+• Comprensión del flujo lógico:
+  Explica qué evalúa la función (umbrales de CPU/memoria o tasa de error) y cómo clasifica el estado.
+• Identificación de condiciones de alerta:
+  Reconoce la regla exacta que dispara el estado CRITICAL o WARNING.
+• Deducción del valor retornado:
+  Indica con precisión el diccionario o mensaje que retorna la función para los datos de prueba.
 
-Para entry-level, esperamos que el candidato:
-• Conozca los campos básicos de un ticket (título, descripción, prioridad, categoría)
-• Sepa diferenciar entre incidente y solicitud de servicio
-• Entienda el concepto de escalamiento
-• No se espera que conozca configuración o administración de la herramienta`,
-  },
-  'A3.4': {
-    title: '📋 Qué esperamos ver en la respuesta',
-    content: `Para entry-level en documentación, esperamos que el candidato:
-• Entienda la importancia de documentar procedimientos técnicos
-• Conozca al menos una herramienta (Confluence, wikis internas, Google Docs, Notion)
-• Pueda describir qué incluiría en una guía: pasos, capturas de pantalla, responsables
-• NO esperamos: dominio avanzado de Confluence, creación de macros, templates complejos
-
-Un candidato con score 2 (Funcional): "He documentado procedimientos en la wiki del equipo, incluyo los pasos, el resultado esperado y capturas"
-Un candidato con score 3 (Autónomo): "Mantengo actualizada la documentación del equipo, he creado guías de troubleshooting con diagramas y las reviso mensualmente"`,
+Escala:
+- 1 (Básico): Explicación superficial o duda en la salida.
+- 2 (Funcional): Comprende las condiciones if/else y deduce el estado de alerta correcto.
+- 3 (Autónomo): Precisión total en la explicación de entradas, condiciones y resultado devuelto.`,
   },
 }
 

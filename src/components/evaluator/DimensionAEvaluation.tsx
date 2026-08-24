@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowUp } from 'lucide-react'
 
 // Action Modules
-import { getA1Results, resetA1Responses } from '@/app/actions/candidate/a1'
+// Action Modules
+import { getA1Results, getA1TerminalCommands, resetA1Responses } from '@/app/actions/candidate/a1'
 import { getA2Results, resetA2Responses } from '@/app/actions/candidate/a2'
 import { getA3Results, resetA3Responses } from '@/app/actions/candidate/a3'
 import { getA4Results, resetA4Responses } from '@/app/actions/candidate/a4'
@@ -59,6 +60,13 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
         return initial
     })
     const [a1QData, setA1QData] = useState(dynamicTests.filter(t => t.test_type === 'QUESTIONS_A1'))
+    const initialA1Terminal = dynamicTests.find(t => t.test_type === 'TERMINAL_A1')
+    const [a1TerminalCommands, setA1TerminalCommands] = useState<string[]>(() => {
+        if (initialA1Terminal?.candidate_response) {
+            try { return JSON.parse(initialA1Terminal.candidate_response) } catch { return [] }
+        }
+        return []
+    })
     const [a1Refreshing, setA1Refreshing] = useState(false)
     const [a1Resetting, setA1Resetting] = useState(false)
     const a1Total = Object.values(a1SubScores).reduce((a, b) => a + b, 0)
@@ -95,7 +103,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const [a3Refreshing, setA3Refreshing] = useState(false)
     const [a3Resetting, setA3Resetting] = useState(false)
     const a3Total = Object.values(a3SubScores).reduce((sum, v) => sum + v, 0)
-    const a3Normalized = (Math.round((a3Total / (isOtel ? 6 : 12)) * 10 * 10) / 10).toString()
+    const a3Max = isOtel ? 6 : 9
+    const a3Normalized = (Math.round((a3Total / a3Max) * 10 * 10) / 10).toString()
 
     // A4 State
     const [a4SubScores, setA4SubScores] = useState<Record<string, number>>(() => {
@@ -120,7 +129,10 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const handleRefreshA1 = async () => {
         setA1Refreshing(true)
         try {
-            const results = await getA1Results(evaluationId)
+            const [results, termCmds] = await Promise.all([
+                getA1Results(evaluationId),
+                getA1TerminalCommands(evaluationId)
+            ])
             setA1QData(results.map(r => ({
                 test_type: 'QUESTIONS_A1',
                 subcategory: r.subcategory,
@@ -130,6 +142,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 ai_justification: r.ai_justification,
                 ai_likelihood: r.ai_likelihood,
             })))
+            setA1TerminalCommands(termCmds)
         } catch (e) {
             console.error('Error refreshing A1:', e)
         } finally {
@@ -137,12 +150,13 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
         }
     }
     const handleResetA1 = async () => {
-        if (!confirm('⚠️ ¿Estás seguro? Esto eliminará TODAS las preguntas y respuestas de A1 del candidato.')) return
+        if (!confirm('⚠️ ¿Estás seguro? Esto eliminará TODAS las preguntas, respuestas y comandos de terminal de A1 del candidato.')) return
         setA1Resetting(true)
         try {
             const result = await resetA1Responses(evaluationId)
             if (result.success) {
                 setA1QData([])
+                setA1TerminalCommands([])
                 const resetScores: Record<string, number> = {}
                 a1Subs.forEach(s => { resetScores[s.id] = 0 })
                 setA1SubScores(resetScores)
@@ -385,10 +399,17 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 if (totalErr) throw totalErr
             }
 
+            // Actualizar total Dimensión A en tabla evaluations
+            const normA3 = Math.min(10, Math.round((a3Total / 9) * 10 * 100) / 100)
+            const normA4 = Math.min(10, Math.round((a4Total / 9) * 10 * 100) / 100)
+            const totalA = parseFloat((a1Total + a2Total + normA3 + normA4).toFixed(2))
+            await supabase.from('evaluations').update({ score_a: totalA }).eq('id', evaluationId)
+
             router.refresh()
-        } catch (e) {
+            alert('Dimensión A guardada exitosamente.')
+        } catch (e: any) {
             console.error('Error in handleSave:', e)
-            alert('Error guardando la calificación.')
+            alert('Error al guardar Dimensión A: ' + (e?.message || 'Error desconocido'))
         } finally {
             setIsSaving(false)
         }
@@ -451,6 +472,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             <div id="section-A1" className="scroll-mt-32">
                 <A1SubEvaluation
                     a1QuestionsData={a1QData}
+                    a1TerminalCommands={a1TerminalCommands}
                     a1SubScores={a1SubScores} setA1SubScores={setA1SubScores}
                     a1SubComments={a1SubComments} setA1SubComments={setA1SubComments}
                     a1Total={a1Total}

@@ -34,11 +34,7 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
             
             const initialAnswers: Record<string, string> = {}
             questions.forEach(q => {
-                if (q.subcategory === 'A3.3' && profileTrack !== 'otel_expert') {
-                    initialAnswers[q.subcategory] = `Número de Ticket: [AUTO-SETI-2026-001]\nTítulo: \nPrioridad: \nCategoría: \nDescripción del problema: \nPasos iniciales de revisión: `
-                } else {
-                    initialAnswers[q.subcategory] = ''
-                }
+                initialAnswers[q.subcategory] = ''
             })
             setA3Answers(initialAnswers)
 
