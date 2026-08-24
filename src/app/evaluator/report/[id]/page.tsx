@@ -36,20 +36,45 @@ export default async function EvaluationReportPage({ params }: { params: Promise
     const supabase = await createClient()
     const { id } = await params
 
-    // Fetch Evaluation with all related data
-    const { data: evaluation, error } = await supabase
-        .from('evaluations')
-        .select(`
-            *,
-            profiles:candidate_id (full_name, national_id, national_id_type, education_level, created_at),
-            selection_processes (team, observations),
-            dimension_scores (*),
-            dynamic_tests (*)
-        `)
-        .eq('id', id)
-        .single<any>()
+    const selectQuery = `
+        *,
+        profiles:candidate_id (full_name, national_id, national_id_type, education_level, created_at),
+        selection_processes (team, observations, candidate_email, candidate_national_id),
+        dimension_scores (*),
+        dynamic_tests (*)
+    `
 
-    if (error || !evaluation || evaluation.status !== 'completed') {
+    // 1. Try finding by evaluations.id
+    let { data: evaluation } = await supabase
+        .from('evaluations')
+        .select(selectQuery)
+        .eq('id', id)
+        .maybeSingle<any>()
+
+    // 2. Fallback: try finding by candidate_id
+    if (!evaluation) {
+        const { data: evalByCandidate } = await supabase
+            .from('evaluations')
+            .select(selectQuery)
+            .eq('candidate_id', id)
+            .order('completed_at', { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle<any>()
+        if (evalByCandidate) evaluation = evalByCandidate
+    }
+
+    // 3. Fallback: try finding by selection_process_id
+    if (!evaluation) {
+        const { data: evalByProc } = await supabase
+            .from('evaluations')
+            .select(selectQuery)
+            .eq('selection_process_id', id)
+            .limit(1)
+            .maybeSingle<any>()
+        if (evalByProc) evaluation = evalByProc
+    }
+
+    if (!evaluation) {
         redirect('/evaluator/history')
     }
 
@@ -58,9 +83,17 @@ export default async function EvaluationReportPage({ params }: { params: Promise
     const tests = (evaluation.dynamic_tests as any[]) || []
     const aiFeedback = evaluation.final_feedback_ai as any
 
-    // Fetch candidate email from auth.users via RPC
-    const { data: emailData } = await supabase.rpc('get_user_email', { user_id: evaluation.candidate_id })
-    const candidateEmail = emailData || 'N/A'
+    // Fetch candidate email from auth.users via RPC or selection_processes
+    let candidateEmail = evaluation.selection_processes?.candidate_email || 'N/A'
+    if (evaluation.candidate_id && candidateEmail === 'N/A') {
+        const { data: emailData } = await supabase.rpc('get_user_email', { user_id: evaluation.candidate_id })
+        if (emailData) candidateEmail = emailData
+    }
+
+    const candidateFullName = profile?.full_name || candidateEmail || 'Candidato'
+    const candidateNationalId = profile?.national_id || evaluation.selection_processes?.candidate_national_id || ''
+    const candidateIdType = profile?.national_id_type || 'CC'
+    const processDate = evaluation.completed_at || evaluation.started_at || new Date().toISOString()
 
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -111,7 +144,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <FileText className="h-3 w-3" /> Candidato
                             </p>
-                            <p className="font-bold text-lg leading-tight">{profile?.full_name}</p>
+                            <p className="font-bold text-lg leading-tight">{candidateFullName}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -124,14 +157,14 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                 <FileText className="h-3 w-3" /> Identificación
                             </p>
                             <p className="font-bold">
-                                {profile?.national_id_type ? (ID_TYPE_LABELS[profile.national_id_type] || profile.national_id_type) : ''} {profile?.national_id}
+                                {candidateNationalId ? `${ID_TYPE_LABELS[candidateIdType] || candidateIdType} ${candidateNationalId}` : 'Sin ID registrado'}
                             </p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <Calendar className="h-3 w-3" /> Fecha del Proceso
                             </p>
-                            <p className="font-bold">{new Date(evaluation.completed_at || evaluation.started_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p className="font-bold">{new Date(processDate).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         </div>
                     </div>
 
@@ -142,7 +175,7 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                 <Sparkles className="h-6 w-6 text-amber-500 fill-amber-500/20" />
                                 <h2 className="text-2xl font-black tracking-tight text-foreground uppercase italic underline decoration-amber-500 decoration-4 underline-offset-8">Análisis de Inteligencia Artificial</h2>
                             </div>
-                            <RegenerateAIButton evaluationId={id} />
+                            <RegenerateAIButton evaluationId={evaluation.id} />
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

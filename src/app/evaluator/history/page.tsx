@@ -408,8 +408,8 @@ export default function HistorySearchPage() {
                       {/* Sticky Actions */}
                       <TableCell className="py-3 pr-4 text-right sticky right-0 bg-card group-hover:bg-muted/30 transition-colors z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] dark:shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.3)]">
                         <div className="flex items-center justify-end gap-1.5">
-                          {ev?.candidate_id && isCompleted ? (
-                            <Link href={`/evaluator/report/${ev.candidate_id}`}>
+                          {isCompleted ? (
+                            <Link href={`/evaluator/report/${ev?.id || ev?.candidate_id || proc.id}`}>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -419,8 +419,8 @@ export default function HistorySearchPage() {
                                 <span>Reporte</span>
                               </Button>
                             </Link>
-                          ) : ev?.candidate_id ? (
-                            <Link href={`/evaluator/evaluate/${ev.candidate_id}`}>
+                          ) : (ev?.candidate_id || proc.id) ? (
+                            <Link href={`/evaluator/evaluate/${ev?.candidate_id || proc.id}`}>
                               <Button
                                 size="sm"
                                 className="h-7 px-2.5 gap-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-xs"

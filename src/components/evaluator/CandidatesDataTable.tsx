@@ -474,7 +474,7 @@ export function CandidatesDataTable({
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Botón de acción primaria contextual */}
                           {isCompleted ? (
-                            <Link href={`/evaluator/report/${candidate.id}`}>
+                            <Link href={`/evaluator/report/${candidate.evaluationId || candidate.id}`}>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -522,7 +522,9 @@ export function CandidatesDataTable({
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
-                                onClick={() => router.push(`/evaluator/report/${candidate.id}`)}
+                                onClick={() =>
+                                  router.push(`/evaluator/report/${candidate.evaluationId || candidate.id}`)
+                                }
                                 className="gap-2 cursor-pointer"
                               >
                                 <FileText className="size-4 text-emerald-600" />
