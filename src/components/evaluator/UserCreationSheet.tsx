@@ -33,17 +33,26 @@ interface UserCreationSheetProps {
   onUserCreated?: () => void
   customTrigger?: React.ReactNode
   teams?: string[]
+  defaultRole?: 'candidate' | 'evaluator'
 }
 
 export function UserCreationSheet({
   onUserCreated,
   customTrigger,
   teams = DEFAULT_SQUADS as unknown as string[],
+  defaultRole = 'candidate',
 }: UserCreationSheetProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [role, setRole] = useState<'candidate' | 'evaluator'>('candidate')
+  const [role, setRole] = useState<'candidate' | 'evaluator'>(defaultRole)
   const [loading, setLoading] = useState(false)
+
+  // Sync role if defaultRole updates or dialog opens
+  useEffect(() => {
+    if (open) {
+      setRole(defaultRole)
+    }
+  }, [open, defaultRole])
 
   // Form Fields
   const [fullName, setFullName] = useState('')

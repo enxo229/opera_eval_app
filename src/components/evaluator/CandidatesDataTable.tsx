@@ -42,6 +42,8 @@ import {
 import { ProcessStatusBadge } from '@/components/evaluator/ProcessStatusBadge'
 import { ScoreClassificationBadge } from '@/components/evaluator/ScoreClassificationBadge'
 import { ExportMenu, ExportRow } from '@/components/evaluator/ExportMenu'
+import { ChangePasswordDialog, PasswordTargetUser } from '@/components/evaluator/ChangePasswordDialog'
+import { EditUserDialog, EditableUser } from '@/components/evaluator/EditUserDialog'
 import { closeSelectionProcess, reopenEvaluation } from '@/app/actions/admin'
 import {
   Search,
@@ -57,6 +59,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  KeyRound,
+  UserCog,
 } from 'lucide-react'
 
 export interface CandidateRowData {
@@ -104,6 +108,8 @@ export function CandidatesDataTable({
   // Action Modals State
   const [processToClose, setProcessToClose] = useState<{ id: string; name: string } | null>(null)
   const [evalToReopen, setEvalToReopen] = useState<{ id: string; name: string } | null>(null)
+  const [userToChangePassword, setUserToChangePassword] = useState<PasswordTargetUser | null>(null)
+  const [userToEdit, setUserToEdit] = useState<EditableUser | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -563,6 +569,42 @@ export function CandidatesDataTable({
                                   <span>Reabrir Evaluación</span>
                                 </DropdownMenuItem>
                               )}
+
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>Gestión de Cuenta</DropdownMenuLabel>
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setUserToChangePassword({
+                                    id: candidate.id,
+                                    email: candidate.email,
+                                    fullName: candidate.fullName,
+                                    role: 'candidate',
+                                  })
+                                }
+                                className="gap-2 cursor-pointer text-blue-600 focus:text-blue-600"
+                              >
+                                <KeyRound className="size-4" />
+                                <span>Cambiar Contraseña</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setUserToEdit({
+                                    id: candidate.id,
+                                    email: candidate.email,
+                                    fullName: candidate.fullName,
+                                    role: 'candidate',
+                                    nationalIdType: candidate.nationalIdType,
+                                    nationalId: candidate.nationalId,
+                                    team: candidate.team,
+                                  })
+                                }
+                                className="gap-2 cursor-pointer"
+                              >
+                                <UserCog className="size-4" />
+                                <span>Editar Candidato</span>
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -723,6 +765,29 @@ export function CandidatesDataTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog
+        user={userToChangePassword}
+        open={Boolean(userToChangePassword)}
+        onOpenChange={(open) => !open && setUserToChangePassword(null)}
+        onSuccess={() => {
+          router.refresh()
+          onDataChange?.()
+        }}
+      />
+
+      {/* Edit User Dialog */}
+      <EditUserDialog
+        user={userToEdit}
+        open={Boolean(userToEdit)}
+        onOpenChange={(open) => !open && setUserToEdit(null)}
+        teams={availableTeams}
+        onSuccess={() => {
+          router.refresh()
+          onDataChange?.()
+        }}
+      />
     </div>
   )
 }

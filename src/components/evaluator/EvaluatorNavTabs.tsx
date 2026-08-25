@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, History, Layers } from 'lucide-react'
+import { LayoutDashboard, History, Layers, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function EvaluatorNavTabs() {
@@ -27,6 +27,12 @@ export function EvaluatorNavTabs() {
       label: 'Equipos & Squads',
       icon: Layers,
       isActive: pathname === '/evaluator/teams',
+    },
+    {
+      href: '/evaluator/evaluators',
+      label: 'Evaluadores & Admin',
+      icon: ShieldCheck,
+      isActive: pathname === '/evaluator/evaluators',
     },
   ]
 
