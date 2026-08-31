@@ -105,3 +105,26 @@
     @apply font-heading uppercase;
   }
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  @page {
+    margin: 1.2cm;
+    size: auto;
+  }
+}
