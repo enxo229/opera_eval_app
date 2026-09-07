@@ -161,7 +161,10 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                 </span>
                             )}
                             {(() => {
-                                const bypassCount = dynamicTests.filter(t => t.test_type === 'SECURITY_AUDIT' && t.subcategory === 'BYPASS_PASTE').length
+                                const bypassCount = Math.max(
+                                    evaluation?.bypass_paste_count || 0,
+                                    dynamicTests.filter(t => t.test_type === 'SECURITY_AUDIT' && t.subcategory === 'BYPASS_PASTE').length
+                                )
                                 return (
                                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                                         bypassCount > 0 
@@ -190,9 +193,11 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 <div className="lg:col-span-2 space-y-6">
                     <Tabs defaultValue="overview" className="w-full">
                         {(() => {
+                            const requiredB = isOtel ? ['B1', 'B2'] : ['B1', 'B2', 'B3']
+                            const requiredC = isOtel ? ['C1', 'C2'] : ['C1', 'C2', 'C3']
                             const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
-                            const hasB = ['B1', 'B2', 'B3'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
-                            const hasC = ['C1', 'C2', 'C3'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
+                            const hasB = requiredB.every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
+                            const hasC = requiredC.every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
                             const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === cat))
 
                             return (

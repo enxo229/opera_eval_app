@@ -72,7 +72,16 @@ Basado en la tasa estándar de redacción técnica (~35 palabras/minuto), un ing
 ### 4.2 Restricciones de Seguridad & Contador de Bypass (`bypass_paste_count`)
 - Las tarjetas con enunciados de preguntas aplican la clase CSS `select-none` y bloquean la copia.
 - Los campos de texto del candidato bloquean los eventos `onPaste`, `onCopy`, `onCut` y `onContextMenu`.
-- Cada intento de pegar o usar combinaciones de teclado bloqueadas incrementa un contador de advertencias (`bypass_paste_count`), el cual se muestra en el panel del evaluador para auditar la conducta del candidato.
+- Cada intento de pegar o usar combinaciones de teclado bloqueadas se registra como evento telemétrico `SECURITY_AUDIT` en `dynamic_tests` e incrementa atómicamente el contador `bypass_paste_count` en `evaluations`.
+- El encabezado del candidato en la vista del evaluador muestra en vivo el total acumulado (`Intentos de Pegado Detectados`) para auditar la conducta técnica.
+
+### 4.3 Auditoría de Evidencias Post-Examen & Herramientas del Evaluador
+- **Visibilidad Integral en Reporte Final (`/evaluator/report/[id]`)**: El informe final presenta la redacción completa del ticket B1 (incluyendo el caso de incidente asignado, la justificación de impacto en SLO y la probabilidad de IA), así como las respuestas situacionales de B2 y las reflexiones culturales de Dimensión C (C1, C2) bajo cada fila de rúbrica.
+- **Herramientas de Evaluación Reactivas por Sección**: Tanto en Dimensión B como en Dimensión C, el evaluador cuenta con controles in-place de:
+  - **Refrescar**: Consulta y sincroniza las respuestas del candidato sin recargar la página.
+  - **Re-evaluar con IA**: Invoca rúbricas especializadas en SRE/OTel y actualiza las sugerencias de puntaje y feedback.
+  - **Aplicar Sugerencias IA**: Carga automáticamente las sugerencias de la IA en los selectores de puntaje de la rúbrica.
+  - **Resetear Sección**: Permite reiniciar respuestas o re-intentar submódulos de manera aislada sin afectar otras dimensiones.
 
 ---
 
@@ -107,14 +116,14 @@ Basado en la tasa estándar de redacción técnica (~35 palabras/minuto), un ing
 
 ---
 
-## 6. Rúbrica Global de Clasificación Técnica
+## 6. Rúbrica Global de Clasificación Técnica (Escala Oficial 100 Puntos)
 
-| Rango de Puntaje | Clasificación Final | Descripción del Perfil Técnico |
-|---|---|---|
-| **90% - 100%** | **Arquitecto / Principal** | Diseña topologías globales de telemetría (Agent/Gateway), optimiza pipelines en borde, controla costos masivos y define la estrategia de observabilidad enterprise. |
-| **75% - 89%** | **Especialista / Senior** | Construye consultas complejas (PromQL, LogQL, TraceQL), escribe reglas OTTL, configura Tail Sampling distribuido y gestiona alertas de Burn Rate. |
-| **60% - 74%** | **Junior / Asociado** | Opera dashboards, configura receivers/exporters básicos, entiende conceptos de propagación y SLOs básicos. |
-| **0% - 59%** | **No Acreditado** | Carece de fundamentos teóricos o prácticos sobre la arquitectura de OTel o el stack de Grafana Cloud. |
+| Rango de Puntaje | Clasificación Final | Código Color | Descripción del Perfil Técnico |
+|---|---|---|---|
+| **$\ge 80$ pts** | **Nivel Experto / Staff SRE** | `#10B981` (Verde) | Diseña topologías globales de telemetría (Agent/Gateway), optimiza pipelines Alloy/Collector, domina PromQL/LogQL/TraceQL, configura Tail Sampling distribuido, lidera incidentes P1 y defiende SLOs/Error Budgets con cultura blameless. |
+| **$60 - 79$ pts** | **Nivel Avanzado / SRE Autónomo** | `#F59E0B` (Amarillo) | Sólida solvencia práctica para operar el stack LGTM y OTel; resuelve fallas e incidentes con autonomía y requiere acompañamiento menor en optimizaciones complejas de cardinalidad o tuning fino. |
+| **$40 - 59$ pts** | **Nivel Intermedio / SRE en Desarrollo** | `#F97316` (Naranja) | Comprende fundamentos conceptuales de observabilidad y métricas de servicio, pero evidencia brechas en resolución de fallas en producción, sintaxis OTTL o correlación multidimensional. |
+| **$< 40$ pts** | **No Cumple Perfil Experto** | `#EF4444` (Rojo) | Brechas críticas en los pilares fundamentales del stack (OpenTelemetry, Grafana Cloud, SRE). No demuestra los conocimientos mínimos requeridos para el cargo. |
 
 ---
 

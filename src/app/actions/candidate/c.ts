@@ -127,3 +127,92 @@ export async function getCResults(evaluationId: string) {
 
     return { questions, answers, submitted, aiResults: aiResults.length > 0 ? aiResults : null }
 }
+
+/**
+ * Re-evalúa con IA las respuestas de Dimensión C.
+ */
+export async function triggerCEvaluation(evaluationId: string): Promise<{ success: boolean; error?: string; count?: number }> {
+    const supabase = await createClient()
+
+    const { data: tests, error: fetchErr } = await supabase
+        .from('dynamic_tests')
+        .select('*')
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_C')
+
+    if (fetchErr || !tests || tests.length === 0) {
+        return { success: false, error: 'No se encontraron preguntas de C para evaluar' }
+    }
+
+    let evaluatedCount = 0
+    for (const test of tests) {
+        if (!test.candidate_response) continue
+
+        const evalResult = await evaluateQuestionGeneric(
+            test.subcategory,
+            test.prompt_context || '',
+            test.candidate_response
+        )
+
+        await supabase
+            .from('dynamic_tests')
+            .update({
+                ai_score: evalResult.score,
+                ai_justification: evalResult.justification,
+                ai_likelihood: evalResult.aiLikelihood.percentage
+            })
+            .eq('id', test.id)
+
+        // Upsert dimension score for evaluator
+        const { data: existingScore } = await supabase
+            .from('dimension_scores')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('dimension', 'C')
+            .eq('category', test.subcategory)
+            .maybeSingle()
+
+        await supabase.from('dimension_scores').upsert({
+            ...(existingScore ? { id: existingScore.id } : {}),
+            evaluation_id: evaluationId,
+            dimension: 'C',
+            category: test.subcategory,
+            raw_score: evalResult.score,
+            comments: `IA Sugiere (${evalResult.score}/3): ${evalResult.justification}`
+        })
+        evaluatedCount++
+    }
+
+    return { success: true, count: evaluatedCount }
+}
+
+/**
+ * Resetea exclusivamente las respuestas de Dimensión C.
+ */
+export async function resetCResponses(evaluationId: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'evaluator') return { success: false, error: 'Solo evaluadores pueden resetear respuestas' }
+
+    const { error: delTestsErr } = await supabase
+        .from('dynamic_tests')
+        .delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_C')
+
+    if (delTestsErr) return { success: false, error: delTestsErr.message }
+
+    await supabase
+        .from('dimension_scores')
+        .delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('dimension', 'C')
+        .in('category', ['C1', 'C2', 'C3'])
+
+    return { success: true }
+}
+

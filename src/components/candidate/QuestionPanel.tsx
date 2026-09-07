@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Loader2, CheckCircle2, HelpCircle } from 'lucide-react'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 type QuestionPanelProps = {
     questions: string[]
@@ -13,6 +14,19 @@ type QuestionPanelProps = {
 }
 
 export function QuestionPanel({ questions, loading, onSubmit, submitted, title }: QuestionPanelProps) {
+    let incrementBypassCount = () => {}
+    try {
+        const ctx = useCandidateContext()
+        if (ctx?.incrementBypassCount) incrementBypassCount = ctx.incrementBypassCount
+    } catch {
+        // Fallback
+    }
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        incrementBypassCount()
+    }
+
     const [answers, setAnswers] = useState<string[]>(questions.map(() => ''))
 
     const handleAnswerChange = (index: number, value: string) => {
@@ -56,7 +70,7 @@ export function QuestionPanel({ questions, loading, onSubmit, submitted, title }
                     <textarea
                         value={answers[i] || ''}
                         onChange={e => handleAnswerChange(i, e.target.value)}
-                        onPaste={(e) => e.preventDefault()}
+                        onPaste={handleBypassAttempt}
                         onCopy={(e) => e.preventDefault()}
                         onContextMenu={(e) => e.preventDefault()}
                         disabled={submitted}

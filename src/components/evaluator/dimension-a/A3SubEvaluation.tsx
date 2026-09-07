@@ -4,6 +4,7 @@ import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
 import { A3_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
 import { A3_EVALUATOR_GUIDANCE, A3_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
 import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A3SubEvaluationProps {
     a3QData: any[]
@@ -73,6 +74,7 @@ export function A3SubEvaluation({
                 {a3Subs.map(sub => {
                     const qData = a3QData.find(q => q.subcategory === sub.id)
                     const guidance = guidanceMap[sub.id]
+                    const hasAIScore = qData?.ai_score !== null && qData?.ai_score !== undefined
                     return (
                         <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
@@ -80,6 +82,13 @@ export function A3SubEvaluation({
                                     <span className="font-bold text-primary text-sm">{sub.id}</span>
                                     <span className="ml-2 font-semibold text-foreground text-sm">{sub.name}</span>
                                     <p className="text-xs text-muted-foreground">{sub.desc}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {hasAIScore && (
+                                        <span className="text-xs flex items-center gap-1 bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full font-semibold border border-violet-200">
+                                            <Sparkles className="h-3 w-3 text-violet-600" /> IA sugiere: {qData.ai_score}/3
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -100,6 +109,13 @@ export function A3SubEvaluation({
                                     <FormattedQuestion text={qData.prompt_context || ''} />
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
+                                    {qData.candidate_response && (
+                                        <AiLikelihoodBadge
+                                            percentage={qData.ai_likelihood_score ?? qData.ai_likelihood}
+                                            riskLevel={qData.ai_likelihood_risk}
+                                            indicators={qData.ai_likelihood_indicators}
+                                        />
+                                    )}
                                     {qData.ai_score !== null && (
                                         <div className="flex items-center gap-3 mt-2 p-2 rounded bg-violet-50 border border-violet-200">
                                             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />

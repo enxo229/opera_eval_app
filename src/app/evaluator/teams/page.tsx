@@ -83,7 +83,7 @@ export default async function TeamsManagementPage() {
         if (ev?.final_score !== null && ev?.final_score !== undefined) {
           entry.scores.push(Number(ev.final_score))
         }
-        if (ev?.classification && ev.classification.toLowerCase().includes('listo')) {
+        if (ev?.classification && (ev.classification.toLowerCase().includes('listo') || ev.classification.toLowerCase().includes('experto'))) {
           entry.readyCount++
         }
       } else {

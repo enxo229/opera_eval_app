@@ -10,9 +10,8 @@ export const ID_TYPES = [
 ] as const
 
 export const DEFAULT_TRACKS = [
-  { id: 'noc_sre', label: 'NOC / SRE General' },
-  { id: 'sre_expert_otel', label: 'SRE Experto en OpenTelemetry & Grafana Cloud' },
-  { id: 'fullstack_observability', label: 'Ingeniero de Observabilidad Fullstack' },
+  { id: 'general', label: 'NOC / SRE General' },
+  { id: 'otel_expert', label: 'SRE Experto en OpenTelemetry & Grafana Cloud' },
 ] as const
 
 export const DEFAULT_SQUADS = [

@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { MessageCircleQuestion, ArrowUp, Sparkles } from 'lucide-react'
+import { MessageCircleQuestion, ArrowUp, Sparkles, RotateCcw, Trash2, Loader2 } from 'lucide-react'
 import { AiLikelihoodBadge } from './AiLikelihoodBadge'
 import { calculateDimensionC } from '@/app/actions/evaluation'
+import { getCResults, triggerCEvaluation, resetCResponses } from '@/app/actions/candidate/c'
 
 interface Props {
     evaluationId: string
@@ -165,15 +166,23 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
     const isOtel = profileTrack === 'otel_expert'
 
     const CATEGORIES = isOtel ? [
-        { id: 'C1', name: 'Cultura Blameless & Post-mortems', max: 5 },
-        { id: 'C2', name: 'Mentalidad de SLOs & Error Budgets', max: 5 },
+        { id: 'C1', name: 'Cultura Blameless & Post-mortems', max: 5, normMax: 10 },
+        { id: 'C2', name: 'Mentalidad de SLOs & Error Budgets', max: 5, normMax: 10 },
     ] : [
-        { id: 'C1', name: 'Aprendizaje Continuo y Curiosidad Técnica', max: 7 },
-        { id: 'C2', name: 'Adaptabilidad al Cambio y Nuevas Herramientas', max: 7 },
-        { id: 'C3', name: 'Proyección y Motivación hacia Observabilidad / SRE', max: 6 },
+        { id: 'C1', name: 'Aprendizaje Continuo y Curiosidad Técnica', max: 7, normMax: 7 },
+        { id: 'C2', name: 'Adaptabilidad al Cambio y Nuevas Herramientas', max: 7, normMax: 7 },
+        { id: 'C3', name: 'Proyección y Motivación hacia Observabilidad / SRE', max: 6, normMax: 6 },
     ]
 
+    const [localTests, setLocalTests] = useState(dynamicTests)
+    useEffect(() => {
+        setLocalTests(dynamicTests)
+    }, [dynamicTests])
+
     const [isSaving, setIsSaving] = useState(false)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isEvaluating, setIsEvaluating] = useState(false)
+    const [isResetting, setIsResetting] = useState(false)
 
     const getInitialScore = (categoryId: string) => {
         const found = existingScores.find(s => s.dimension === 'C' && s.category === categoryId)
@@ -204,6 +213,104 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
         }
         return init
     })
+
+    const applyAiSuggestions = () => {
+        setScores(prev => {
+            const next = { ...prev }
+            CATEGORIES.forEach(cat => {
+                const q = localTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
+                if (q && q.ai_score !== null && q.ai_score !== undefined) {
+                    if (isOtel) {
+                        const mapOtel: Record<number, number> = { 0: 0, 1: 2, 2: 4, 3: 5 }
+                        next[cat.id] = mapOtel[q.ai_score] ?? q.ai_score
+                    } else {
+                        if (cat.id === 'C3') {
+                            const mapC3: Record<number, number> = { 0: 0, 1: 3, 2: 4, 3: 6 }
+                            next[cat.id] = mapC3[q.ai_score] ?? q.ai_score
+                        } else {
+                            const mapC: Record<number, number> = { 0: 0, 1: 3, 2: 5, 3: 7 }
+                            next[cat.id] = mapC[q.ai_score] ?? q.ai_score
+                        }
+                    }
+                }
+            })
+            return next
+        })
+    }
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true)
+        try {
+            const res = await getCResults(evaluationId)
+            if (res) {
+                setLocalTests(prev => {
+                    const withoutC = prev.filter(t => t.test_type !== 'QUESTIONS_C')
+                    const added = res.questions.map(q => ({
+                        test_type: 'QUESTIONS_C',
+                        subcategory: q.subcategory,
+                        prompt_context: q.question,
+                        ai_generated_content: q.label,
+                        candidate_response: res.answers[q.subcategory] || null,
+                        ai_score: res.aiResults?.find(a => a.subcategory === q.subcategory)?.score ?? null,
+                        ai_justification: res.aiResults?.find(a => a.subcategory === q.subcategory)?.justification ?? null,
+                        ai_likelihood: res.aiResults?.find(a => a.subcategory === q.subcategory)?.likelihood ?? null
+                    }))
+                    return [...withoutC, ...added]
+                })
+            }
+            router.refresh()
+        } catch (e) {
+            console.error('Error refreshing C:', e)
+        } finally {
+            setIsRefreshing(false)
+        }
+    }
+
+    const handleTriggerAI = async () => {
+        setIsEvaluating(true)
+        try {
+            const res = await triggerCEvaluation(evaluationId)
+            if (res.success) {
+                await handleRefresh()
+                applyAiSuggestions()
+                alert(`Re-evaluación completada (${res.count || 0} respuestas analizadas con IA).`)
+            } else {
+                alert('Error al reevaluar con IA: ' + (res.error || ''))
+            }
+        } catch (e: any) {
+            console.error('Error in triggerCEvaluation:', e)
+            alert('Error: ' + (e?.message || 'Error desconocido'))
+        } finally {
+            setIsEvaluating(false)
+        }
+    }
+
+    const handleResetC = async () => {
+        if (!confirm('⚠️ ¿Estás seguro de que deseas resetear las respuestas de Dimensión C? Esto eliminará las respuestas del candidato y las evaluaciones.')) return
+        setIsResetting(true)
+        try {
+            const res = await resetCResponses(evaluationId)
+            if (res.success) {
+                setLocalTests(prev => prev.filter(t => t.test_type !== 'QUESTIONS_C'))
+                const resetScores: Record<string, number> = { C1: 0, C2: 0 }
+                const resetComments: Record<string, string> = { C1: '', C2: '' }
+                if (!isOtel) {
+                    resetScores.C3 = 0
+                    resetComments.C3 = ''
+                }
+                setScores(resetScores)
+                setComments(resetComments)
+                router.refresh()
+                alert('Dimensión C reseteada exitosamente.')
+            } else {
+                alert('Error al resetear C: ' + res.error)
+            }
+        } catch (e) {
+            console.error('Error resetting C:', e)
+        } finally {
+            setIsResetting(false)
+        }
+    }
 
     const handleSave = async () => {
         setIsSaving(true)
@@ -243,7 +350,7 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Dimensión C: Actitudinal</h2>
                     <p className="text-muted-foreground text-sm">
@@ -253,9 +360,59 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
                     </p>
                 </div>
                 {!readOnly && (
-                    <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer">
-                        {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleTriggerAI}
+                            disabled={isEvaluating || isSaving}
+                            className="h-9 px-3 text-xs font-bold text-amber-700 hover:bg-amber-500/10 border-amber-500/30 gap-1.5 cursor-pointer bg-amber-50/50 shadow-sm"
+                            title="Re-evaluar respuestas de Dimensión C con IA"
+                        >
+                            {isEvaluating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-amber-500" />}
+                            <span>Re-evaluar con IA</span>
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={applyAiSuggestions}
+                            disabled={isSaving}
+                            className="h-9 px-3 text-xs font-semibold gap-1.5 cursor-pointer bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100 shadow-sm"
+                            title="Aplicar sugerencias de puntaje recomendadas por la IA"
+                        >
+                            <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                            <span>Aplicar Sugerencias IA</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing || isSaving}
+                            className="h-9 px-3 text-xs font-semibold text-muted-foreground hover:text-primary gap-1.5 cursor-pointer bg-background/80 border border-border/60 shadow-sm"
+                            title="Refrescar respuestas de Dimensión C"
+                        >
+                            <RotateCcw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <span>Refrescar</span>
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleResetC}
+                            disabled={isResetting || isSaving}
+                            className="h-9 px-3 text-xs font-semibold bg-red-600/10 text-red-600 hover:bg-red-600/20 border border-red-600/20 cursor-pointer shadow-sm"
+                            title="Resetear respuestas de Dimensión C"
+                        >
+                            {isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+                            <span>Resetear Respuestas</span>
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 shadow-sm cursor-pointer"
+                        >
+                            {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -281,7 +438,7 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
                                 }
                             }}
                         >
-                            {link.id}. {link.name} ({link.max} pts)
+                            {link.id}. {link.name} ({link.normMax} pts)
                         </Button>
                     ))}
                 </div>
@@ -294,16 +451,33 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
                 return (
                     <Card key={cat.id} id={`section-${cat.id}`} className="border-border scroll-mt-32">
                         <CardHeader className="bg-muted/30 border-b border-border py-4">
-                            <CardTitle className="text-xl font-bold text-primary flex justify-between items-center">
-                                <span>{cat.id}. {cat.name}</span>
-                                <span className="text-sm font-mono text-muted-foreground">Máx. {cat.max} pts</span>
-                            </CardTitle>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="text-xl font-bold text-primary flex items-center gap-3">
+                                    <span>{cat.id}. {cat.name}</span>
+                                    <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
+                                        {isOtel ? `Máx. ${cat.max} pts (Ponderado: ${cat.normMax} pts)` : `Máx. ${cat.max} pts`}
+                                    </span>
+                                </CardTitle>
+                                {!readOnly && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleRefresh}
+                                        disabled={isRefreshing}
+                                        className="h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-primary gap-1.5 cursor-pointer bg-background/80 border border-border/60 shadow-sm"
+                                        title={`Refrescar respuestas de ${cat.id}`}
+                                    >
+                                        <RotateCcw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                        <span>Refrescar</span>
+                                    </Button>
+                                )}
+                            </div>
                         </CardHeader>
 
                         <CardContent className="p-5 space-y-4">
                             {/* Candidate Written Response & AI Likelihood Evidence */}
                             {(() => {
-                                const qData = dynamicTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
+                                const qData = localTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
                                 if (!qData) return null
 
                                 return (
@@ -468,15 +642,25 @@ export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTest
                 )
             })}
 
-            <div className="flex justify-between items-center mt-8 pt-6 border-t border-border pb-10">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-border pb-10">
                 <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                     <ArrowUp className="w-4 h-4 mr-2" /> Volver arriba
                 </Button>
-                {!readOnly && (
-                    <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-10 h-12 rounded-xl shadow-xl cursor-pointer">
-                        {isSaving ? 'Guardando...' : 'Consolidar Dimensión C'}
-                    </Button>
-                )}
+                <div className="flex items-center gap-6">
+                    <div className="text-right">
+                        <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider block">Subtotal Dimensión C</span>
+                        <span className="text-xl font-mono font-black text-primary">
+                            {isOtel
+                                ? parseFloat((((Math.min(5, scores['C1'] || 0) / 5) * 10) + ((Math.min(5, scores['C2'] || 0) / 5) * 10)).toFixed(1))
+                                : ((scores['C1'] || 0) + (scores['C2'] || 0) + (scores['C3'] || 0))} <span className="text-sm font-normal text-muted-foreground">/ 20 pts</span>
+                        </span>
+                    </div>
+                    {!readOnly && (
+                        <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 h-12 rounded-xl shadow-xl cursor-pointer">
+                            {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

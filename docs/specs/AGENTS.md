@@ -253,13 +253,19 @@ El sistema soporta múltiples perfiles de evaluación. El track se almacena en `
 | **C — Cultural** | 20 | C1(10 de 5 pts raw), C2(10 de 5 pts raw) |
 | **D — IA** | Omitida | No aplica para este perfil |
 
-> **Nota sobre Clasificación Técnica**: La especificación de `otel_expert.md` define rangos de nivel técnico propios (90/75/60% → Arquitecto/Especialista/Junior/No Acreditado). Estos rangos son una **referencia de perfil técnico** y no afectan la clasificación automática del sistema, que usa los rangos estándar para todos los tracks.
+### Clasificación Final por Perfil (Automática)
 
-### Clasificación Final (Automática — Todos los Tracks)
-- **≥ 80**: Listo para pivotar (Verde)
-- **60–79**: Pivote con nivelación (Amarillo)
-- **40–59**: En preparación (Naranja)
-- **< 40**: Continúa en su rol actual (Rojo)
+#### Track `general` (Movilidad Interna / Analista Junior):
+- **≥ 80 pts**: Listo para pivotar (Verde `#10B981`)
+- **60–79 pts**: Pivote con nivelación (Amarillo `#F59E0B`)
+- **40–59 pts**: En preparación (Naranja `#F97316`)
+- **< 40 pts**: Continúa en su rol actual (Rojo `#EF4444`)
+
+#### Track `otel_expert` (SRE Experto en OpenTelemetry & Grafana Cloud):
+- **≥ 80 pts**: Nivel Experto / Staff SRE (Verde `#10B981`)
+- **60–79 pts**: Nivel Avanzado / SRE Autónomo (Amarillo `#F59E0B`)
+- **40–59 pts**: Nivel Intermedio / SRE en Desarrollo (Naranja `#F97316`)
+- **< 40 pts**: No Cumple Perfil Experto (Rojo `#EF4444`)
 
 ---
 
@@ -378,7 +384,7 @@ erDiagram
     DYNAMIC_TESTS {
         uuid id PK
         uuid evaluation_id FK "evaluations.id ON DELETE CASCADE"
-        text test_type "check: A4_CASE, B1_CASE, B1_TICKET, IA_CHAT, TERMINAL_A1, QUESTIONS_A1..A4, PROMPT_IA2, TAB_SWITCH_EVENT"
+        text test_type "check: A4_CASE, B1_CASE, B1_TICKET, IA_CHAT, TERMINAL_A1, TERMINAL_A3, TERMINAL_A4, QUESTIONS_A1..A4, QUESTIONS_B1, QUESTIONS_B2, QUESTIONS_C, PROMPT_IA2, TAB_SWITCH_EVENT, SECURITY_AUDIT"
         text subcategory
         text prompt_context
         text ai_generated_content
@@ -394,9 +400,9 @@ erDiagram
 |---|---|
 | `profiles` | Datos del usuario (nombre, rol, nivel educativo, documento de identidad) |
 | `selection_processes` | Procesos de selección por candidato (con email, CC, equipo, observaciones, `profile_track`) |
-| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal y timer) |
+| `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal, auditoría de pegado y timer) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
-| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal, `ai_likelihood` y eventos de foco |
+| `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal, `ai_likelihood`, eventos de foco y auditoría de seguridad (`SECURITY_AUDIT`) |
 | `teams` | Catálogo oficial de equipos/squads. Nombre único en mayúscula sostenida. Referenciado lógicamente desde `selection_processes.team` |
 
 ### Campos del Timer, Foco y Auditoría (tabla `evaluations`)
@@ -406,6 +412,7 @@ erDiagram
 | `started_at` | timestamptz | Marca de inicio ininterrumpido de la evaluación |
 | `test_duration_minutes` | int (default 60) | Duración total configurable exclusivamente por evaluador |
 | `tab_switch_count` | int (default 0) | Contador de cambios de ventana / desenfoques detectados (máx. 4 permitidos) |
+| `bypass_paste_count` | int (default 0) | Contador de intentos de pegado (bypass paste) interceptados en campos de texto |
 | `legal_consent_tc` | boolean | Aceptación de Términos y Condiciones |
 | `legal_consent_data` | boolean | Autorización de Tratamiento de Datos |
 | `legal_accepted_at` | timestamptz | Estampa de tiempo del consentimiento |
@@ -448,7 +455,7 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 
 1. **Next.js Params**: Siempre `await params` en rutas dinámicas.
 2. **Server Actions**: Marcadas con `'use server'`. Lógica de negocio e IA concentrada aquí.
-3. **test_type (dynamic_tests)**: Valores permitidos en el constraint SQL: `A4_CASE`, `B1_CASE`, `B1_TICKET`, `IA_CHAT`, `TERMINAL_A1`, `TERMINAL_A3`, `TERMINAL_A4`, `QUESTIONS_A1`, `QUESTIONS_A2`, `QUESTIONS_A3`, `QUESTIONS_A4`, `QUESTIONS_B1`, `QUESTIONS_B2`, `QUESTIONS_C`, `PROMPT_IA2`.
+3. **test_type (dynamic_tests)**: Valores permitidos en el constraint SQL: `A4_CASE`, `B1_CASE`, `B1_TICKET`, `IA_CHAT`, `TERMINAL_A1`, `TERMINAL_A3`, `TERMINAL_A4`, `QUESTIONS_A1`, `QUESTIONS_A2`, `QUESTIONS_A3`, `QUESTIONS_A4`, `QUESTIONS_B1`, `QUESTIONS_B2`, `QUESTIONS_C`, `PROMPT_IA2`, `TAB_SWITCH_EVENT`, `SECURITY_AUDIT`.
 4. **Environment**: Usar estrictamente `APP_GEMINI_API_KEY`.
 5. **Supabase Generics**: Clientes con `<any, 'public'>` (sin `supabase gen types`). Los tipos manuales están en `src/types/database.ts`.
 6. **Constantes compartidas**: Definidas en `src/lib/constants.ts` (ej. `TOOL_OPTIONS`, `EDUCATION_LABELS`). No duplicar en componentes.
@@ -509,6 +516,9 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | **Filtro Historial como Select** | Campo de equipo en Búsqueda Histórica convertido de texto libre a `<Select>` dinámico del catálogo oficial | 2026-08-24 |
 | **Auto-refresh al crear usuario** | `router.refresh()` tras creación exitosa para actualizar tabla y KPIs sin recarga manual | 2026-08-24 |
 | **Filtro por defecto Activos/Borrador** | La tabla principal del evaluador carga por defecto mostrando solo procesos activos y borradores | 2026-08-24 |
+| **Auditoría Anti-Pegado (`SECURITY_AUDIT`)** | Sincronización de constraint en `dynamic_tests` e incremento de `bypass_paste_count` en `evaluations` | 2026-09-07 |
+| **Visibilidad Post-Examen de Evidencias** | Inclusión de ticket B1 y respuestas situacionales B2/C en `/evaluator/report/[id]` | 2026-09-07 |
+| **Toolbars Reactivos por Sección (B y C)** | Botones de refresco in-place, reseteo por submódulo, re-evaluación IA y aplicación de sugerencias | 2026-09-07 |
 
 ---
 
@@ -570,9 +580,9 @@ A continuación se detalla cada componente del proyecto, su ubicación en el ár
 | **`ProcessStatusBadge`** | `src/components/evaluator/ProcessStatusBadge.tsx` | **Badge de Estado del Proceso**: Componente estandarizado de badges con colores semánticos para `active`, `completed`, `archived` y `draft`. |
 | **`ScoreClassificationBadge`** | `src/components/evaluator/ScoreClassificationBadge.tsx` | **Badge de Clasificación de Puntaje**: Renderiza la clasificación ejecutiva (Listo para pivotar, Nivelación, Preparación, Rol actual) con colores diferenciados. |
 | **`ExportMenu`** | `src/components/evaluator/ExportMenu.tsx` | **Menú de Exportación**: Dropdown con opciones de exportación a Excel (.xlsx) y PDF para el dataset filtrado activo de la tabla. |
-| **`DimensionAEvaluation`** | `src/components/evaluator/DimensionAEvaluation.tsx` | **Panel de Calificación Técnica (50 pts)**: Consolida los submódulos A1 (15), A2 (15), A3 (10 normalizado) y A4 (10 normalizado). Proporciona guardado masivo con feedback visual explícito (`alert`) y sincronización en `evaluations.score_a`. |
-| **`DimensionBEvaluation`** | `src/components/evaluator/DimensionBEvaluation.tsx` | **Panel de Calificación de Blandas (30 pts)**: Evalúa B1 (Registro GLPI - 10 pts), B2 (Comunicación Verbal - 10 pts) y B3 (Colaboración y Presión - 10 pts) con sugerencias automáticas de la IA. |
-| **`DimensionCEvaluation`** | `src/components/evaluator/DimensionCEvaluation.tsx` | **Panel de Calificación Cultural (20 pts)**: Califica C1 (Aprendizaje Autónomo - 7 pts), C2 (Adaptabilidad - 7 pts) y C3 (Trabajo en Equipo - 6 pts). |
+| **`DimensionAEvaluation`** | `src/components/evaluator/DimensionAEvaluation.tsx` | **Panel de Calificación Técnica (50 pts)**: Consolida los submódulos A1 (15), A2 (15), A3 (10 normalizado) y A4 (10 normalizado). Proporciona botones de refresco, reseteo por sección y re-evaluación IA, con guardado y sincronización en `evaluations.score_a`. |
+| **`DimensionBEvaluation`** | `src/components/evaluator/DimensionBEvaluation.tsx` | **Panel de Calificación de Blandas (30 pts)**: Evalúa B1 (Ticket ITSM/GLPI - 18/10 pts) y B2 (Situacionales SRE / Verbal - 12/10 pts) con evidencia del ticket desplegada por defecto, barras de herramientas por sección (Refrescar, Re-evaluar con IA, Resetear por sección) y auto-aplicación de sugerencias IA. |
+| **`DimensionCEvaluation`** | `src/components/evaluator/DimensionCEvaluation.tsx` | **Panel de Calificación Cultural (20 pts)**: Califica C1 (Blameless / Aprendizaje - 5/7 pts), C2 (SLOs / Adaptabilidad - 5/7 pts) y C3 (Proyección SRE - 6 pts). Incluye barra de herramientas para Refrescar en caliente, Re-evaluar con IA (con rúbricas específicas SRE), Aplicar Sugerencias IA y Resetear Respuestas. |
 | **`DimensionDEvaluation`** | `src/components/evaluator/DimensionDEvaluation.tsx` | **Panel de Calificación de IA (10 pts)**: Califica el uso conceptual (IA-1 - 5 pts) y la ingeniería de prompts (IA-2 - 5 pts) para desempate y ruta de onboarding. |
 | **`FinalScoreCard`** | `src/components/evaluator/FinalScoreCard.tsx` | **Tarjeta de Cierre y Dictamen Final**: Calcula el score global $[0, 100]$, la clasificación ejecutiva (Listo, Nivelación, Preparación, Rol actual) y ejecuta el generador de dictamen narrativo con Gemini 3.7 Flash. |
 | **`TimerAdjuster`** | `src/components/evaluator/TimerAdjuster.tsx` | **Control de Temporizador en Vivo**: Permite al evaluador añadir minutos (+5, +10, +15) o fijar un tiempo exacto en caliente, visualizando la telemetría de cambios de ventana del candidato. |

@@ -118,7 +118,8 @@ create table if not exists public.evaluations (
   paused_at timestamptz,
   total_paused_ms bigint default 0,
   pause_count int default 0,
-  tab_switch_count int default 0
+  tab_switch_count int default 0,
+  bypass_paste_count int default 0
 );
 
 alter table public.evaluations enable row level security;
@@ -140,15 +141,15 @@ create policy "Evaluators and owners can view/manage evaluations"
 create table if not exists public.dimension_scores (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  dimension text check (dimension in ('A', 'B', 'C', 'IA', 'D')),
+  dimension text check (dimension in ('A', 'B', 'C', 'IA')),
   category text not null,
-  raw_score integer not null,
+  raw_score numeric(5,2) not null,
   comments text
 );
 
 alter table public.dimension_scores enable row level security;
 
-create policy "Evaluators and owners can view/manage dimension scores"
+create policy "Evaluators and owners can view/manage scores"
   on dimension_scores for all
   using (
     exists (
@@ -165,7 +166,7 @@ create policy "Evaluators and owners can view/manage dimension scores"
 create table if not exists public.dynamic_tests (
   id uuid primary key default uuid_generate_v4(),
   evaluation_id uuid references public.evaluations(id) on delete cascade not null,
-  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'QUESTIONS_B2', 'QUESTIONS_C', 'PROMPT_IA2', 'TAB_SWITCH_EVENT')),
+  test_type text check (test_type in ('A4_CASE', 'B1_CASE', 'B1_TICKET', 'IA_CHAT', 'TERMINAL_A1', 'TERMINAL_A3', 'TERMINAL_A4', 'QUESTIONS_A1', 'QUESTIONS_A2', 'QUESTIONS_A3', 'QUESTIONS_A4', 'QUESTIONS_B1', 'QUESTIONS_B2', 'QUESTIONS_C', 'PROMPT_IA2', 'TAB_SWITCH_EVENT', 'SECURITY_AUDIT')),
   subcategory text,          -- e.g. 'A1.1', 'A1.2', 'A2.3' for per-subcategory questions
   prompt_context text,
   ai_generated_content text,

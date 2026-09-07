@@ -22,6 +22,9 @@ export type DynamicTestType =
   | 'QUESTIONS_B2'
   | 'QUESTIONS_C'
   | 'PROMPT_IA2'
+  | 'TAB_SWITCH_EVENT'
+  | 'SECURITY_AUDIT'
+
 
 export interface Database {
   public: {
@@ -104,6 +107,7 @@ export interface Database {
           final_score: number | null
           classification: string | null
           ai_insights: Json | null
+          bypass_paste_count?: number | null
         }
         Insert: {
           id?: string
@@ -118,6 +122,7 @@ export interface Database {
           final_score?: number | null
           classification?: string | null
           ai_insights?: Json | null
+          bypass_paste_count?: number | null
         }
         Update: {
           id?: string
@@ -132,6 +137,7 @@ export interface Database {
           final_score?: number | null
           classification?: string | null
           ai_insights?: Json | null
+          bypass_paste_count?: number | null
         }
       }
       dimension_scores: {

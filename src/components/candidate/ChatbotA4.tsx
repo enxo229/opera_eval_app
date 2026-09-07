@@ -13,11 +13,18 @@ import { TelemetryChatRenderer } from './TelemetryChatRenderer'
 
 export function ChatbotA4({ evaluationId, onStatusChange }: { evaluationId: string | null; onStatusChange?: (finished: boolean) => void }) {
     let profileTrack = 'general'
+    let incrementBypassCount = () => {}
     try {
         const ctx = useCandidateContext()
         if (ctx?.profileTrack) profileTrack = ctx.profileTrack
+        if (ctx?.incrementBypassCount) incrementBypassCount = ctx.incrementBypassCount
     } catch {
         // Rendered outside context provider fallback
+    }
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        incrementBypassCount()
     }
 
     const [caseText, setCaseText] = useState<string | null>(null)
@@ -290,7 +297,7 @@ Cuando tengas suficiente evidencia, escribe en esta consola tu Diagnóstico de C
                                 ref={inputRef}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onPaste={(e) => e.preventDefault()}
+                                onPaste={handleBypassAttempt}
                                 onCopy={(e) => e.preventDefault()}
                                 onContextMenu={(e) => e.preventDefault()}
                                 placeholder={!evaluationId ? "No hay evaluación iniciada..." : "Ej: Mostrar los logs de error de las últimas 2 horas..."}

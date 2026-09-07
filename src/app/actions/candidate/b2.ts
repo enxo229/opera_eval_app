@@ -127,3 +127,92 @@ export async function getB2Results(evaluationId: string) {
 
     return { questions, answers, submitted, aiResults: aiResults.length > 0 ? aiResults : null }
 }
+
+/**
+ * Re-evalúa con IA las respuestas situacionales de B2.
+ */
+export async function triggerB2Evaluation(evaluationId: string): Promise<{ success: boolean; error?: string; count?: number }> {
+    const supabase = await createClient()
+
+    const { data: tests, error: fetchErr } = await supabase
+        .from('dynamic_tests')
+        .select('*')
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_B2')
+
+    if (fetchErr || !tests || tests.length === 0) {
+        return { success: false, error: 'No se encontraron preguntas de B2 para evaluar' }
+    }
+
+    let evaluatedCount = 0
+    for (const test of tests) {
+        if (!test.candidate_response) continue
+
+        const evalResult = await evaluateQuestionGeneric(
+            test.subcategory,
+            test.prompt_context || '',
+            test.candidate_response
+        )
+
+        await supabase
+            .from('dynamic_tests')
+            .update({
+                ai_score: evalResult.score,
+                ai_justification: evalResult.justification,
+                ai_likelihood: evalResult.aiLikelihood.percentage
+            })
+            .eq('id', test.id)
+
+        // Upsert dimension score for evaluator
+        const { data: existingScore } = await supabase
+            .from('dimension_scores')
+            .select('id')
+            .eq('evaluation_id', evaluationId)
+            .eq('dimension', 'B')
+            .eq('category', test.subcategory)
+            .maybeSingle()
+
+        await supabase.from('dimension_scores').upsert({
+            ...(existingScore ? { id: existingScore.id } : {}),
+            evaluation_id: evaluationId,
+            dimension: 'B',
+            category: test.subcategory,
+            raw_score: evalResult.score,
+            comments: `IA Sugiere (${evalResult.score}/3): ${evalResult.justification}`
+        })
+        evaluatedCount++
+    }
+
+    return { success: true, count: evaluatedCount }
+}
+
+/**
+ * Resetea exclusivamente las respuestas situacionales de B2.
+ */
+export async function resetB2Responses(evaluationId: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'evaluator') return { success: false, error: 'Solo evaluadores pueden resetear respuestas' }
+
+    const { error: delTestsErr } = await supabase
+        .from('dynamic_tests')
+        .delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'QUESTIONS_B2')
+
+    if (delTestsErr) return { success: false, error: delTestsErr.message }
+
+    await supabase
+        .from('dimension_scores')
+        .delete()
+        .eq('evaluation_id', evaluationId)
+        .eq('dimension', 'B')
+        .in('category', ['B2', 'B2.1', 'B2.2', 'B2.3', 'B2.4'])
+
+    return { success: true }
+}
+

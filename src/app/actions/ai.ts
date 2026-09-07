@@ -7,8 +7,31 @@ import { analyzeAiLikelihood } from '@/app/actions/ai-detector'
 /**
  * Fuerza la generación de feedback usando el modelo Lite.
  */
-export async function generateNarrativeFeedbackLite(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+export async function generateNarrativeFeedbackLite(context: string, profileTrack?: string): Promise<AINarrativeReport> {
+    const isOtel = profileTrack === 'otel_expert' || context.includes('otel_expert')
+    const prompt = isOtel
+        ? `Actúa como Consultor Principal de SRE & Arquitecto de Observabilidad, Líder del CoE de Observabilidad.
+Tu objetivo es consolidar los resultados de una evaluación para un candidato al perfil de **SRE Experto en OpenTelemetry & Grafana Cloud**.
+
+CONTEXTO DE LA EVALUACIÓN (OpenTelemetry, OTLP, OTel Collector Pipelines, Grafana Alloy Flow Mode, Mimir PromQL, Loki LogQL, Tempo TraceQL, Pyroscope Continuous Profiling, Tail Sampling, OTTL, Ticket de Incidente SRE con SLOs, Mitigación vs Preservación, Cultura Blameless, Error Budgets):
+${context}
+
+INSTRUCCIONES DE CALIBRACIÓN Y RIGUROSIDAD:
+1. Analiza con criterio de Arquitecto/Principal SRE el desempeño global y la clasificación obtenida.
+2. Genera un "Relato Final" de 2-3 párrafos profesional, constructivo y riguroso. Si el puntaje es mínimo (< 40 pts) o las respuestas son deficientes/erróneas, sé honesto y directo: indica con franqueza profesional que el candidato no demuestra el conocimiento requerido para el perfil de SRE Experto.
+3. IDENTIFICACIÓN DE FORTALEZAS (CALIBRACIÓN CRÍTICA):
+   - PROHIBIDO inventar fortalezas complacientes o condescendientes si el candidato falló las preguntas o su puntaje es mínimo.
+   - Si las respuestas fueron erróneas o el puntaje es < 40 pts, el arreglo "fortalezas" DEBE contener ÚNICAMENTE: ["No se evidenciaron fortalezas técnicas demostradas en este intento"] o estar vacío [].
+   - Solo incluye fortalezas si están explícitamente sustentadas en respuestas correctas del candidato.
+4. Identifica una lista de "Brechas o Áreas de Mejora" (entre 2 y 4) claras y priorizadas para el stack OTel/Grafana/SRE.
+
+Responde ÚNICAMENTE con JSON:
+{
+  "final_narrative": "...",
+  "fortalezas": [...],
+  "brechas": [...]
+}`
+        : `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
 Tu objetivo es consolidar los resultados de una evaluación para un candidato a Analista de Observabilidad Junior.
 
 CONTEXTO DE LA EVALUACIÓN (Linux, AWS Cloud, Dynatrace, Grafana, Git, Pandas, GLPI, AlertOps, Teams):
@@ -79,8 +102,50 @@ export type AINarrativeReport = {
  * Genera un feedback narrativo consolidado, fortalezas y brechas basado en toda la evaluación.
  * Usa la cadena de modelos de REPORTE (Gemini 3.7 Flash -> Gemini 3.5 Flash Lite -> Gemini 2.5 Flash Lite).
  */
-export async function generateNarrativeFeedback(context: string): Promise<AINarrativeReport> {
-    const prompt = `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
+export async function generateNarrativeFeedback(context: string, profileTrack?: string): Promise<AINarrativeReport> {
+    const isOtel = profileTrack === 'otel_expert' || context.includes('otel_expert')
+    const prompt = isOtel
+        ? `Actúa como el Principal SRE & Arquitecto de Observabilidad Global y Líder Técnico del CoE de Observabilidad. 
+Tu objetivo es consolidar los resultados y emitir un dictamen técnico-ejecutivo riguroso para un candidato al perfil de **SRE Experto en OpenTelemetry & Grafana Cloud**.
+
+STACK Y ÁREAS EVALUADAS (Escala 0-100 Puntos):
+- Dimensión A (Técnica / 50 pts):
+  * A1: Estándar OpenTelemetry (API vs SDK, W3C Trace Context, OTel Collector pipelines, OTLP gRPC/HTTP, eBPF Profiling).
+  * A2: Ecosistema Grafana Cloud (Grafana Alloy Flow mode, Mimir PromQL, Loki LogQL, Tempo TraceQL, Pyroscope Continuous Profiling).
+  * A3: Arquitectura, Muestreo y Cardinalidad (Tail Sampling, reglas OTTL en transform processor, control de cardinalidad y costos).
+  * A4: Diagnóstico y Causa Raíz de Incidentes (Troubleshooting conversacional con telemetría de producción).
+- Dimensión B (Competencias Situacionales SRE / 30 pts):
+  * B1: Redacción Formal de Ticket de Incidente SRE (impacto cuantitativo en SLO, causa raíz, mitigación y handoff).
+  * B2: Gestión de Presión ante Incidentes y Colaboración Blameless (preservación de evidencia forense vs mitigación rápida, salvaguardas en CI/CD y resiliencia).
+- Dimensión C (Cultura y Filosofía SRE / 20 pts):
+  * C1: Cultura Blameless & Post-mortems (análisis de factores sistémicos, sin culpas individuales, aprendizaje continuo).
+  * C2: Mentalidad de SLOs & Error Budgets (balance entre velocidad de release y confiabilidad, defensa del presupuesto de error).
+- Dimensión IA: N/A (Este track especializado prescinde de la dimensión de IA y concentra el 100% en A, B y C).
+
+CONTEXTO DE LA EVALUACIÓN (Scores Ponderados, Comentarios del Evaluador y Evidencias Técnicas Directas):
+${context}
+
+INSTRUCCIONES DE CALIBRACIÓN Y RIGUROSIDAD TÉCNICA:
+1. Analiza el desempeño global, el puntaje obtenido y la clasificación asignada con rigor de Arquitecto/Principal SRE.
+2. Genera un "Relato Final" (narrativa ejecutiva) de 2-3 párrafos profesional, honesto y transparente:
+   - Si el puntaje es deficiente o mínimo (< 40 pts o clasificación "No Cumple Perfil Experto") o las respuestas son mayoritariamente erróneas/vacías, NO uses eufemismos ni endulces el diagnóstico. Explica con franqueza y respeto profesional que el aspirante no cuenta con el dominio técnico, la profundidad conceptual ni la autonomía requerida para un rol de SRE Experto.
+   - Si el puntaje es sobresaliente o competente, resalta con precisión los aciertos técnicos demostrados en el stack.
+3. IDENTIFICACIÓN DE FORTALEZAS (CALIBRACIÓN CRÍTICA — PROHIBIDO INVENTAR FORTALEZAS FALSAS):
+   - Si el puntaje es deficiente (< 40 pts) o las respuestas técnicas del candidato fueron incorrectas, vagas o deficientes, el arreglo "fortalezas" NO DEBE inventar virtudes falsas, condescendientes ni complacientes (como "intención de aprender", "conoce conceptos básicos", etc.).
+   - En caso de respuestas erróneas o puntaje mínimo, el arreglo "fortalezas" DEBE contener ÚNICAMENTE:
+     ["No se evidenciaron fortalezas técnicas demostradas en este intento"]
+     o ser un arreglo vacío [].
+   - ÚNICAMENTE si el candidato demostró respuestas genuinamente correctas y sólidas en sus respuestas, lista hasta 3 fortalezas técnicas reales y comprobables en la evidencia.
+4. BRECHAS O ÁREAS DE MEJORA:
+   - Identifica una lista de "Brechas o Áreas de Mejora" (entre 2 y 4 puntos críticos) priorizadas según su impacto en producción (ej. falta de dominio en pipelines OTel, ausencia de análisis cuantitativo en SLOs, desconocimiento de muestreo o reglas OTTL, etc.).
+
+Responde ÚNICAMENTE con un JSON válido con esta estructura:
+{
+  "final_narrative": "Texto narrativo ejecutivo...",
+  "fortalezas": ["puntos fuertes reales o 'No se evidenciaron fortalezas técnicas demostradas en este intento'"],
+  "brechas": ["áreas de mejora prioritarias..."]
+}`
+        : `Actúa como un Consultor Senior de Talento Técnico y Líder del CoE de Observabilidad / SRE. 
 Tu objetivo es consolidar los resultados de una evaluación técnica y conductual para un candidato a Analista de Observabilidad Junior.
 
 STACK Y ÁREAS EVALUADAS:
@@ -317,13 +382,34 @@ export type A1EvaluationResult = {
 }
 
 export async function evaluateAnswersA1(
-    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
+    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[],
+    profileTrack?: string
 ): Promise<A1EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de infraestructura y cloud TI. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Linux & AWS Cloud).
+    const prompt = profileTrack === 'otel_expert'
+        ? `Eres un evaluador técnico senior de SRE y OpenTelemetry. Evalúa las siguientes respuestas de un candidato para el rol de SRE Experto en OpenTelemetry & Grafana Cloud (Arquitectura OTel, Collector Pipelines, Protocolo OTLP y Profiling eBPF).
+
+ESCALA DE VALORACIÓN (aplica estrictamente):
+- 0 (Sin conocimiento): Respuesta errónea, vacía o irrelevante.
+- 1 (Básico): Conocimiento vago de OTel o definiciones genéricas sin profundidad.
+- 2 (Funcional): Comprensión técnica sólida de API vs SDK, pipelines del collector, OTLP o eBPF.
+- 3 (Autónomo / Experto): Explicación impecable, profundidad arquitectónica y justificación técnica clara.
+
+RESPUESTAS A EVALUAR:
+
+${qaBlock}
+
+Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
+[
+  {"subcategory": "A1.1", "label": "Arquitectura OTel & Contexto", "score": 2, "justification": "..."},
+  {"subcategory": "A1.2", "label": "Collector & OTTL Pipelines", "score": 2, "justification": "..."},
+  {"subcategory": "A1.3", "label": "Protocolo OTLP & Transportes", "score": 2, "justification": "..."},
+  {"subcategory": "A1.4", "label": "Profiling & eBPF Telemetry", "score": 2, "justification": "..."}
+]`
+        : `Eres un evaluador técnico senior de infraestructura y cloud TI. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Linux & AWS Cloud).
 
 ESCALA DE VALORACIÓN (aplica estrictamente):
 - 0 (Sin conocimiento): No conoce el concepto ni ha tenido contacto. Respuesta vacía, irrelevante o incorrecta.
@@ -493,13 +579,33 @@ export type A2EvaluationResult = {
 }
 
 export async function evaluateAnswersA2(
-    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[]
+    questionsAndAnswers: { subcategory: string; label: string; question: string; answer: string }[],
+    profileTrack?: string
 ): Promise<A2EvaluationResult[]> {
     const qaBlock = questionsAndAnswers.map(qa =>
         `Subcategoría: ${qa.subcategory} (${qa.label})\nPregunta: ${qa.question}\nRespuesta del candidato: ${qa.answer}`
     ).join('\n\n---\n\n')
 
-    const prompt = `Eres un evaluador técnico senior de observabilidad y SRE. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Observabilidad, SRE, Dynatrace, Grafana).
+    const prompt = profileTrack === 'otel_expert'
+        ? `Eres un evaluador técnico senior de SRE y Observabilidad. Evalúa las siguientes respuestas de un candidato para el rol de SRE Experto en OpenTelemetry & Grafana Cloud (Grafana Alloy Flow Mode, Mimir & Loki PromQL/LogQL, Tempo & Pyroscope TraceQL/Profiling).
+
+ESCALA DE VALORACIÓN (aplica estrictamente):
+- 0 (Sin conocimiento): Respuesta errónea, vacía o irrelevante.
+- 1 (Básico): Conocimiento superficial sin formular queries ni explicar componentes.
+- 2 (Funcional): Comprensión técnica adecuada de Alloy Flow, sintaxis de PromQL/LogQL o TraceQL/Profiling.
+- 3 (Autónomo / Experto): Excelente articulación técnica, formulación precisa de métricas/consultas y análisis de rendimiento.
+
+RESPUESTAS A EVALUAR:
+
+${qaBlock}
+
+Responde ÚNICAMENTE con un JSON array de objetos con subcategory, label, score (0-3) y justification:
+[
+  {"subcategory": "A2.1", "label": "Grafana Alloy Flow Mode", "score": 2, "justification": "..."},
+  {"subcategory": "A2.2", "label": "Mimir & Loki (PromQL/LogQL)", "score": 2, "justification": "..."},
+  {"subcategory": "A2.3", "label": "Tempo & Pyroscope (TraceQL/Profiling)", "score": 2, "justification": "..."}
+]`
+        : `Eres un evaluador técnico senior de observabilidad y SRE. Evalúa las siguientes respuestas de un candidato para el rol de Analista de Observabilidad Junior (Observabilidad, SRE, Dynatrace, Grafana).
 
 ESCALA DE VALORACIÓN (aplica estrictamente):
 - 0 (Sin conocimiento): Respuesta vacía, irrelevante o incorrecta.
@@ -978,19 +1084,19 @@ export type CQuestion = {
 
 export async function generateQuestionsB(educationLevel: string, profileTrack?: string): Promise<BQuestion[]> {
     const isOtel = profileTrack === 'otel_expert'
-    const prompt = `Actúa como un evaluador senior de SRE y habilidades blandas en ingeniería.
+    const prompt = `Actúa como un evaluador senior de SRE y habilidades situacionales en ingeniería de software.
 Genera exactamente 2 preguntas situacionales de respuesta abierta en español (máximo 35 a 45 palabras cada una) para evaluar la gestión de incidentes y colaboración:
 
-1. B2 — Adaptabilidad & Trabajo Bajo Presión: Pregunta sobre una situación de alta presión (ej. durante un corte activo de servicio, el equipo de desarrollo exige tomar acciones apresuradas. ¿Cómo negocias la preservación de telemetría y la restauración rápida?).
-2. B5 — Colaboración & Cultura Blameless: Pregunta sobre cómo reaccionarías ante un error humano recurrente de un miembro del equipo que ocasionó una caída de producción.
+1. B2.1 — Adaptabilidad & Gestión de Presión: Pregunta sobre una situación de alta presión (ej. durante un corte activo de servicio con degradación crítica, el equipo de desarrollo o producto exige reiniciar inmediatamente servicios o pods. ¿Cómo manejas la situación para mitigar el impacto rápidamente sin comprometer la telemetría esencial de traces/logs en OpenTelemetry y Grafana para el diagnóstico de causa raíz?).
+2. B2.2 — Colaboración Blameless & Resiliencia: Pregunta sobre cómo abordarías una situación donde un compañero de equipo causa fallas reiteradas en producción por errores manuales o configuraciones erróneas, equilibrando el soporte técnico empático con la implementación de salvaguardas sistémicas, automatización en CI/CD y alertas preventivas en Grafana.
 
 Reglas:
-- Las preguntas deben requerir respuestas analíticas breves (~40-60 palabras).
+- Las preguntas deben requerir respuestas analíticas y situacionales breves (~40-60 palabras).
 - Nivel de escolaridad: ${educationLevel}. ${isOtel ? 'Enfocado en entorno SRE / OpenTelemetry / Grafana.' : ''}
 - Responde ÚNICAMENTE con un JSON array de 2 objetos:
 [
-  {"subcategory": "B2", "label": "Adaptabilidad & Gestión de Presión", "question": "..."},
-  {"subcategory": "B5", "label": "Colaboración & Trabajo en Equipo", "question": "..."}
+  {"subcategory": "B2.1", "label": "Adaptabilidad & Gestión de Presión", "question": "..."},
+  {"subcategory": "B2.2", "label": "Colaboración Blameless & Resiliencia", "question": "..."}
 ]`
 
     const raw = await generateContentWithRetry(prompt)
@@ -1000,8 +1106,8 @@ Reglas:
         return JSON.parse(cleaned)
     } catch {
         return [
-            { subcategory: 'B2', label: 'Adaptabilidad & Gestión de Presión', question: 'En medio de un incidente crítico activo con degradación de servicio, el equipo de desarrollo exige reiniciar inmediatamente los nodos sin guardar logs ni métricas. ¿Cómo manejas la situación para equilibrar la recuperación rápida sin perder la evidencia de observabilidad?' },
-            { subcategory: 'B5', label: 'Colaboración & Trabajo en Equipo', question: 'Detectas que una caída de producción fue ocasionada por un error de configuración de un compañero del equipo. ¿Cómo abordas el análisis de causa raíz y el post-mortem bajo una cultura Blameless?' }
+            { subcategory: 'B2.1', label: 'Adaptabilidad & Gestión de Presión', question: 'En medio de un corte crítico activo, el equipo exige reiniciar servicios inmediatamente arriesgando la pérdida de trazas en OpenTelemetry. ¿Cómo manejas la presión para mitigar el impacto rápidamente sin comprometer la telemetría esencial en Grafana para el diagnóstico posterior?' },
+            { subcategory: 'B2.2', label: 'Colaboración Blameless & Resiliencia', question: 'Un compañero causa reiteradamente caídas en producción por errores manuales en despliegues. ¿Cómo abordarías esta situación manteniendo una cultura blameless, equilibrando el soporte técnico empático con la implementación de salvaguardas sistémicas y alertas en Grafana para evitar la recurrencia?' }
         ]
     }
 }
@@ -1051,8 +1157,52 @@ export async function evaluateQuestionGeneric(
     questionContext: string,
     candidateResponse: string
 ): Promise<SectionEvaluationWithAiDetection> {
+    let rubricHint = ''
+    if (subcategory === 'B2.1') {
+        rubricHint = `
+Criterios de Evaluación B2.1 (Preservación de Evidencia vs. Mitigación de Incidente):
+- Evalúa cómo balancea la presión de reiniciar con la preservación de telemetría para diagnóstico de causa raíz.
+- 0: Cede totalmente a reiniciar a ciegas sin guardar evidencia o respuesta evasiva/agresiva.
+- 1: Sugiere solo mantener la calma o esperar pasivamente sin proponer acciones técnicas ni alternativas de contención.
+- 2: Propone una solución intermedia funcional (aislar un nodo/pod con tráfico drenado, o volcar logs antes del reinicio).
+- 3: Enfoque SRE ejemplar: negociación asertiva, aislamiento de réplicas para preservación de memoria/trazas (heap dump, flush de buffers en OTel Collector/Alloy o snapshot rápido) y restauración coordinada del tráfico.`
+    } else if (subcategory === 'B2.2') {
+        rubricHint = `
+Criterios de Evaluación B2.2 (Cultura Blameless y Salvaguardas Sistémicas):
+- Evalúa el balance entre apoyo empático al compañero y soluciones técnicas para prevenir fallas humanas.
+- 0: Enfoque punitivo, culpar a la persona o desentenderse del problema.
+- 1: Muestra empatía interpersonal pero no propone soluciones técnicas para evitar la recurrencia.
+- 2: Propone post-mortem o hablar constructivamente e incorporar alguna validación manual o alerta básica.
+- 3: Mentalidad de ingeniería de resiliencia: promueve cultura libre de culpas (seguridad psicológica), post-mortem colaborativo e implementación de salvaguardas sistémicas automatizadas (gates en CI/CD, canary releases, validaciones de configuración y dashboards/alertas proactivas en Grafana).`
+    } else if (subcategory === 'C1') {
+        rubricHint = `
+Criterios de Evaluación C1 (Cultura Blameless & Post-mortems / Curiosidad Técnica y Aprendizaje):
+- Evalúa la comprensión de fallas sistémicas vs errores humanos, seguridad psicológica y proactividad en el autoaprendizaje técnico.
+- 0: Enfoque punitivo hacia errores, desinterés por aprender más allá de lo rutinario o respuestas evasivas.
+- 1: Reconoce que no se debe culpar o menciona estudio superficial pero sin metodología, fuentes sólidas ni ejemplos reales.
+- 2: Propone post-mortems constructivos orientados a procesos o demuestra aprendizaje técnico autodirigido con aplicación práctica.
+- 3: Cultura blameless ejemplar: post-mortems estructurados enfocados en resiliencia sistémica, seguridad psicológica activa en el equipo y hábito continuo de estudio técnico auto-motivado compartido con sus compañeros.`
+    } else if (subcategory === 'C2') {
+        rubricHint = `
+Criterios de Evaluación C2 (Mentalidad de SLOs & Error Budgets / Adaptabilidad al Cambio):
+- Evalúa la comprensión de trade-offs entre velocidad de entrega y confiabilidad del servicio mediante Error Budgets, y resiliencia ante nuevas tecnologías.
+- 0: Pretende 100% de disponibilidad sin análisis de riesgo, rechazo al cambio de herramientas o desinterés en métricas de servicio.
+- 1: Conoce los conceptos de forma memorística pero no sabe cómo actuar cuando se agota el presupuesto de error o depende totalmente de otros ante cambios.
+- 2: Entiende el balance entre innovación y estabilidad; propone acuerdos constructivos con producto ante SLOs en riesgo y adopta herramientas con buena disposición.
+- 3: Mentalidad SRE madura: gobernanza rigurosa de Error Budgets basada en datos y SLIs centrados en el usuario final; liderazgo proactivo, analítico y resiliente ante transformaciones tecnológicas.`
+    } else if (subcategory === 'C3') {
+        rubricHint = `
+Criterios de Evaluación C3 (Proyección Técnica & Sentido de Urgencia hacia Observabilidad / SRE):
+- Evalúa la claridad en la transición desde soporte reactivo tradicional hacia la observabilidad proactiva y la ingeniería de confiabilidad.
+- 0: Conformismo con tareas mecánicas, sin metas de crecimiento ni sentido de servicio al cliente/negocio.
+- 1: Interés difuso o meramente aspiracional sin acciones de formación ni entendimiento del rol de confiabilidad.
+- 2: Metas de desarrollo claras, entendimiento de la diferencia entre monitoreo reactivo y observabilidad proactiva.
+- 3: Motivación intrínseca excepcional, plan de carrera técnico sólido y visión profunda del valor de la confiabilidad y la automatización.`
+    }
+
     // 1. Evaluate score 0-3 using Gemini
     const prompt = `Actúa como un evaluador senior de SRE. Evalúa la siguiente respuesta del candidato a una pregunta de la subcategoría ${subcategory}.
+${rubricHint}
 
 PREGUNTA:
 "${questionContext}"
@@ -1061,10 +1211,10 @@ RESPUESTA DEL CANDIDATO:
 "${candidateResponse}"
 
 Escala de Calificación (0 a 3):
-0 = No responde, respuesta irrelevante o evasiva.
-1 = Respuesta vaga, demuestra conocimiento básico pero carece de estructura o criterio práctico.
-2 = Respuesta clara, muestra buen criterio técnico/conductual y enfoque profesional.
-3 = Respuesta excelente, sólida argumentación, orientada a mejores prácticas de SRE/Observabilidad.
+0 = No responde, respuesta irrelevante, punitiva o evasiva.
+1 = Respuesta vaga o incompleta; atiende solo una parte del problema (solo técnico o solo humano).
+2 = Respuesta clara y funcional, muestra buen criterio técnico y conductual.
+3 = Respuesta excelente, sólida argumentación senior, orientada a mejores prácticas de SRE/Observabilidad.
 
 Responde ÚNICAMENTE con un JSON:
 {

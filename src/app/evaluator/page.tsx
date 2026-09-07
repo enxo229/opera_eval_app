@@ -117,7 +117,7 @@ export default async function EvaluatorDashboard() {
     // Track KPI counters
     if (evalStatus === 'completed' || processStatus === 'completed') {
       completedCount++
-      if (classification && classification.toLowerCase().includes('listo')) {
+      if (classification && (classification.toLowerCase().includes('listo') || classification.toLowerCase().includes('experto'))) {
         readyCount++
       }
     } else {

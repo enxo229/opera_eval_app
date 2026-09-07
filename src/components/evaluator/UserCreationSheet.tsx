@@ -122,7 +122,7 @@ export function UserCreationSheet({
     setLoading(true)
     try {
       const mappedTrack: 'general' | 'otel_expert' =
-        trackId === 'sre_expert_otel' ? 'otel_expert' : 'general'
+        trackId === 'otel_expert' || trackId === 'sre_expert_otel' ? 'otel_expert' : 'general'
 
       const result = await createUser(
         email.trim().toLowerCase(),

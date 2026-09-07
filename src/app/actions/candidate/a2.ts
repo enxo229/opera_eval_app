@@ -76,9 +76,16 @@ export async function saveA2Responses(
         }
     }
 
+    const { data: evalDoc } = await supabase
+        .from('evaluations')
+        .select('profile_track, selection_processes(profile_track)')
+        .eq('id', evaluationId)
+        .maybeSingle()
+    const profileTrack = (evalDoc?.selection_processes as any)?.profile_track || evalDoc?.profile_track || 'general'
+
     let aiResults: A2EvaluationResult[]
     try {
-        aiResults = await evaluateAnswersA2(questionsAndAnswers)
+        aiResults = await evaluateAnswersA2(questionsAndAnswers, profileTrack)
     } catch (e: any) {
         console.error('AI evaluation error:', e)
         return { success: true, evaluations: undefined, error: 'Las respuestas se guardaron pero la evaluación IA falló.' }

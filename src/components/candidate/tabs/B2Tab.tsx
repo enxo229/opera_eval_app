@@ -48,11 +48,11 @@ export function B2Tab({
             <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-2">
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                     <Users className="h-5 w-5 text-indigo-500" />
-                    {isOtel ? 'B. Competencias Situacionales SRE' : 'B2-B6. Competencias Blandas & Gestión de Situaciones'}
+                    {isOtel ? 'B2. Competencias Situacionales SRE' : 'B2-B6. Competencias Blandas & Gestión de Situaciones'}
                 </h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
                     {isOtel
-                        ? 'Responde brevemente a los escenarios de adaptabilidad bajo presión y colaboración blameless en entornos SRE.'
+                        ? 'Responde a los escenarios de gestión de incidentes bajo presión y colaboración blameless en entornos de observabilidad.'
                         : 'Responde brevemente a los siguientes escenarios de resolución de problemas, negociación y trabajo en equipo.'
                     }
                 </p>
@@ -65,22 +65,33 @@ export function B2Tab({
                     Guía de la Sección — ¿Cómo responder este apartado?
                 </div>
                 <div className="text-xs text-indigo-950 dark:text-indigo-200 space-y-1.5 leading-relaxed">
-                    <p>• <strong>Responde de forma clara y directa:</strong> Se sugiere una extensión de <strong>~40 a 60 palabras</strong> por escenario.</p>
-                    <p>• <strong>Basado en tu experiencia real:</strong> Describe cómo actuarías en cada situación respetando las buenas prácticas de ingeniería y SRE.</p>
-                    <p>• <strong>Seguridad:</strong> El pegado de texto externo está inhabilitado y auditado.</p>
+                    {isOtel ? (
+                        <>
+                            <p>• <strong>Equilibrio Técnico y Situacional:</strong> Cada escenario evalúa cómo ejecutas buenas prácticas técnicas de SRE y cómo gestionas la comunicación, liderazgo y cultura de equipo.</p>
+                            <p>• <strong>B2.1 — Preservación vs. Mitigación:</strong> Explica cómo balancear la restauración del servicio con la recolección de evidencia diagnóstica (ej. buffer flush, preservación de trazas en Collector/Alloy o volcado rápido) sin ceder a acciones precipitadas.</p>
+                            <p>• <strong>B2.2 — Colaboración Blameless:</strong> Describe cómo abordar fallas recurrentes desde la seguridad psicológica y el aprendizaje continuo, proponiendo salvaguardas sistémicas (automatización en CI/CD, guardrails y alertas en Grafana) en vez de señalamientos personales.</p>
+                            <p>• <strong>Extensión sugerida:</strong> Entre <strong>~40 a 60 palabras</strong> por escenario. El pegado de texto externo está inhabilitado y auditado.</p>
+                        </>
+                    ) : (
+                        <>
+                            <p>• <strong>Responde de forma clara y directa:</strong> Se sugiere una extensión de <strong>~40 a 60 palabras</strong> por escenario.</p>
+                            <p>• <strong>Basado en tu experiencia real:</strong> Describe cómo actuarías en cada situación respetando las buenas prácticas de ingeniería.</p>
+                            <p>• <strong>Seguridad:</strong> El pegado de texto externo está inhabilitado y auditado.</p>
+                        </>
+                    )}
                 </div>
             </div>
 
             {!b2QuestionsGenerated ? (
                 <div className="text-center py-8 bg-card border border-border rounded-xl">
                     <p className="text-muted-foreground mb-4 text-sm">
-                        {isOtel ? 'Genera los escenarios situacionales SRE.' : 'Genera los escenarios situacionales para la sección B2-B6.'}
+                        {isOtel ? 'Genera los escenarios situacionales SRE para la sección B2.' : 'Genera los escenarios situacionales para la sección B2-B6.'}
                     </p>
                     <Button onClick={handleGenerateB2Questions} disabled={b2QuestionsLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
                         {b2QuestionsLoading ? (
                             <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generando escenarios...</>
                         ) : (
-                            <><Sparkles className="h-4 w-4 mr-2" /> {isOtel ? 'Generar Escenarios SRE' : 'Generar Escenarios B2-B6'}</>
+                            <><Sparkles className="h-4 w-4 mr-2" /> {isOtel ? 'Generar Escenarios Situacionales B2' : 'Generar Escenarios B2-B6'}</>
                         )}
                     </Button>
                 </div>
@@ -155,9 +166,9 @@ export function B2Tab({
                             {b2Submitting ? (
                                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Guardando y evaluando con IA...</>
                             ) : b2Submitted ? (
-                                <><CheckCircle2 className="h-4 w-4 mr-2" /> {isOtel ? 'Sección B completada' : 'Sección B2-B6 Completada'}</>
+                                <><CheckCircle2 className="h-4 w-4 mr-2" /> {isOtel ? 'Sección B2 Completada' : 'Sección B2-B6 Completada'}</>
                             ) : (
-                                isOtel ? 'Guardar y Confirmar Sección B' : 'Guardar y Confirmar B2-B6'
+                                isOtel ? 'Guardar y Confirmar Sección B2' : 'Guardar y Confirmar B2-B6'
                             )}
                         </Button>
                     </div>

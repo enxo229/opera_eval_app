@@ -10,12 +10,16 @@ import {
     Sparkles, 
     Target, 
     ShieldAlert, 
+    ShieldCheck,
+    AlertTriangle,
     MessageSquareQuote,
     ClipboardCheck,
     CheckCircle2,
     Calendar,
     Mail,
-    FileText
+    FileText,
+    Eye,
+    Info
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { CopyButton } from '@/components/evaluator/CopyButton'
@@ -160,22 +164,22 @@ const DIM_B_SECTIONS_OTEL = [
         maxScore: 16,
         normMax: 18,
         items: [
-            { id: 'B1.1', label: 'Estructura del registro', max: 4 },
-            { id: 'B1.2', label: 'Precisión técnica', max: 4 },
-            { id: 'B1.3', label: 'Acciones documentadas', max: 4 },
-            { id: 'B1.4', label: 'Impacto descrito', max: 4 },
+            { id: 'B1.1', label: 'Estructura formal del ticket', max: 4 },
+            { id: 'B1.2', label: 'Precisión técnica y métricas', max: 4 },
+            { id: 'B1.3', label: 'Plan de acción y mitigación', max: 4 },
+            { id: 'B1.4', label: 'Impacto al negocio y escalamiento', max: 4 },
         ]
     },
     {
         id: 'B2',
-        title: 'B2. Adaptabilidad, Priorización & Presión',
+        title: 'B2. Competencias Situacionales SRE',
         maxScore: 16,
         normMax: 12,
         items: [
-            { id: 'B2.1', label: 'Claridad del lenguaje hacia negocio', max: 4 },
-            { id: 'B2.2', label: 'Estructura narrativa y cronología', max: 4 },
-            { id: 'B2.3', label: 'Manejo de incertidumbre y honestidad técnica', max: 4 },
-            { id: 'B2.4', label: 'Transmisión y contexto del impacto', max: 4 },
+            { id: 'B2.1', label: 'Preservación de Evidencia vs. Mitigación (Escenario 1)', max: 4 },
+            { id: 'B2.2', label: 'Liderazgo Técnico y Gestión de Presión (Escenario 1)', max: 4 },
+            { id: 'B2.3', label: 'Cultura Blameless & Seguridad Psicológica (Escenario 2)', max: 4 },
+            { id: 'B2.4', label: 'Salvaguardas Sistémicas & Automatización (Escenario 2)', max: 4 },
         ]
     }
 ]
@@ -245,6 +249,12 @@ export default async function EvaluationReportPage({ params }: { params: Promise
     const profile = evaluation.profiles
     const scores = (evaluation.dimension_scores as any[]) || []
     const aiFeedback = evaluation.final_feedback_ai as any
+    const dynamicTests = (evaluation.dynamic_tests as any[]) || []
+
+    const b1TicketTest = dynamicTests.find(t => t.test_type === 'B1_TICKET' && (!t.subcategory || t.subcategory === 'TICKET' || (!t.subcategory.startsWith('EVAL_') && t.subcategory !== 'CASE')))
+    const b1CaseTest = dynamicTests.find(t => t.test_type === 'B1_CASE' || (t.test_type === 'B1_TICKET' && t.subcategory === 'CASE'))
+    const b2Tests = dynamicTests.filter(t => t.test_type === 'QUESTIONS_B2')
+    const cTests = dynamicTests.filter(t => t.test_type === 'QUESTIONS_C')
 
     // Helper map for fast category lookups
     const scoreMap: Record<string, { raw_score: number; comments: string | null }> = {}
@@ -264,6 +274,27 @@ export default async function EvaluationReportPage({ params }: { params: Promise
     const activeDimASections = isOtel ? DIM_A_SECTIONS_OTEL : DIM_A_SECTIONS
     const activeDimBSections = isOtel ? DIM_B_SECTIONS_OTEL : DIM_B_SECTIONS
     const activeDimCItems = isOtel ? DIM_C_ITEMS_OTEL : DIM_C_ITEMS
+
+    // Métricas de integridad y telemetría de respuestas
+    const pasteAttempts = evaluation.bypass_paste_count ?? dynamicTests.filter(t => t.test_type === 'SECURITY_AUDIT').length
+    const writtenAiTests = dynamicTests.filter(t => typeof t.ai_likelihood === 'number' && t.candidate_response)
+    const globalAvgAiLikelihood = writtenAiTests.length > 0
+        ? Math.round(writtenAiTests.reduce((sum, t) => sum + (t.ai_likelihood || 0), 0) / writtenAiTests.length)
+        : null
+    const b1Likelihood = b1TicketTest?.ai_likelihood ?? null
+    const b2LikelihoodTests = b2Tests.filter(t => typeof t.ai_likelihood === 'number')
+    const b2AvgLikelihood = b2LikelihoodTests.length > 0
+        ? Math.round(b2LikelihoodTests.reduce((sum, t) => sum + (t.ai_likelihood || 0), 0) / b2LikelihoodTests.length)
+        : null
+    const cLikelihoodTests = cTests.filter(t => typeof t.ai_likelihood === 'number')
+    const cAvgLikelihood = cLikelihoodTests.length > 0
+        ? Math.round(cLikelihoodTests.reduce((sum, t) => sum + (t.ai_likelihood || 0), 0) / cLikelihoodTests.length)
+        : null
+
+    // Clasificación ejecutiva formateada según track
+    const classificationLabel = (isOtel && (!evaluation.classification || evaluation.classification === 'Continúa en su rol actual'))
+        ? 'No Cumple Perfil Experto'
+        : evaluation.classification
 
     return (
         <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -305,12 +336,12 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-4xl sm:text-5xl font-black font-mono tracking-tighter" style={{ color: evaluation.final_score >= 80 ? '#10B981' : evaluation.final_score >= 60 ? '#F59E0B' : '#EF4444' }}>
+                            <div className="text-4xl sm:text-5xl font-black font-mono tracking-tighter" style={{ color: evaluation.final_score >= 80 ? '#10B981' : evaluation.final_score >= 60 ? '#F59E0B' : evaluation.final_score >= 40 ? '#F97316' : '#EF4444' }}>
                                 {evaluation.final_score}
                                 <span className="text-xl text-muted-foreground ml-1">/100</span>
                             </div>
-                            <Badge className="mt-2 px-4 py-1.5 text-sm font-bold uppercase tracking-wider shadow-sm" style={{ backgroundColor: evaluation.final_score >= 80 ? '#10B981' : evaluation.final_score >= 60 ? '#F59E0B' : '#EF4444' }}>
-                                {evaluation.classification}
+                            <Badge className="mt-2 px-4 py-1.5 text-sm font-bold uppercase tracking-wider shadow-sm text-white" style={{ backgroundColor: evaluation.final_score >= 80 ? '#10B981' : evaluation.final_score >= 60 ? '#F59E0B' : evaluation.final_score >= 40 ? '#F97316' : '#EF4444' }}>
+                                {classificationLabel}
                             </Badge>
                         </div>
                     </div>
@@ -364,14 +395,35 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                     <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
                                         <Target className="h-4 w-4" /> Fortalezas Detectadas
                                     </h3>
-                                    <ul className="space-y-3">
-                                        {aiFeedback?.fortalezas?.map((f: string, i: number) => (
-                                             <li key={i} className="flex gap-3 text-sm leading-relaxed p-3 rounded-lg bg-emerald-50 border border-emerald-100 shadow-sm print:bg-emerald-50/50">
-                                                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                                                <span className="text-emerald-900 font-medium">{f}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    {(() => {
+                                        const rawFortalezas = aiFeedback?.fortalezas || []
+                                        const isNoStrengths = rawFortalezas.length === 0 || 
+                                            rawFortalezas.every((f: string) => 
+                                                f.toLowerCase().includes('no se evidencia') || 
+                                                f.toLowerCase().includes('sin fortaleza') || 
+                                                f.toLowerCase().includes('falla de formato')
+                                            )
+
+                                        if (isNoStrengths) {
+                                            return (
+                                                <div className="p-4 rounded-lg bg-muted/40 border border-border text-muted-foreground text-xs sm:text-sm flex gap-3 items-center">
+                                                    <Info className="h-5 w-5 text-muted-foreground shrink-0" />
+                                                    <span className="font-medium italic">No se evidenciaron fortalezas técnicas demostradas en este intento de evaluación.</span>
+                                                </div>
+                                            )
+                                        }
+
+                                        return (
+                                            <ul className="space-y-3">
+                                                {rawFortalezas.map((f: string, i: number) => (
+                                                    <li key={i} className="flex gap-3 text-sm leading-relaxed p-3 rounded-lg bg-emerald-50 border border-emerald-100 shadow-sm print:bg-emerald-50/50">
+                                                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                                                        <span className="text-emerald-900 font-medium">{f}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )
+                                    })()}
                                 </div>
 
                                 <div className="space-y-4">
@@ -409,6 +461,126 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                             </div>
                         </div>
                     </div>
+
+                    {/* INTEGRITY AUDIT & AI LIKELIHOOD METRICS (Track Experto OTel) */}
+                    {isOtel && (
+                        <div className="space-y-6 pt-6 print-break-inside-avoid">
+                            <div className="flex items-center justify-between pb-2 border-b-2 border-slate-400/20">
+                                <div className="flex items-center gap-3">
+                                    <ShieldCheck className="h-6 w-6 text-indigo-600" />
+                                    <h2 className="text-xl font-black tracking-tight text-foreground uppercase italic underline decoration-indigo-500 decoration-4 underline-offset-8">
+                                        Auditoría de Integridad & Análisis de Generación por IA
+                                    </h2>
+                                </div>
+                                <Badge variant="outline" className="text-xs font-mono bg-slate-50 text-slate-700 border-slate-300">
+                                    Auditoría Forense Anti-Fraude
+                                </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                {/* 1. Control de Pegado (Clipboard Protection) */}
+                                <div className={`p-4 rounded-xl border ${pasteAttempts > 0 ? 'bg-amber-50/50 border-amber-200' : 'bg-emerald-50/50 border-emerald-200'} shadow-sm space-y-2`}>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Intentos de Pegado Bloqueados</span>
+                                        <Badge className={pasteAttempts > 0 ? 'bg-amber-600 text-white font-mono' : 'bg-emerald-600 text-white font-mono'}>
+                                            {pasteAttempts} detectados
+                                        </Badge>
+                                    </div>
+                                    <div className="text-2xl font-black font-mono">
+                                        {pasteAttempts === 0 ? (
+                                            <span className="text-emerald-700 text-lg flex items-center gap-1.5 font-bold">
+                                                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> Integridad Óptima
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-800 text-lg flex items-center gap-1.5 font-bold">
+                                                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" /> Copiado Interceptado
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-snug">
+                                        {pasteAttempts === 0
+                                            ? 'El candidato redactó directamente en el editor sin intentar pegar contenido externo.'
+                                            : `Se registraron y bloquearon ${pasteAttempts} intentos de pegar texto desde el portapapeles externo.`}
+                                    </p>
+                                </div>
+
+                                {/* 2. Índice Promedio de Detección de IA */}
+                                <div className="p-4 rounded-xl border border-border bg-muted/20 shadow-sm space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Probabilidad Global de IA</span>
+                                        {globalAvgAiLikelihood !== null && (
+                                            <Badge className={globalAvgAiLikelihood > 60 ? 'bg-rose-600 text-white font-mono' : globalAvgAiLikelihood > 30 ? 'bg-amber-500 text-white font-mono' : 'bg-emerald-600 text-white font-mono'}>
+                                                {globalAvgAiLikelihood}% promedio
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="text-2xl font-black font-mono text-foreground">
+                                        {globalAvgAiLikelihood !== null ? `${globalAvgAiLikelihood}%` : 'N/A'}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-snug">
+                                        {globalAvgAiLikelihood === null
+                                            ? 'Sin evaluaciones de probabilidad registradas.'
+                                            : globalAvgAiLikelihood > 60
+                                            ? 'Alta probabilidad de asistencia o generación sintética por LLM en las respuestas redactadas.'
+                                            : globalAvgAiLikelihood > 30
+                                            ? 'Probabilidad moderada. Estilo estructurado con patrones mixtos de redacción.'
+                                            : 'Baja probabilidad. Respuestas consistentes con redacción humana y estilo auténtico.'}
+                                    </p>
+                                </div>
+
+                                {/* 3. Dictamen de Autenticidad */}
+                                <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 shadow-sm space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700">Dictamen de Autenticidad</span>
+                                        <Badge variant="outline" className="text-[10px] border-indigo-200 text-indigo-700 bg-white">
+                                            Telemetría OTP
+                                        </Badge>
+                                    </div>
+                                    <div className="text-base font-bold text-indigo-950">
+                                        {pasteAttempts > 0 && (globalAvgAiLikelihood ?? 0) > 50
+                                            ? 'Riesgo Alto de Asistencia Externa'
+                                            : pasteAttempts > 0
+                                            ? 'Pegado Externo Interceptado'
+                                            : (globalAvgAiLikelihood ?? 0) > 60
+                                            ? 'Posible Generación por IA'
+                                            : 'Prueba Confiable y Auténtica'}
+                                    </div>
+                                    <p className="text-xs text-indigo-900/80 leading-snug">
+                                        {pasteAttempts === 0 && (globalAvgAiLikelihood ?? 0) <= 60
+                                            ? 'No se observaron patrones anómalos de automatización ni bypass de seguridad.'
+                                            : 'Se recomienda al evaluador revisar la formulación de las respuestas en la entrevista técnica.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Desglose por módulos evaluados con IA */}
+                            <div className="p-4 rounded-xl border border-border bg-background/50 text-xs space-y-3">
+                                <span className="font-bold text-[11px] uppercase tracking-wide text-foreground/80 flex items-center gap-2">
+                                    <FileText className="w-3.5 h-3.5 text-primary" /> Desglose de Probabilidad de IA por Módulo Escrito:
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="p-2.5 rounded-lg bg-card border border-border/60 flex items-center justify-between">
+                                        <span className="text-muted-foreground font-medium">B1: Ticket SRE (ITSM)</span>
+                                        <span className="font-mono font-bold text-foreground">
+                                            {b1Likelihood !== null ? `${b1Likelihood}%` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="p-2.5 rounded-lg bg-card border border-border/60 flex items-center justify-between">
+                                        <span className="text-muted-foreground font-medium">B2: Situacionales SRE</span>
+                                        <span className="font-mono font-bold text-foreground">
+                                            {b2AvgLikelihood !== null ? `${b2AvgLikelihood}%` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="p-2.5 rounded-lg bg-card border border-border/60 flex items-center justify-between">
+                                        <span className="text-muted-foreground font-medium">Dimensión C: Cultura SRE</span>
+                                        <span className="font-mono font-bold text-foreground">
+                                            {cAvgLikelihood !== null ? `${cAvgLikelihood}%` : 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* SCORES SUMMARY OVERVIEW */}
                     <div className="space-y-8 pt-8">
@@ -520,6 +692,61 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                                     )}
                                                 </div>
 
+                                                {/* Candidate Documented Ticket Evidence (B1) */}
+                                                {sec.id === 'B1' && b1TicketTest?.candidate_response && (
+                                                    <div className="p-5 bg-muted/20 border-b border-border space-y-4 print:bg-white">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                                <Eye className="w-4 h-4 text-primary" /> Evidencia del Candidato: Ticket de Incidente Simulado
+                                                            </span>
+                                                            {b1TicketTest.ai_likelihood !== undefined && b1TicketTest.ai_likelihood !== null && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                                                    🤖 Probabilidad IA: {b1TicketTest.ai_likelihood}%
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {b1CaseTest && (
+                                                            <div className="bg-primary/5 border border-primary/20 p-3.5 rounded-lg">
+                                                                <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1">Caso presentado al candidato:</p>
+                                                                <p className="text-xs text-foreground/80 leading-relaxed italic whitespace-pre-wrap">{b1CaseTest.prompt_context || b1CaseTest.candidate_response}</p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="bg-card border border-border p-4 rounded-lg font-mono text-xs text-foreground whitespace-pre-wrap leading-relaxed shadow-inner print:bg-white print:border-gray-200">
+                                                            <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/50 text-muted-foreground font-sans font-bold text-xs">
+                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Ticket Documentado por el Candidato:
+                                                            </div>
+                                                            {b1TicketTest.candidate_response}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Candidate Situational Responses (B2 - OTel) */}
+                                                {sec.id === 'B2' && b2Tests.length > 0 && (
+                                                    <div className="p-5 bg-muted/20 border-b border-border space-y-4 print:bg-white">
+                                                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                            <Eye className="w-4 h-4 text-primary" /> Respuestas Situacionales Escritas por el Candidato ({b2Tests.length} Escenarios)
+                                                        </span>
+                                                        <div className="space-y-3">
+                                                            {b2Tests.map((t: any, idx: number) => (
+                                                                <div key={idx} className="bg-card border border-border p-3.5 rounded-lg text-xs space-y-2 print:bg-white">
+                                                                    <div className="font-bold text-foreground flex items-center justify-between">
+                                                                        <span>Escenario {t.subcategory || idx + 1}: {t.ai_generated_content || ''}</span>
+                                                                        {t.ai_likelihood !== undefined && t.ai_likelihood !== null && (
+                                                                            <span className="text-[10px] font-semibold text-muted-foreground">Probabilidad IA: {t.ai_likelihood}%</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-muted-foreground italic text-[11px]">{t.prompt_context}</p>
+                                                                    <div className="p-2.5 bg-muted/30 rounded border border-border/50 font-mono text-foreground whitespace-pre-wrap">
+                                                                        {t.candidate_response || 'Sin respuesta registrada.'}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {/* Subcriteria Table */}
                                                 <table className="w-full text-xs text-left">
                                                     <thead className="bg-muted/40 border-b border-border text-[9px] font-black uppercase text-muted-foreground">
@@ -584,18 +811,36 @@ export default async function EvaluationReportPage({ params }: { params: Promise
                                         <tbody className="divide-y divide-border/40">
                                             {activeDimCItems.map((item) => {
                                                 const s = scoreMap[item.id]
+                                                const cTest = cTests.find(t => t.subcategory === item.id)
                                                 return (
-                                                    <tr key={item.id} className="hover:bg-muted/10 transition-colors">
-                                                        <td className="px-5 py-3 font-medium text-foreground">
-                                                            {item.label}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center font-mono font-bold">
-                                                            {s ? s.raw_score : '-'} <span className="text-[10px] text-muted-foreground font-normal">/ {item.max}</span>
-                                                        </td>
-                                                        <td className="px-5 py-3 text-muted-foreground leading-relaxed">
-                                                            {s?.comments || '-'}
-                                                        </td>
-                                                    </tr>
+                                                    <Fragment key={item.id}>
+                                                        <tr className="hover:bg-muted/10 transition-colors">
+                                                            <td className="px-5 py-3 font-medium text-foreground">
+                                                                {item.label}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center font-mono font-bold">
+                                                                {s ? s.raw_score : '-'} <span className="text-[10px] text-muted-foreground font-normal">/ {item.max}</span>
+                                                            </td>
+                                                            <td className="px-5 py-3 text-muted-foreground leading-relaxed">
+                                                                {s?.comments || '-'}
+                                                            </td>
+                                                        </tr>
+                                                        {cTest?.candidate_response && (
+                                                            <tr className="bg-amber-50/20 border-b border-border/40">
+                                                                <td colSpan={3} className="px-5 py-2.5 text-xs">
+                                                                    <div className="flex flex-col gap-1 p-2.5 rounded bg-background/80 border border-amber-200/50">
+                                                                        <div className="flex items-center justify-between text-[11px] font-bold text-amber-800">
+                                                                            <span>Respuesta Escrita por el Candidato ({item.id}):</span>
+                                                                            {cTest.ai_likelihood !== undefined && cTest.ai_likelihood !== null && (
+                                                                                <span className="text-[10px] text-muted-foreground font-semibold">Probabilidad IA: {cTest.ai_likelihood}%</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="font-mono text-xs text-foreground/90 whitespace-pre-wrap">{cTest.candidate_response}</p>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
                                                 )
                                             })}
                                         </tbody>

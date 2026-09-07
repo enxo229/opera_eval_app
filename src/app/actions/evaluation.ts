@@ -1,6 +1,28 @@
 'use server'
 
 /**
+ * Normaliza la dimensión A1.
+ * Para perfil general: (5 preguntas x 3 pts = max 15 raw).
+ * Para otel_expert: (4 preguntas x 3 pts = max 12 raw -> ponderado a 15 pts).
+ */
+export async function normalizeA1(rawA1Score: number, profileTrack?: string): Promise<number> {
+    const maxRaw = profileTrack === 'otel_expert' ? 12 : 15
+    const clampedRaw = Math.min(Math.max(0, rawA1Score), maxRaw)
+    return parseFloat(((clampedRaw / maxRaw) * 15).toFixed(2))
+}
+
+/**
+ * Normaliza la dimensión A2.
+ * Para perfil general: (5 preguntas x 3 pts = max 15 raw).
+ * Para otel_expert: (3 preguntas x 3 pts = max 9 raw -> ponderado a 15 pts).
+ */
+export async function normalizeA2(rawA2Score: number, profileTrack?: string): Promise<number> {
+    const maxRaw = profileTrack === 'otel_expert' ? 9 : 15
+    const clampedRaw = Math.min(Math.max(0, rawA2Score), maxRaw)
+    return parseFloat(((clampedRaw / maxRaw) * 15).toFixed(2))
+}
+
+/**
  * Normaliza la dimensión A3.
  * Para perfil general: (suma_puntos_a3 / 9) * 10 (3 preguntas x 3 pts = max 9).
  * Para otel_expert: (suma_puntos_a3 / 6) * 10 (2 preguntas x 3 pts = max 6).
@@ -27,9 +49,11 @@ export async function calculateDimensionA(
     scores: { a1: number; a2: number; a3: number; a4: number },
     profileTrack?: string
 ): Promise<number> {
+    const normA1 = await normalizeA1(scores.a1, profileTrack)
+    const normA2 = await normalizeA2(scores.a2, profileTrack)
     const normA3 = await normalizeA3(scores.a3, profileTrack)
     const normA4 = await normalizeA4(scores.a4)
-    const total = scores.a1 + scores.a2 + normA3 + normA4
+    const total = normA1 + normA2 + normA3 + normA4
     return parseFloat(Math.min(Math.max(0, total), 50).toFixed(2))
 }
 
@@ -125,10 +149,25 @@ export type ClassificationResult = {
 export async function calculateFinalScoreAndClassification(
     subA: number,
     subB: number,
-    subC: number
+    subC: number,
+    profileTrack?: string
 ): Promise<ClassificationResult> {
     const finalScore = parseFloat((subA + subB + subC).toFixed(2))
 
+    // Track especializado: SRE Experto en OpenTelemetry & Grafana Cloud
+    if (profileTrack === 'otel_expert') {
+        if (finalScore >= 80) {
+            return { score: finalScore, classification: 'Nivel Experto / Staff SRE', color: '#10B981' } // Verde
+        } else if (finalScore >= 60) {
+            return { score: finalScore, classification: 'Nivel Avanzado / SRE Autónomo', color: '#F59E0B' } // Amarillo
+        } else if (finalScore >= 40) {
+            return { score: finalScore, classification: 'Nivel Intermedio / SRE en Desarrollo', color: '#F97316' } // Naranja
+        } else {
+            return { score: finalScore, classification: 'No Cumple Perfil Experto', color: '#EF4444' } // Rojo
+        }
+    }
+
+    // Track General (Movilidad interna / Analista Junior)
     if (finalScore >= 80) {
         return { score: finalScore, classification: 'Listo para pivotar', color: '#10B981' } // Verde
     } else if (finalScore >= 60) {

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { GitBranch, Sparkles, Terminal, Loader2, AlertTriangle, FileText } from 'lucide-react'
 import { A3Question } from '@/app/actions/ai'
 import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
+import { useCandidateContext } from '@/context/CandidateContext'
 
 interface A3TabProps {
     a3QuestionsGenerated: boolean
@@ -33,8 +34,14 @@ export function A3Tab({
     handleSubmitA3,
     profileTrack
 }: A3TabProps) {
+    const ctx = useCandidateContext()
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        ctx.incrementBypassCount()
+    }
     const allA3Answered = a3Questions.length > 0 && a3Questions.every(q => (a3Answers[q.subcategory] || '').trim().length > 0)
     const isOtelExpert = profileTrack === 'otel_expert'
+
 
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
@@ -156,7 +163,7 @@ export function A3Tab({
                                 <textarea
                                     value={a3Answers[q.subcategory] || ''}
                                     onChange={(e) => setA3Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                    onPaste={(e) => e.preventDefault()}
+                                    onPaste={handleBypassAttempt}
                                     onCopy={(e) => e.preventDefault()}
                                     onContextMenu={(e) => e.preventDefault()}
                                     disabled={a3Submitted}

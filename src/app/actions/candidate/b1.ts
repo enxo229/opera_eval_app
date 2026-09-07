@@ -218,3 +218,50 @@ export async function triggerB1Evaluation(evaluationId: string): Promise<{ succe
 
     return { success: true }
 }
+
+/**
+ * Obtiene toda la evidencia y evaluaciones de B1 en caliente para el evaluador.
+ */
+export async function getB1Evidence(evaluationId: string) {
+    const supabase = await createClient()
+
+    const { data: tests } = await supabase
+        .from('dynamic_tests')
+        .select('*')
+        .eq('evaluation_id', evaluationId)
+        .in('test_type', ['B1_TICKET', 'B1_CASE'])
+
+    const ticketTest = tests?.find(t => t.test_type === 'B1_TICKET' && (t.subcategory === 'RESPONSE' || t.subcategory === 'TICKET' || (!t.subcategory?.startsWith('EVAL_') && t.subcategory !== 'CASE')))
+    const caseTest = tests?.find(t => t.test_type === 'B1_CASE' || (t.test_type === 'B1_TICKET' && t.subcategory === 'CASE'))
+    const aiEvals = tests?.filter(t => t.test_type === 'B1_TICKET' && t.subcategory?.startsWith('EVAL_')) || []
+
+    return {
+        ticket: ticketTest || null,
+        case: caseTest || null,
+        aiEvaluations: aiEvals,
+        isFinished: !!ticketTest?.candidate_response
+    }
+}
+
+/**
+ * Resetea exclusivamente la subsección B1 (Ticket y Caso).
+ */
+export async function resetB1Only(evaluationId: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'evaluator') return { success: false, error: 'Solo evaluadores pueden resetear respuestas' }
+
+    const { error } = await supabase
+        .from('dynamic_tests')
+        .delete()
+        .eq('evaluation_id', evaluationId)
+        .in('test_type', ['B1_TICKET', 'B1_CASE'])
+
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+}
+

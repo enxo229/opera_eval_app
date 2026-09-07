@@ -12,6 +12,7 @@ import { getA1Results, getA1TerminalCommands, resetA1Responses } from '@/app/act
 import { getA2Results, resetA2Responses } from '@/app/actions/candidate/a2'
 import { getA3Results, resetA3Responses } from '@/app/actions/candidate/a3'
 import { getA4Results, resetA4Responses } from '@/app/actions/candidate/a4'
+import { calculateDimensionA } from '@/app/actions/evaluation'
 
 // Subcomponents & Constants
 import { A1_SUBS, A2_SUBS, A3_SUBS, A4_SUBS, A1_SUBS_OTEL, A2_SUBS_OTEL, A3_SUBS_OTEL } from './dimension-a/constants'
@@ -251,6 +252,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 candidate_response: r.answer,
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
+                ai_likelihood: r.ai_likelihood,
             })))
         } catch (e) {
             console.error('Error refreshing A3:', e)
@@ -399,10 +401,13 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 if (totalErr) throw totalErr
             }
 
-            // Actualizar total Dimensión A en tabla evaluations
-            const normA3 = Math.min(10, Math.round((a3Total / a3Max) * 10 * 100) / 100)
-            const normA4 = Math.min(10, Math.round((a4Total / 9) * 10 * 100) / 100)
-            const totalA = parseFloat((a1Total + a2Total + normA3 + normA4).toFixed(2))
+            // Actualizar total Dimensión A en tabla evaluations usando la normalización oficial por track
+            const totalA = await calculateDimensionA({
+                a1: a1Total,
+                a2: a2Total,
+                a3: a3Total,
+                a4: a4Total
+            }, profileTrack)
             await supabase.from('evaluations').update({ score_a: totalA }).eq('id', evaluationId)
 
             router.refresh()

@@ -210,7 +210,7 @@ export default function CandidateEvaluationFlow() {
                             {b1Submitted && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="b2" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center px-1">
-                            {ctx.profileTrack === 'otel_expert' ? 'B2-B6' : 'B2-B3'}
+                            {ctx.profileTrack === 'otel_expert' ? 'B2' : 'B2-B3'}
                             {(ctx.profileTrack === 'otel_expert' ? b2.b2Submitted : b2Submitted) && <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-1 shrink-0" />}
                         </TabsTrigger>
                         <TabsTrigger value="c" className="font-semibold text-xs sm:text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all gap-1 flex items-center justify-center">

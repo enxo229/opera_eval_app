@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import NextImage from 'next/image'
-import { RefreshCw, RotateCcw, Loader2, Sparkles, ChevronDown, ChevronUp, Eye } from 'lucide-react'
+import { RefreshCw, RotateCcw, Loader2, Sparkles, ChevronDown, ChevronUp, Eye, BookOpen } from 'lucide-react'
 import { A4_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { A4_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 import { RefObject } from 'react'
 import { TelemetryChatRenderer } from '@/components/candidate/TelemetryChatRenderer'
 
@@ -75,11 +77,18 @@ export function A4SubEvaluation({
                 ) : (
                     <>
                         {/* Chat History Viewer */}
-                        <button onClick={() => setExpandedEvidence(expandedEvidence === 'A4' ? null : 'A4')}
-                            className="w-full flex items-center justify-between text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 hover:bg-emerald-100 transition-colors">
-                            <span className="flex items-center gap-2"><Eye className="h-4 w-4" /> Ver Historial de Chat Completo</span>
-                            {expandedEvidence === 'A4' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </button>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <button onClick={() => setExpandedEvidence(expandedEvidence === 'A4' ? null : 'A4')}
+                                className="flex-1 flex items-center justify-between text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 hover:bg-emerald-100 transition-colors">
+                                <span className="flex items-center gap-2"><Eye className="h-4 w-4" /> Ver Historial de Chat Completo</span>
+                                {expandedEvidence === 'A4' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </button>
+                            {a4Data.length > 0 && a4Data[0]?.ai_likelihood !== null && a4Data[0]?.ai_likelihood !== undefined && (
+                                <div className="shrink-0 flex items-center">
+                                    <AiLikelihoodBadge percentage={a4Data[0].ai_likelihood} />
+                                </div>
+                            )}
+                        </div>
                         {expandedEvidence === 'A4' && (() => {
                             const parsedMessages: { role: 'user' | 'ai'; text: string }[] = []
                             let currentRole: 'user' | 'ai' = 'ai'
@@ -133,6 +142,9 @@ export function A4SubEvaluation({
                         {/* Per-subcategory scoring */}
                         {A4_SUBS.map(sub => {
                             const qData = a4Data.find(q => q.subcategory === sub.id)
+                            const guidance = A4_EVALUATOR_GUIDANCE[sub.id]
+                            const hasAIScore = qData?.ai_score !== null && qData?.ai_score !== undefined
+
                             return (
                                 <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
                                     <div className="flex items-center justify-between">
@@ -141,13 +153,36 @@ export function A4SubEvaluation({
                                             <span className="ml-2 font-semibold text-foreground text-sm">{sub.name}</span>
                                             <p className="text-xs text-muted-foreground">{sub.desc}</p>
                                         </div>
+                                        <div className="flex items-center gap-2">
+                                            {hasAIScore && (
+                                                <span className="text-xs flex items-center gap-1 bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full font-semibold border border-violet-200">
+                                                    <Sparkles className="h-3 w-3 text-violet-600" /> IA sugiere: {qData.ai_score}/3
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {/* Evaluator Guidance Panel */}
+                                    {guidance && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                                            <div className="flex items-center gap-2 text-amber-800">
+                                                <BookOpen className="h-4 w-4 shrink-0" />
+                                                <span className="text-xs font-bold">{guidance.title}</span>
+                                            </div>
+                                            <pre className="text-xs text-amber-700 whitespace-pre-wrap font-sans leading-relaxed">{guidance.content}</pre>
+                                        </div>
+                                    )}
+
+                                    {/* AI Likelihood Badge in subcategory */}
+                                    {qData?.ai_likelihood !== null && qData?.ai_likelihood !== undefined && (
+                                        <AiLikelihoodBadge percentage={qData.ai_likelihood} />
+                                    )}
 
                                     {qData && qData.ai_score !== null && (
                                         <div className="flex items-center gap-3 p-2 rounded bg-violet-50 border border-violet-200">
                                             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
                                             <div className="text-xs">
-                                                <span className="font-bold text-violet-700">Evaluación IA: {qData.ai_score}/3</span>
+                                                <span className="font-bold text-violet-700">IA sugiere: {qData.ai_score}/3</span>
                                                 {qData.ai_justification && (
                                                     <p className="text-violet-600 mt-0.5 italic">"{qData.ai_justification}"</p>
                                                 )}
