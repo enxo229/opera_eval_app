@@ -1,12 +1,14 @@
 'use server'
 
 /**
- * Normaliza la dimensión A3. El puntaje obtenido se calcula como: (suma_puntos_a3 / 9) * 10.
+ * Normaliza la dimensión A3.
+ * Para perfil general: (suma_puntos_a3 / 9) * 10 (3 preguntas x 3 pts = max 9).
+ * Para otel_expert: (suma_puntos_a3 / 6) * 10 (2 preguntas x 3 pts = max 6).
  */
-export async function normalizeA3(rawA3Score: number): Promise<number> {
-    // Aseguramos que no pase del máximo teórico de A3 (9 puntos: 3 criterios x 3 pts)
-    const clampedRaw = Math.min(Math.max(0, rawA3Score), 9)
-    return parseFloat(((clampedRaw / 9) * 10).toFixed(2))
+export async function normalizeA3(rawA3Score: number, profileTrack?: string): Promise<number> {
+    const maxRaw = profileTrack === 'otel_expert' ? 6 : 9
+    const clampedRaw = Math.min(Math.max(0, rawA3Score), maxRaw)
+    return parseFloat(((clampedRaw / maxRaw) * 10).toFixed(2))
 }
 
 /**
@@ -19,10 +21,13 @@ export async function normalizeA4(rawA4Score: number): Promise<number> {
 
 /**
  * Calcula el Subtotal de la Dimensión A
- * A1 (15), A2 (15), A3 (10 normalizado de 9), A4 (10 normalizado de 9). Total = 50.
+ * A1 (15), A2 (15), A3 (10 normalizado), A4 (10 normalizado). Total = 50.
  */
-export async function calculateDimensionA(scores: { a1: number; a2: number; a3: number; a4: number }): Promise<number> {
-    const normA3 = await normalizeA3(scores.a3)
+export async function calculateDimensionA(
+    scores: { a1: number; a2: number; a3: number; a4: number },
+    profileTrack?: string
+): Promise<number> {
+    const normA3 = await normalizeA3(scores.a3, profileTrack)
     const normA4 = await normalizeA4(scores.a4)
     const total = scores.a1 + scores.a2 + normA3 + normA4
     return parseFloat(Math.min(Math.max(0, total), 50).toFixed(2))

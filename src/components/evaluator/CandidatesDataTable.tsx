@@ -406,8 +406,15 @@ export function CandidatesDataTable({
                             {candidate.fullName ? candidate.fullName.charAt(0) : candidate.email.charAt(0)}
                           </div>
                           <div className="space-y-0.5 max-w-[200px] sm:max-w-[260px] truncate">
-                            <div className="font-semibold text-sm text-foreground truncate">
-                              {candidate.fullName || 'Candidato Sin Nombre'}
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-sm text-foreground truncate">
+                                {candidate.fullName || 'Candidato Sin Nombre'}
+                              </div>
+                              {candidate.trackId === 'otel_expert' && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+                                  ⚡ OTel
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
                               <span className="truncate">{candidate.email}</span>

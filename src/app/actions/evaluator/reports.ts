@@ -16,13 +16,14 @@ import { closeSelectionProcess } from '../admin'
 /**
  * Resumen de lo que se evidenció en los módulos reactivos para dar contexto a la IA.
  */
-async function buildAIContext(evaluation: any, scores: any[], tests: any[], profile: any) {
+async function buildAIContext(evaluation: any, scores: any[], tests: any[], profile: any, profileTrack?: string) {
+    const track = profileTrack || (evaluation.selection_processes as any)?.profile_track || evaluation.profile_track || 'general'
     const subA = await calculateDimensionA({ 
         a1: scores.find(s => s.category === 'A1')?.raw_score || 0,
         a2: scores.find(s => s.category === 'A2')?.raw_score || 0,
         a3: scores.find(s => s.category === 'A3')?.raw_score || 0,
         a4: scores.find(s => s.category === 'A4')?.raw_score || 0
-    })
+    }, track)
     
     const subB = await calculateDimensionB({
         b1: scores.find(s => s.category === 'B1')?.raw_score || 0,
@@ -31,14 +32,14 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
         b4: scores.find(s => s.category === 'B4')?.raw_score || 0,
         b5: scores.find(s => s.category === 'B5')?.raw_score || 0,
         b6: scores.find(s => s.category === 'B6')?.raw_score || 0
-    }, evaluation.profile_track)
+    }, track)
 
     const subC = await calculateDimensionC({
         c1: scores.find(s => s.category === 'C1')?.raw_score || 0,
         c2: scores.find(s => s.category === 'C2')?.raw_score || 0,
         c3: scores.find(s => s.category === 'C3')?.raw_score || 0,
         c4: scores.find(s => s.category === 'C4')?.raw_score || 0
-    }, evaluation.profile_track)
+    }, track)
 
     const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
@@ -62,7 +63,7 @@ async function buildAIContext(evaluation: any, scores: any[], tests: any[], prof
     return `
 CANDIDATO: ${profile?.full_name || 'Desconocido'}
 EDUCACIÓN: ${profile?.education_level || 'N/A'}
-PERFIL / TRACK: ${evaluation.profile_track || 'general'}
+PERFIL / TRACK: ${track}
 SCORE GLOBAL: ${finalResult.score}/100 - ${finalResult.classification}
 
 SUBTOTALES:
@@ -91,6 +92,7 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
         .select(`
             *,
             profiles:candidate_id (full_name, education_level),
+            selection_processes (profile_track),
             dimension_scores (*),
             dynamic_tests (*)
         `)
@@ -105,17 +107,18 @@ export async function finalizeEvaluationAndGenerateReport(evaluationId: string) 
     const scores = (evaluation.dimension_scores as any[]) || []
     const tests = (evaluation.dynamic_tests as any[]) || []
     const profile = evaluation.profiles as any
+    const profileTrack = (evaluation.selection_processes as any)?.profile_track || evaluation.profile_track || 'general'
 
     // 2. Ejecutar Cálculos de Totales
     const getRaw = (cat: string) => scores.find(s => s.category === cat)?.raw_score || 0
-    const subA = await calculateDimensionA({ a1: getRaw('A1'), a2: getRaw('A2'), a3: getRaw('A3'), a4: getRaw('A4') })
-    const subB = await calculateDimensionB({ b1: getRaw('B1'), b2: getRaw('B2'), b3: getRaw('B3'), b4: getRaw('B4'), b5: getRaw('B5'), b6: getRaw('B6') }, evaluation.profile_track)
-    const subC = await calculateDimensionC({ c1: getRaw('C1'), c2: getRaw('C2'), c3: getRaw('C3'), c4: getRaw('C4') }, evaluation.profile_track)
+    const subA = await calculateDimensionA({ a1: getRaw('A1'), a2: getRaw('A2'), a3: getRaw('A3'), a4: getRaw('A4') }, profileTrack)
+    const subB = await calculateDimensionB({ b1: getRaw('B1'), b2: getRaw('B2'), b3: getRaw('B3'), b4: getRaw('B4'), b5: getRaw('B5'), b6: getRaw('B6') }, profileTrack)
+    const subC = await calculateDimensionC({ c1: getRaw('C1'), c2: getRaw('C2'), c3: getRaw('C3'), c4: getRaw('C4') }, profileTrack)
     const subIA = await calculateDimensionIA({ ia1: getRaw('IA-1'), ia2: getRaw('IA-2') })
     const finalResult = await calculateFinalScoreAndClassification(subA, subB, subC)
 
     // 3. Generar Feedback IA
-    const contextForIA = await buildAIContext({ ...evaluation, score_a: subA, score_b: subB, score_c: subC, score_ia: subIA }, scores, tests, profile)
+    const contextForIA = await buildAIContext({ ...evaluation, score_a: subA, score_b: subB, score_c: subC, score_ia: subIA }, scores, tests, profile, profileTrack)
     
     log.info('Generando feedback narrativo con IA', { evaluationId });
     const aiFeedback = await generateNarrativeFeedback(contextForIA)
@@ -164,6 +167,7 @@ export async function regenerateNarrativeFeedbackManual(evaluationId: string) {
         .select(`
             *,
             profiles:candidate_id (full_name, education_level),
+            selection_processes (profile_track),
             dimension_scores (*),
             dynamic_tests (*)
         `)
@@ -178,8 +182,9 @@ export async function regenerateNarrativeFeedbackManual(evaluationId: string) {
     const scores = (evaluation.dimension_scores as any[]) || []
     const tests = (evaluation.dynamic_tests as any[]) || []
     const profile = evaluation.profiles as any
+    const profileTrack = (evaluation.selection_processes as any)?.profile_track || evaluation.profile_track || 'general'
 
-    const contextForIA = await buildAIContext(evaluation, scores, tests, profile)
+    const contextForIA = await buildAIContext(evaluation, scores, tests, profile, profileTrack)
 
     // Usamos el import dinámico para evitar dependencias circulares y forzar el modelo lite
     const { generateNarrativeFeedbackLite } = await import('../ai')

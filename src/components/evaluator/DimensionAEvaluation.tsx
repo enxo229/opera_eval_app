@@ -400,7 +400,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             }
 
             // Actualizar total Dimensión A en tabla evaluations
-            const normA3 = Math.min(10, Math.round((a3Total / 9) * 10 * 100) / 100)
+            const normA3 = Math.min(10, Math.round((a3Total / a3Max) * 10 * 100) / 100)
             const normA4 = Math.min(10, Math.round((a4Total / 9) * 10 * 100) / 100)
             const totalA = parseFloat((a1Total + a2Total + normA3 + normA4).toFixed(2))
             await supabase.from('evaluations').update({ score_a: totalA }).eq('id', evaluationId)
