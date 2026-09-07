@@ -118,13 +118,15 @@ Para garantizar la estabilidad de producción, cualquier cambio destructivo o de
 opera_eval_app/
 ├── docs/specs/                     # ÚNICA FUENTE DE VERDAD para Documentación, rúbricas, perfiles y textos.
 │   ├── AGENTS.md                   # Este archivo (especificación para agentes IA)
+│   ├── admin_ui_redesign.md        # Especificación del rediseño de Panel Evaluador/Admin
 │   ├── modelo-evaluacion-talento-tecnico.md    # Modelo de evaluación detallado (perfil general)
 │   ├── otel_expert.md              # Especificación del track OTel Expert (rúbricas, dominios, tiempos)
 │   ├── duracion-evaluacion-60min.md # Análisis de viabilidad del tiempo de 60 minutos
 │   ├── terminosCondiciones.md      # Texto oficial de T&C
 │   └── tratamientoDatosPersonales.md # Texto oficial Habeas Data (Ley 1581)
 ├── supabase/
-│   └── schema.sql                  # DDL completo: tablas, RLS, functions (synced with prod)
+│   ├── schema.sql                  # DDL completo: tablas, RLS, functions (synced with prod)
+│   └── migrations/                 # Migraciones incrementales aplicadas a producción
 ├── src/
 │   ├── types/
 │   │   └── database.ts            # Tipos TypeScript de Supabase (manual)
@@ -165,11 +167,21 @@ opera_eval_app/
 │   │   │   ├── DimensionDEvaluation.tsx # Módulo de IA (IA-1 e IA-2)
 │   │   │   ├── FinalScoreCard.tsx   # Tarjeta de clasificación final con dictamen
 │   │   │   ├── AiLikelihoodBadge.tsx # Badge de probabilidad de IA (LOW/MEDIUM/HIGH)
-│   │   │   ├── TimerAdjuster.tsx     # Widget para ajustar tiempo del candidato
+│   │   │   ├── TimerAdjuster.tsx     # Widget para ajustar tiempo del candidato (+5/+10/+15 min o valor exacto)
 │   │   │   ├── RealtimeSync.tsx      # Suscripción WebSocket a dynamic_tests
 │   │   │   ├── RegenerateAIButton.tsx # Botón de regeneración de reporte (modelo Lite)
 │   │   │   ├── PrintReportButton.tsx  # Botón de impresión de reporte
 │   │   │   ├── CopyButton.tsx         # Botón de copia de contenido
+│   │   │   ├── EvaluatorHeader.tsx   # Header con navegación, avatar y drawer de creación
+│   │   │   ├── EvaluatorNavTabs.tsx  # Tabs de navegación (Vista General, Histórico, Equipos)
+│   │   │   ├── KpiSummaryCards.tsx   # Tarjetas KPI superiores con métricas de procesos
+│   │   │   ├── CandidatesDataTable.tsx # Tabla responsiva con sticky actions y paginación
+│   │   │   ├── TeamCard.tsx          # Tarjeta de equipo con tooltip de descripción
+│   │   │   ├── CreateTeamDialog.tsx  # Modal de creación de equipo oficial
+│   │   │   ├── UserCreationSheet.tsx # Drawer lateral para crear usuarios con equipo del catálogo
+│   │   │   ├── ProcessStatusBadge.tsx # Badge estandarizado de estado del proceso
+│   │   │   ├── ScoreClassificationBadge.tsx # Badge de clasificación por puntaje
+│   │   │   ├── ExportMenu.tsx        # Menú de exportación a Excel/PDF
 │   │   │   ├── RadarChartComponent.tsx
 │   │   │   ├── ScrollToTopButton.tsx # Botón flotante de navegación
 │   │   │   └── dimension-a/         # Sub-evaluaciones A1, A2, A3, A4 + constantes
@@ -180,6 +192,7 @@ opera_eval_app/
 │       │   ├── ai-detector.ts       # Motor de detección de IA (heurístico + Gemini contra-evaluación)
 │       │   ├── admin.ts             # Gestión administrativa de usuarios
 │       │   ├── evaluation.ts        # Cálculos de normalización y clasificación (bifurcados por track)
+│       │   ├── teams.ts             # CRUD del catálogo de equipos (getTeams, createTeam, updateTeam)
 │       │   ├── candidate/           # Acciones específicas del candidato
 │       │       ├── a1.ts … a4.ts    # Dimensión A (Técnica)
 │       │       ├── b1.ts            # Dimensión B (Blandas: Tickets)
@@ -199,7 +212,8 @@ opera_eval_app/
 │       │   ├── eligibility/         # Selección de nivel académico + trigger de pregeneración
 │       │   └── page.tsx             # Examen principal (dimensiones A-D)
 │       ├── evaluator/               # Dashboard y evaluación
-│       │   └── history/             # Búsqueda histórica de procesos
+│       │   ├── history/             # Búsqueda histórica de procesos
+│       │   └── teams/               # Gestión del catálogo de equipos / squads
 │       ├── admin/                   # Panel de administración de usuarios
 │       └── login/                   # Autenticación
 ```
@@ -296,6 +310,7 @@ erDiagram
     SELECTION_PROCESSES ||--o{ EVALUATIONS : "selection_process_id"
     EVALUATIONS ||--o{ DIMENSION_SCORES : "evaluation_id"
     EVALUATIONS ||--o{ DYNAMIC_TESTS : "evaluation_id"
+    TEAMS ||--o{ SELECTION_PROCESSES : "team (name)"
 
     PROFILES {
         uuid id PK "auth.users.id"
@@ -312,9 +327,16 @@ erDiagram
         text candidate_email "Indexed"
         text candidate_national_id
         uuid evaluator_id FK "profiles.id"
-        text team
+        text team "Referencia lógica a teams.name"
         text observations
         text status "check: active, completed, archived"
+        timestamptz created_at
+    }
+
+    TEAMS {
+        uuid id PK
+        text name "UNIQUE NOT NULL - Mayúscula sostenida"
+        text description
         timestamptz created_at
     }
 
@@ -375,6 +397,7 @@ erDiagram
 | `evaluations` | Evaluación vinculada a un proceso (puntajes por dimensión, clasificación, consentimiento legal y timer) |
 | `dimension_scores` | Scores detallados por categoría dentro de cada dimensión |
 | `dynamic_tests` | Pruebas dinámicas: preguntas, respuestas, scores IA, chat, tickets, prompts, telemetría de terminal, `ai_likelihood` y eventos de foco |
+| `teams` | Catálogo oficial de equipos/squads. Nombre único en mayúscula sostenida. Referenciado lógicamente desde `selection_processes.team` |
 
 ### Campos del Timer, Foco y Auditoría (tabla `evaluations`)
 
@@ -480,6 +503,12 @@ El tipo se almacena en `profiles.national_id_type` y el número en `profiles.nat
 | **Omisión de Dim D en OTel Expert** | El track concentra 100 pts en A+B+C sin sección de IA complementaria | 2026-08-05 |
 | **Alineación Ruta Observabilidad** | A1 (Linux/AWS Core), A2 (SRE/Dynatrace/Grafana), A3 (Git/Pandas), Dim B (B1-B3) y C (C1-C3) | 2026-08-21 |
 | **Reloj Continuo e Integridad (Máx 4)** | Eliminación de pausas; reloj ininterrumpido y límite de 4 cambios de ventana con modal de advertencia | 2026-08-21 |
+| **Normalización de Equipos** | Tabla `public.teams` con 19 equipos oficiales. Backfill de procesos históricos con preservación del valor original en observaciones | 2026-08-24 |
+| **Tabla Responsiva con Sticky Actions** | Columna "Acciones" fija (`sticky right-0`) con sombra y paginación client-side (10/página) | 2026-08-24 |
+| **Fix MenuGroupRootContext** | `DropdownMenuLabel` y `SelectGroupLabel` convertidos a `div` estilizado para evitar dependencia de `Menu.Group` | 2026-08-24 |
+| **Filtro Historial como Select** | Campo de equipo en Búsqueda Histórica convertido de texto libre a `<Select>` dinámico del catálogo oficial | 2026-08-24 |
+| **Auto-refresh al crear usuario** | `router.refresh()` tras creación exitosa para actualizar tabla y KPIs sin recarga manual | 2026-08-24 |
+| **Filtro por defecto Activos/Borrador** | La tabla principal del evaluador carga por defecto mostrando solo procesos activos y borradores | 2026-08-24 |
 
 ---
 
@@ -531,6 +560,16 @@ A continuación se detalla cada componente del proyecto, su ubicación en el ár
 
 | Componente | Archivo | Rol y Responsabilidad Técnica |
 |---|---|---|
+| **`EvaluatorHeader`** | `src/components/evaluator/EvaluatorHeader.tsx` | **Header Persistente del Dashboard**: Contiene la identidad del usuario autenticado, el botón `+ Crear Nuevo Usuario` que abre el `UserCreationSheet`, y la navegación via `EvaluatorNavTabs`. |
+| **`EvaluatorNavTabs`** | `src/components/evaluator/EvaluatorNavTabs.tsx` | **Navegación por Pestañas**: Controla la navegación entre las tres vistas principales del evaluador: Vista General, Búsqueda Histórica y Equipos & Squads. |
+| **`KpiSummaryCards`** | `src/components/evaluator/KpiSummaryCards.tsx` | **Tarjetas KPI Superiores**: Muestra métricas globales en tiempo real (Total Candidatos, Total Evaluadores, Procesos Activos, Evaluaciones Finalizadas) con iconos y animación de entrada. |
+| **`CandidatesDataTable`** | `src/components/evaluator/CandidatesDataTable.tsx` | **Tabla Principal de Evaluaciones**: Tabla responsiva con filtros reactivos, búsqueda multicampo, paginación client-side (10/página), columna de Acciones sticky (`sticky right-0`) y menú contextual por fila. |
+| **`UserCreationSheet`** | `src/components/evaluator/UserCreationSheet.tsx` | **Drawer de Creación de Usuarios**: Formulario lateral con lógica condicional por rol (candidato/evaluador), selector de equipo poblado desde `public.teams`, y `router.refresh()` al finalizar. |
+| **`TeamCard`** | `src/components/evaluator/TeamCard.tsx` | **Tarjeta de Equipo con Tooltip**: Muestra nombre del equipo, cantidad de candidatos asociados, y un icono `ℹ️` con tooltip hover que despliega la descripción técnica. Layout flex con wrap seguro para nombres largos. |
+| **`CreateTeamDialog`** | `src/components/evaluator/CreateTeamDialog.tsx` | **Modal de Creación de Equipo**: Formulario para agregar equipos al catálogo oficial con nombre (auto-uppercase) y descripción. Validación de duplicados server-side. |
+| **`ProcessStatusBadge`** | `src/components/evaluator/ProcessStatusBadge.tsx` | **Badge de Estado del Proceso**: Componente estandarizado de badges con colores semánticos para `active`, `completed`, `archived` y `draft`. |
+| **`ScoreClassificationBadge`** | `src/components/evaluator/ScoreClassificationBadge.tsx` | **Badge de Clasificación de Puntaje**: Renderiza la clasificación ejecutiva (Listo para pivotar, Nivelación, Preparación, Rol actual) con colores diferenciados. |
+| **`ExportMenu`** | `src/components/evaluator/ExportMenu.tsx` | **Menú de Exportación**: Dropdown con opciones de exportación a Excel (.xlsx) y PDF para el dataset filtrado activo de la tabla. |
 | **`DimensionAEvaluation`** | `src/components/evaluator/DimensionAEvaluation.tsx` | **Panel de Calificación Técnica (50 pts)**: Consolida los submódulos A1 (15), A2 (15), A3 (10 normalizado) y A4 (10 normalizado). Proporciona guardado masivo con feedback visual explícito (`alert`) y sincronización en `evaluations.score_a`. |
 | **`DimensionBEvaluation`** | `src/components/evaluator/DimensionBEvaluation.tsx` | **Panel de Calificación de Blandas (30 pts)**: Evalúa B1 (Registro GLPI - 10 pts), B2 (Comunicación Verbal - 10 pts) y B3 (Colaboración y Presión - 10 pts) con sugerencias automáticas de la IA. |
 | **`DimensionCEvaluation`** | `src/components/evaluator/DimensionCEvaluation.tsx` | **Panel de Calificación Cultural (20 pts)**: Califica C1 (Aprendizaje Autónomo - 7 pts), C2 (Adaptabilidad - 7 pts) y C3 (Trabajo en Equipo - 6 pts). |

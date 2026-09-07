@@ -1,6 +1,6 @@
 -- ================================================
 -- OTP — Schema SQL (Synced with Production DB)
--- Last verified: 2026-08-23
+-- Last verified: 2026-08-24
 -- ================================================
 
 -- Enable UUID extension
@@ -65,6 +65,29 @@ create policy "Evaluators and owners can view/manage selection processes"
   using (
     candidate_email = (auth.jwt() ->> 'email')
     OR
+    exists (
+      select 1 from profiles
+      where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
+    )
+  );
+
+-- 1.6 TEAMS CATALOG
+create table if not exists public.teams (
+  id uuid primary key default gen_random_uuid(),
+  name text unique not null,
+  description text,
+  created_at timestamptz default now()
+);
+
+alter table public.teams enable row level security;
+
+create policy "Teams are viewable by everyone"
+  on teams for select
+  using ( true );
+
+create policy "Evaluators can manage teams"
+  on teams for all
+  using (
     exists (
       select 1 from profiles
       where profiles.id = (select auth.uid()) and profiles.role = 'evaluator'
@@ -176,3 +199,4 @@ create index if not exists idx_evaluations_selection_process_id on public.evalua
 create index if not exists idx_dimension_scores_eval_id on public.dimension_scores(evaluation_id);
 create index if not exists idx_dynamic_tests_eval_id on public.dynamic_tests(evaluation_id);
 create index if not exists idx_dynamic_tests_test_type on public.dynamic_tests(test_type);
+create index if not exists idx_teams_name on public.teams(name);

@@ -40,7 +40,7 @@ npm run dev
 ## Base de Datos
 
 El esquema SQL completo está en [`supabase/schema.sql`](supabase/schema.sql). Incluye:
-- 5 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`
+- 6 tablas: `profiles`, `selection_processes`, `evaluations`, `dimension_scores`, `dynamic_tests`, `teams`
 - RLS policies optimizadas para alto rendimiento (InitPlan optimization & Policy Consolidation)
 - Campos de auditoría legal: `legal_consent_tc`, `legal_consent_data`, `legal_accepted_at` en `evaluations`
 - Campos de temporizador e integridad: `started_at`, `test_duration_minutes` (default 60), `tab_switch_count` (máx. 4 cambios de ventana)
@@ -72,7 +72,8 @@ src/
 │   │   ├── ai.ts             # Lógica de IA generativa y evaluación
 │   │   ├── ai-detector.ts    # Motor de detección de IA (heurístico + Gemini)
 │   │   ├── admin.ts          # Gestión administrativa de usuarios (incluye archivado al eliminar)
-│   │   ├── evaluation.ts     # Operaciones sobre evaluaciones y cálculos de normalización
+│   │   ├── evaluation.ts     # Operaciones sobre evaluaciones y cálculos de normalización por track
+│   │   ├── teams.ts          # CRUD del catálogo de equipos (getTeams, createTeam, updateTeam)
 │   │   ├── candidate/        # Acciones específicas del candidato
 │   │   │   ├── a1.ts … a4.ts # Dimensión A (Técnica)
 │   │   │   ├── b1.ts         # Dimensión B (Blandas: Tickets)
@@ -85,14 +86,16 @@ src/
 │   │   └── evaluator/        # Acciones específicas del evaluador
 │   │       ├── reports.ts    # Finalización de evaluación y reporte narrativo con IA
 │   │       └── timer.ts      # Ajuste de temporizador (add/set minutes)
-│   ├── admin/                # Panel de administración de usuarios
+│   ├── admin/                # Panel de administración de usuarios (redirige a /evaluator)
 │   ├── auth/
 │   │   └── signout/          # Ruta de cierre de sesión
 │   ├── candidate/            # Interfaz del candidato
 │   │   ├── onboarding/       # Consentimiento legal (T&C + Habeas Data)
 │   │   └── eligibility/      # Selección de nivel académico + trigger de pregeneración
 │   ├── evaluator/            # Dashboard del evaluador + evaluación por candidato
-│   │   └── history/          # Búsqueda histórica de procesos
+│   │   ├── history/          # Búsqueda histórica de procesos
+│   │   ├── teams/            # Gestión del catálogo de equipos / squads
+│   │   └── evaluators/       # Gestión de evaluadores y credenciales
 │   └── login/                # Autenticación
 ├── components/
 │   ├── CompanyLogo.tsx       # Logo corporativo reutilizable
@@ -105,6 +108,13 @@ src/
 │   │   ├── RegenerateAIButton.tsx # Botón de regeneración de reporte (modelo Lite)
 │   │   ├── PrintReportButton.tsx  # Botón de impresión de reporte
 │   │   ├── CopyButton.tsx         # Botón de copia de contenido
+│   │   ├── EvaluatorHeader.tsx    # Header con navegación, avatar y drawer de creación
+│   │   ├── EvaluatorNavTabs.tsx   # Tabs de navegación (Vista General, Histórico, Equipos)
+│   │   ├── KpiSummaryCards.tsx    # Tarjetas KPI superiores (candidatos, evaluadores, activos)
+│   │   ├── CandidatesDataTable.tsx # Tabla responsiva con sticky actions y paginación
+│   │   ├── TeamCard.tsx           # Tarjeta de equipo con tooltip de descripción
+│   │   ├── CreateTeamDialog.tsx   # Modal de creación de equipo
+│   │   ├── UserCreationSheet.tsx  # Drawer lateral para crear usuarios con equipo del catálogo
 │   │   └── dimension-a/           # Sub-evaluaciones A1, A2, A3, A4 + constantes
 │   └── ui/                   # Primitivos de Shadcn UI (dialog, tooltip, checkbox, etc.)
 ├── context/
@@ -150,7 +160,8 @@ src/
 1. Gestión de usuarios (crear, editar, eliminar)
 2. Edición: Permite corregir Nombre e Identificación (CC/CE/etc.) y datos del proceso (Equipo/Observaciones). No permite cambio de Email o Rol por estabilidad.
 3. Al eliminar un candidato, sus procesos activos se marcan como `archived` (no se borran)
-3. Esto permite recrear el mismo email en un nuevo proceso sin conflictos
+4. Esto permite recrear el mismo email en un nuevo proceso sin conflictos
+5. **Gestión de Equipos / Squads**: Catálogo oficial de 19 equipos en `public.teams`. Creación de nuevos equipos desde `/evaluator/teams` con nombre en mayúscula sostenida y descripción. Selector dinámico en el formulario de creación de usuario y en la búsqueda histórica.
 
 ## Documentación Técnica
 
@@ -160,6 +171,7 @@ src/
 - Modelo de evaluación detallado: [`docs/specs/modelo-evaluacion-talento-tecnico.md`](docs/specs/modelo-evaluacion-talento-tecnico.md)
 - Especificación OTel Expert: [`docs/specs/otel_expert.md`](docs/specs/otel_expert.md)
 - Especificación de duración (60 min): [`docs/specs/duracion-evaluacion-60min.md`](docs/specs/duracion-evaluacion-60min.md)
+- Rediseño de Panel Evaluador/Admin: [`docs/specs/admin_ui_redesign.md`](docs/specs/admin_ui_redesign.md)
 - Términos y Condiciones: [`docs/specs/terminosCondiciones.md`](docs/specs/terminosCondiciones.md)
 - Política de Tratamiento de Datos: [`docs/specs/tratamientoDatosPersonales.md`](docs/specs/tratamientoDatosPersonales.md)
 

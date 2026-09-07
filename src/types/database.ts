@@ -198,6 +198,26 @@ export interface Database {
           ai_likelihood?: number | null
         }
       }
+      teams: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }

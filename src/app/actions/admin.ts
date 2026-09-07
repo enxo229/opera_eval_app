@@ -415,3 +415,95 @@ export async function reopenEvaluation(evaluationId: string): Promise<{ success:
     log.info('Evaluación reabierta exitosamente', { evaluationId });
     return { success: true }
 }
+
+export type EvaluatorUser = {
+    id: string
+    email: string
+    full_name: string | null
+    role: string
+    national_id_type: string | null
+    national_id: string | null
+    created_at: string
+    assigned_processes_count: number
+}
+
+/**
+ * Lists all users with 'evaluator' role and their metrics
+ */
+export async function getEvaluators(): Promise<EvaluatorUser[]> {
+    const admin = createAdminClient()
+
+    // 1. Fetch auth users to get emails
+    const { data: authData, error: authError } = await admin.auth.admin.listUsers()
+    if (authError) throw new Error(authError.message)
+    const emailMap = new Map((authData?.users || []).map(u => [u.id, u.email || '']))
+
+    // 2. Fetch evaluator profiles
+    const { data: profiles, error: profileError } = await admin
+        .from('profiles')
+        .select('*')
+        .eq('role', 'evaluator')
+        .order('created_at', { ascending: false })
+
+    if (profileError) throw new Error(profileError.message)
+
+    // 3. Count assigned selection processes
+    const { data: processes } = await admin
+        .from('selection_processes')
+        .select('id, evaluator_id')
+
+    const countMap = new Map<string, number>()
+    if (processes) {
+        processes.forEach(p => {
+            if (p.evaluator_id) {
+                countMap.set(p.evaluator_id, (countMap.get(p.evaluator_id) || 0) + 1)
+            }
+        })
+    }
+
+    return (profiles || []).map(p => ({
+        id: p.id,
+        email: emailMap.get(p.id) || '',
+        full_name: p.full_name,
+        role: p.role || 'evaluator',
+        national_id_type: p.national_id_type,
+        national_id: p.national_id,
+        created_at: p.created_at,
+        assigned_processes_count: countMap.get(p.id) || 0
+    }))
+}
+
+/**
+ * Changes a user's password directly via Supabase Auth Admin.
+ * Can be used for candidates, evaluators and admins.
+ */
+export async function changeUserPasswordAction(
+    userId: string,
+    newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+    if (!newPassword || newPassword.trim().length < 6) {
+        return { success: false, error: 'La nueva contraseña debe contener al menos 6 caracteres.' }
+    }
+
+    const admin = createAdminClient()
+
+    const { data: userData, error: getUserError } = await admin.auth.admin.getUserById(userId)
+    if (getUserError || !userData?.user) {
+        return { success: false, error: 'Usuario no encontrado en el sistema de autenticación.' }
+    }
+
+    const userEmail = userData.user.email
+
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+        password: newPassword.trim()
+    })
+
+    if (authError) {
+        log.db.error('Error actualizando contraseña de usuario', authError, { userId, userEmail })
+        return { success: false, error: `Error al actualizar contraseña: ${authError.message}` }
+    }
+
+    log.info('Contraseña de usuario actualizada exitosamente por el administrador', { userId, userEmail })
+    return { success: true }
+}
+

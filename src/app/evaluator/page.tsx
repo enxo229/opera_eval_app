@@ -1,145 +1,178 @@
-import Link from 'next/link'
-import { CompanyLogo } from '@/components/CompanyLogo'
 import { createClient } from '@/lib/supabase/server'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { History, Shield, LogOut } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getTeams } from '@/app/actions/teams'
+import { KpiSummaryCards, EvaluatorKpis } from '@/components/evaluator/KpiSummaryCards'
+import { CandidatesDataTable, CandidateRowData } from '@/components/evaluator/CandidatesDataTable'
+import { DEFAULT_SQUADS } from '@/lib/schemas/user-form'
 
 export const dynamic = 'force-dynamic'
 
-function getClassBadge(classification?: string | null) {
-    if (!classification) return <Badge variant="outline" className="text-gray-400">Sin clasificar</Badge>
-
-    if (classification.includes('Listo'))
-        return <Badge className="bg-[#10B981] text-white">{classification}</Badge>
-    if (classification.includes('nivelación'))
-        return <Badge className="bg-[#F59E0B] text-white">{classification}</Badge>
-    if (classification.includes('preparación'))
-        return <Badge className="bg-[#F97316] text-white">{classification}</Badge>
-
-    return <Badge className="bg-[#EF4444] text-white">{classification}</Badge>
-}
-
 export default async function EvaluatorDashboard() {
-    const supabase = await createClient()
+  const supabase = await createClient()
+  const admin = createAdminClient()
 
-    // Buscamos todos los perfiles que son 'candidate'
-    const { data: candidates, error } = await supabase
-        .from('profiles')
-        .select(`
-      id, 
-      full_name, 
+  // 1. Fetch Candidate Profiles with their Evaluations
+  const { data: candidates, error: candidatesError } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      full_name,
       role,
+      national_id,
+      national_id_type,
+      created_at,
       evaluations!evaluations_candidate_id_fkey (
         id,
         status,
         final_score,
-        classification
+        classification,
+        selection_process_id,
+        started_at,
+        completed_at
       )
     `)
-        .eq('role', 'candidate')
+    .eq('role', 'candidate')
+    .order('created_at', { ascending: false })
 
-    if (error) {
-        console.error('Error fetching candidates:', error)
+  if (candidatesError) {
+    console.error('Error fetching candidates:', candidatesError)
+  }
+
+  // 2. Fetch auth users to get exact emails
+  const { data: authData } = await admin.auth.admin.listUsers()
+  const authEmailMap = new Map((authData?.users || []).map((u) => [u.id, u.email || '']))
+
+  // 3. Fetch Evaluators count
+  const { count: totalEvaluators } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'evaluator')
+
+  // 4. Fetch Selection Processes to retrieve Squads, Tracks and Processes
+  const { data: selectionProcesses } = await supabase
+    .from('selection_processes')
+    .select('id, candidate_email, candidate_national_id, team, status, profile_track, created_at')
+    .order('created_at', { ascending: false })
+
+  // 5. Fetch official teams catalog from database
+  const officialTeams = await getTeams()
+  const distinctTeams = new Set<string>(
+    officialTeams.length > 0
+      ? officialTeams.map((t) => t.name)
+      : (DEFAULT_SQUADS as unknown as string[])
+  )
+
+  // Build indexes for selection processes
+  const processMap = new Map<string, any>()
+  const procByEmail = new Map<string, any>()
+  const procByNatId = new Map<string, any>()
+
+  if (selectionProcesses) {
+    selectionProcesses.forEach((p) => {
+      processMap.set(p.id, p)
+      if (p.candidate_email) {
+        procByEmail.set(p.candidate_email.trim().toLowerCase(), p)
+      }
+      if (p.candidate_national_id) {
+        if (!procByNatId.has(p.candidate_national_id.trim())) {
+          procByNatId.set(p.candidate_national_id.trim(), p)
+        }
+      }
+      if (p.team && p.team.trim()) {
+        distinctTeams.add(p.team.trim().toUpperCase())
+      }
+    })
+  }
+
+  // 6. Map candidates data to CandidateRowData
+  let activeCount = 0
+  let completedCount = 0
+  let readyCount = 0
+
+  const tableData: CandidateRowData[] = (candidates || []).map((c: any) => {
+    const userEmail = authEmailMap.get(c.id) || ''
+    const evals = c.evaluations || []
+    const latestEval = evals[0] || null
+
+    // Match linked selection process
+    let linkedProcess = null
+    if (latestEval?.selection_process_id) {
+      linkedProcess = processMap.get(latestEval.selection_process_id)
+    }
+    if (!linkedProcess && userEmail) {
+      linkedProcess = procByEmail.get(userEmail.toLowerCase())
+    }
+    if (!linkedProcess && c.national_id) {
+      linkedProcess = procByNatId.get(c.national_id.trim())
     }
 
-    return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                    <CompanyLogo width={100} height={35} />
-                    <div className="h-10 w-px bg-border shadow-sm" />
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-primary drop-shadow-sm">Dashboard de Evaluador</h1>
-                        <p className="text-muted-foreground mt-2">
-                            Supervisa y evalúa a los candidatos del programa O11y SkillFlow.
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Link href="/evaluator/history" title="Buscar y filtrar procesos pasados y evaluaciones antiguas usando CC, correo o equipo.">
-                        <Button variant="outline" size="sm" className="border-border text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary font-semibold gap-1.5 shadow-xs transition-all">
-                            <History className="h-4 w-4 text-primary shrink-0" />
-                            <span>Búsqueda Global</span>
-                        </Button>
-                    </Link>
-                    <Link href="/admin">
-                        <Button variant="outline" size="sm" className="border-border text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary font-semibold gap-1.5 shadow-xs transition-all">
-                            <Shield className="h-4 w-4 text-amber-500 shrink-0" />
-                            <span>Admin</span>
-                        </Button>
-                    </Link>
-                    <form action="/auth/signout" method="post">
-                        <Button variant="outline" size="sm" type="submit" className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500 font-semibold gap-1.5 shadow-xs transition-all cursor-pointer">
-                            <LogOut className="h-4 w-4 shrink-0" />
-                            <span>Salir</span>
-                        </Button>
-                    </form>
-                </div>
-            </div>
+    const team = linkedProcess?.team || null
+    if (team) distinctTeams.add(team.trim().toUpperCase())
 
-            <div className="rounded-md border border-border bg-card shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-foreground">Candidato</TableHead>
-                            <TableHead className="text-foreground">Rol Actual</TableHead>
-                            <TableHead className="text-foreground">Estado</TableHead>
-                            <TableHead className="text-foreground">Score Final</TableHead>
-                            <TableHead className="text-foreground">Clasificación</TableHead>
-                            <TableHead className="text-right text-foreground">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {candidates?.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                    No hay candidatos registrados en la plataforma.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {candidates?.map((c: any) => {
-                            // Cast evaluations explicitly
-                            const evaluations = c.evaluations as any[]
-                            const evalData = evaluations && evaluations.length > 0 ? evaluations[0] : null
-                            const status = evalData?.status === 'completed' ? 'Completado' : evalData?.status === 'draft' ? 'En progreso' : 'No iniciada'
+    const evalStatus = latestEval?.status || null
+    const processStatus = linkedProcess?.status || (evalStatus === 'completed' ? 'completed' : 'active')
+    const finalScore = latestEval?.final_score ?? null
+    const classification = latestEval?.classification || null
 
-                            return (
-                                <TableRow key={c.id} className="border-border hover:bg-muted/50">
-                                    <TableCell className="font-medium text-foreground">{c.full_name || 'Candidato Sin Nombre'}</TableCell>
-                                    <TableCell className="text-muted-foreground">{c.role}</TableCell>
-                                    <TableCell>
-                                        {status === 'Completado' ? (
-                                            <span className="text-emerald-600 font-semibold">Completado</span>
-                                        ) : (
-                                            <span className="text-amber-500 font-semibold">{status}</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="font-mono text-lg font-semibold" style={{ color: evalData?.final_score >= 80 ? '#10B981' : evalData?.final_score >= 60 ? '#F59E0B' : evalData?.final_score >= 40 ? '#F97316' : evalData?.final_score != null ? '#EF4444' : undefined }}>
-                                        {evalData?.final_score !== null && evalData?.final_score !== undefined ? evalData.final_score : '-'}
-                                    </TableCell>
-                                    <TableCell>{getClassBadge(evalData?.classification)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Link href={`/evaluator/evaluate/${c.id}`}>
-                                            <Button variant={status === 'Completado' ? 'secondary' : 'default'} size="sm" className={status === 'Completado' ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-primary hover:bg-primary/90 text-primary-foreground drop-shadow-sm'}>
-                                                {status === 'Completado' ? 'Ver Resultado' : 'Evaluar'}
-                                            </Button>
-                                        </Link>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
+    // Track KPI counters
+    if (evalStatus === 'completed' || processStatus === 'completed') {
+      completedCount++
+      if (classification && classification.toLowerCase().includes('listo')) {
+        readyCount++
+      }
+    } else {
+      activeCount++
+    }
+
+    return {
+      id: c.id,
+      fullName: c.full_name || 'Candidato sin nombre',
+      email: userEmail || linkedProcess?.candidate_email || 'Sin correo asociado',
+      nationalId: c.national_id || linkedProcess?.candidate_national_id || null,
+      nationalIdType: c.national_id_type || 'CC',
+      team: team,
+      trackId: linkedProcess?.profile_track || 'general',
+      processId: linkedProcess?.id || null,
+      processStatus: processStatus,
+      evaluationId: latestEval?.id || null,
+      evaluationStatus: evalStatus,
+      finalScore: finalScore,
+      classification: classification,
+      createdAt: linkedProcess?.created_at || c.created_at,
+    }
+  })
+
+  // 7. Build KPI metrics object
+  const kpis: EvaluatorKpis = {
+    totalCandidates: candidates?.length || 0,
+    totalEvaluators: totalEvaluators || 0,
+    activeEvaluations: activeCount,
+    completedEvaluations: completedCount,
+    readyCandidatesCount: readyCount,
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Page Heading */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Evaluaciones y Candidatos
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Supervisa el progreso operativo, clasificaciones y métricas del programa O11y SkillFlow.
+          </p>
         </div>
-    )
+      </div>
+
+      {/* Top KPI Summary Cards */}
+      <KpiSummaryCards kpis={kpis} />
+
+      {/* Candidates Data Table */}
+      <CandidatesDataTable
+        data={tableData}
+        teams={Array.from(distinctTeams).sort()}
+      />
+    </div>
+  )
 }
