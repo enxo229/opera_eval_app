@@ -17,6 +17,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useCandidateContext } from '@/context/CandidateContext'
+import { pregenerateTrackQuestions } from '@/app/actions/candidate/pregen'
 
 const EDUCATION_LEVELS = [
     { 
@@ -46,9 +47,10 @@ const EDUCATION_LEVELS = [
 ]
 
 export default function EligibilityPage() {
-    const { evaluationId, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation } = useCandidateContext()
+    const { evaluationId, profileTrack, contextLoaded, legalAccepted, setEducationLevel: ctxSetEducation, reloadContext } = useCandidateContext()
     const [selected, setSelected] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [pregenText, setPregenText] = useState('Guardando Perfil...')
     const router = useRouter()
 
     // Legal Guard
@@ -75,6 +77,16 @@ export default function EligibilityPage() {
             await supabase.from('profiles').update({ education_level: selected }).eq('id', user.id)
         }
         ctxSetEducation(selected)
+
+        // Pre-generate track questions to avoid active test generation delay
+        if (evaluationId) {
+            if (profileTrack === 'otel_expert') {
+                setPregenText('Generando preguntas de OTel & Grafana Cloud...')
+            }
+            await pregenerateTrackQuestions(evaluationId, selected)
+            reloadContext()
+        }
+
         router.push('/candidate')
     }
 
@@ -148,16 +160,16 @@ export default function EligibilityPage() {
                         <Button
                             onClick={handleContinue}
                             disabled={!selected || saving}
-                            className={`w-full h-14 text-xl font-bold transition-all duration-500 rounded-2xl shadow-xl ${
+                            className={`w-full h-auto min-h-[3.5rem] whitespace-normal leading-snug text-xl font-bold transition-all duration-500 rounded-2xl shadow-xl ${
                                 selected 
                                 ? 'bg-primary hover:bg-primary/90 text-primary-foreground scale-[1.01] shadow-primary/20' 
                                 : 'bg-muted text-muted-foreground opacity-60 border-border cursor-not-allowed'
                             }`}
                         >
                             {saving ? (
-                                <span className="flex items-center gap-2">
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    Guardando Perfil...
+                                <span className="flex items-center gap-2 max-w-full text-center text-sm px-2">
+                                    <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+                                    <span>{pregenText}</span>
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-2">

@@ -41,7 +41,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
     // Try finding via active process first
     const { data: activeProcess } = await supabase
         .from('selection_processes')
-        .select('id, evaluations(*)')
+        .select('id, profile_track, evaluations(*)')
         .eq('candidate_email', candidateEmail)
         .eq('status', 'active')
         .limit(1)
@@ -49,16 +49,20 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
     if (activeProcess?.evaluations && activeProcess.evaluations.length > 0) {
         evaluation = activeProcess.evaluations[0]
+        evaluation.profile_track = activeProcess.profile_track
     } else {
         // Fallback: look up by candidate_id in case it's a legacy record without process
         const { data: legacyEval } = await supabase
             .from('evaluations')
-            .select('*')
+            .select('*, selection_processes(profile_track)')
             .eq('candidate_id', candidate.id)
             .order('id', { ascending: false })
             .limit(1)
-            .maybeSingle()
+            .maybeSingle() as any
         evaluation = legacyEval
+        if (evaluation) {
+            evaluation.profile_track = evaluation.selection_processes?.profile_track || 'general'
+        }
     }
 
     if (!evaluation) {
@@ -73,7 +77,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                     evaluator_id: authCtx.user.id,
                     status: 'active'
                 })
-                .select('id')
+                .select('id, profile_track')
                 .single()
 
             const { data: newEval } = await supabase
@@ -87,6 +91,9 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 .select('*')
                 .single<any>()
             evaluation = newEval
+            if (evaluation) {
+                evaluation.profile_track = newProc?.profile_track || 'general'
+            }
         }
     }
 
@@ -108,6 +115,7 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
     const dynamicTests = (dynamicTestsResult as any[]) || []
     const existingScores = (existingScoresResult as any[]) || []
+    const isOtel = evaluation.profile_track === 'otel_expert'
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -152,6 +160,22 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                     🎓 {candidate.education_level === 'bachiller' ? 'Bachiller' : candidate.education_level === 'tecnico_sena' ? 'Técnico SENA' : candidate.education_level === 'tecnologo' ? 'Tecnólogo' : 'Profesional/Ingeniería'}
                                 </span>
                             )}
+                            {(() => {
+                                const bypassCount = Math.max(
+                                    evaluation?.bypass_paste_count || 0,
+                                    dynamicTests.filter(t => t.test_type === 'SECURITY_AUDIT' && t.subcategory === 'BYPASS_PASTE').length
+                                )
+                                return (
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                        bypassCount > 0 
+                                            ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 animate-pulse' 
+                                            : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                                    }`}>
+                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                        <span>Intentos de Pegado Detectados: {bypassCount}</span>
+                                    </span>
+                                )
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -169,13 +193,15 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                 <div className="lg:col-span-2 space-y-6">
                     <Tabs defaultValue="overview" className="w-full">
                         {(() => {
+                            const requiredB = isOtel ? ['B1', 'B2'] : ['B1', 'B2', 'B3']
+                            const requiredC = isOtel ? ['C1', 'C2'] : ['C1', 'C2', 'C3']
                             const hasA = ['A1', 'A2', 'A3', 'A4'].every(cat => existingScores.some(s => s.dimension === 'A' && s.category === cat))
-                            const hasB = ['B1', 'B2', 'B3'].every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
-                            const hasC = ['C1', 'C2', 'C3'].every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
+                            const hasB = requiredB.every(cat => existingScores.some(s => s.dimension === 'B' && s.category === cat))
+                            const hasC = requiredC.every(cat => existingScores.some(s => s.dimension === 'C' && s.category === cat))
                             const hasD = ['IA-1', 'IA-2'].every(cat => existingScores.some(s => (s.dimension === 'IA' || s.dimension === 'D') && s.category === cat))
 
                             return (
-                                <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 mb-8">
+                                <TabsList className={`grid w-full ${isOtel ? 'grid-cols-4' : 'grid-cols-5'} h-12 bg-muted/50 p-1 mb-8`}>
                                     <TabsTrigger value="overview" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">Resumen</TabsTrigger>
                                     <TabsTrigger value="dimA" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
                                         Dim. A (Técnica) {hasA && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
@@ -186,9 +212,11 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                     <TabsTrigger value="dimC" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
                                         Dim. C (Cultural) {hasC && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                                     </TabsTrigger>
-                                    <TabsTrigger value="dimD" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
-                                        Dim. D (Uso IA) {hasD && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                                    </TabsTrigger>
+                                    {!isOtel && (
+                                        <TabsTrigger value="dimD" className="font-semibold text-sm h-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2">
+                                            Dim. D (Uso IA) {hasD && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                                        </TabsTrigger>
+                                    )}
                                 </TabsList>
                             )
                         })()}
@@ -227,12 +255,14 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                             <div className="p-2 bg-indigo-500/10 rounded-lg">
                                                 <BrainCircuit className="h-5 w-5 text-indigo-600" />
                                             </div>
-                                            Dimensiones C y D
+                                            {isOtel ? 'Dimensión C (Fit Cultural)' : 'Dimensiones C y D'}
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                            Usa las guías integradas para evaluar la mentalidad de crecimiento y el dominio de IA. Recuerda que la Dimensión D es un factor de desempate.
+                                            {isOtel 
+                                                ? 'Usa las guías integradas para evaluar la mentalidad de crecimiento, fit cultural y filosofía SRE del candidato.'
+                                                : 'Usa las guías integradas para evaluar la mentalidad de crecimiento y el dominio de IA. Recuerda que la Dimensión D es un factor de desempate.'}
                                         </p>
                                     </CardContent>
                                 </Card>
@@ -249,8 +279,10 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
                                 
                                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
                                     {[
-                                        { title: "Evidencia Primaria", desc: "Nunca asignes puntaje sin leer los prompts o justificaciones registradas." },
-                                        { title: "Criterio de Desempate", desc: "La Dimensión D (IA) no suma puntos al score base de 100, es diferencial." },
+                                        { title: "Evidencia Primaria", desc: "Nunca asignes puntaje sin leer las respuestas escritas o justificaciones registradas." },
+                                        isOtel 
+                                            ? { title: "Detección de IA & Copia", desc: "Revisa las insignias de probabilidad de IA (0-100%) y el contador de bypass de pegar para auditar el candidato." }
+                                            : { title: "Criterio de Desempate", desc: "La Dimensión D (IA) no suma puntos al score base de 100, es diferencial." },
                                         { title: "Consistencia", desc: "Asegúrate de que tus comentarios reflejen fielmente la puntuación asignada." },
                                         { title: "Guardado Individual", desc: "Recuerda presionar 'Guardar' al finalizar cada dimensión técnica o blanda." }
                                     ].map((rule, idx) => (
@@ -277,27 +309,29 @@ export default async function EvaluateCandidatePage({ params }: { params: Promis
 
                         <TabsContent value="dimA" className="m-0">
                             <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionAEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} />
+                                <DimensionAEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} profileTrack={evaluation.profile_track || 'general'} />
                             </div>
                         </TabsContent>
 
                         <TabsContent value="dimB" className="m-0">
                             <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionBEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} />
+                                <DimensionBEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests} readOnly={evaluation.status === 'completed'} profileTrack={evaluation.profile_track || 'general'} />
                             </div>
                         </TabsContent>
 
                         <TabsContent value="dimC" className="m-0">
                             <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionCEvaluation evaluationId={evaluation.id} existingScores={existingScores} readOnly={evaluation.status === 'completed'} />
+                                <DimensionCEvaluation evaluationId={evaluation.id} existingScores={existingScores} dynamicTests={dynamicTests || []} readOnly={evaluation.status === 'completed'} profileTrack={evaluation.profile_track || 'general'} />
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="dimD" className="m-0">
-                            <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
-                                <DimensionDEvaluation evaluationId={evaluation.id} existingScores={existingScores} readOnly={evaluation.status === 'completed'} />
-                            </div>
-                        </TabsContent>
+                        {evaluation.profile_track !== 'otel_expert' && (
+                            <TabsContent value="dimD" className="m-0">
+                                <div className="bg-card border border-border shadow-sm rounded-xl p-6 min-h-[400px]">
+                                    <DimensionDEvaluation evaluationId={evaluation.id} existingScores={existingScores} readOnly={evaluation.status === 'completed'} />
+                                </div>
+                            </TabsContent>
+                        )}
                     </Tabs>
                 </div>
 

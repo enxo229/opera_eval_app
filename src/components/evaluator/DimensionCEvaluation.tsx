@@ -1,19 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronUp, MessageCircleQuestion, ArrowUp } from 'lucide-react'
+import { MessageCircleQuestion, ArrowUp, Sparkles, RotateCcw, Trash2, Loader2 } from 'lucide-react'
+import { AiLikelihoodBadge } from './AiLikelihoodBadge'
+import { calculateDimensionC } from '@/app/actions/evaluation'
+import { getCResults, triggerCEvaluation, resetCResponses } from '@/app/actions/candidate/c'
 
 interface Props {
     evaluationId: string
     existingScores: any[]
+    dynamicTests?: any[]
     readOnly?: boolean
+    profileTrack?: string
 }
 
-// Evaluator guides from modelo-evaluacion-talento-tecnico.md — Dimensión C
+// Evaluator guides from modelo-evaluacion-talento-tecnico.md — Dimensión C (General Track)
 const EVALUATOR_GUIDES: Record<string, {
     opening: string
     deepening: string[]
@@ -49,70 +54,135 @@ const EVALUATOR_GUIDES: Record<string, {
         ],
     },
     C2: {
-        opening: '"En los turnos de soporte o infraestructura es común que cambien los procesos, herramientas o prioridades de emergencia. Cuéntame de un cambio reciente o un incidente inesperado difícil y cómo te adaptaste."',
+        opening: '"Imagina que en tu equipo introducen una nueva herramienta de observabilidad que nunca has usado y cambia la forma en que gestionan las alertas. ¿Cómo enfrentas esa transición?"',
         deepening: [
-            '"¿Qué fue lo más retador de esa transición o situación inesperada?"',
-            '"¿Hubo algo que hicieras tú específicamente para adaptarte más rápido o ayudar a otros?"',
-            '"Si hoy implementaran una herramienta completamente nueva en tu guardia, ¿cómo lo abordarías?"',
+            '"¿Qué haces primero: lees la documentación, experimentas directamente o pides ayuda a un compañero?"',
+            '"Cuéntame de una ocasión real donde te cambiaron una herramienta o procedimiento de forma imprevista."',
+            '"¿Cómo manejas la frustración cuando una herramienta o script no se comporta como esperabas?"',
         ],
         positive: [
-            'Describe acciones concretas de adaptación y madurez emocional',
-            'Enfoca los problemas y cambios como oportunidades de aprendizaje',
-            'Investiga antes de bloquearse y apoya a sus compañeros',
-            'Tiene reflexión crítica sobre cómo mejorar su respuesta operativa',
+            'Actitud de bienvenida al cambio como oportunidad de crecimiento',
+            'Estrategia balanceada: experimenta, documenta y consulta oportunamente',
+            'Resiliencia y enfoque analítico frente a fallas o errores',
+            'Acepta feedback constructivo con madurez',
         ],
         alert: [
-            'La queja, frustración o resistencia pasiva domina el relato',
-            'Esperó pasivamente que otros resolvieran el impacto del cambio',
-            'Percibe los cambios como imposiciones injustas sin valor',
-            'Bloqueo ante la incertidumbre o fallos imprevistos',
+            'Resistencia activa: "La herramienta anterior era mejor y no era necesario cambiar"',
+            'Dependencia excesiva de otros para aprender lo básico',
+            'Se frustra fácilmente y abandona la tarea o culpa al entorno',
+            'Rechazo a adaptar sus flujos de trabajo',
         ],
         scoring: [
-            { score: 7, desc: 'Adaptación proactiva y resiliente. Asume la transición con madurez, investiga y apoya al equipo.' },
-            { score: 5, desc: 'Manejó bien el cambio con acciones concretas, aunque con menor iniciativa propia.' },
-            { score: 3, desc: 'Se adaptó de forma pasiva ("me tocó y lo hice"). Sin aprendizaje explícito.' },
-            { score: 1, desc: 'Relato dominado por resistencia, incomodidad o quejas persistentes.' },
-            { score: 0, desc: 'Rechazo activo al cambio y parálisis ante situaciones nuevas.' },
+            { score: 7, desc: 'Adopción proactiva, investiga documentación por cuenta propia y ayuda a otros en la transición.' },
+            { score: 5, desc: 'Se adapta positivamente en tiempo razonable tras un periodo de ajuste natural.' },
+            { score: 3, desc: 'Acepta el cambio pero requiere supervisión y apoyo constante para utilizar la nueva herramienta.' },
+            { score: 1, desc: 'Resistencia pasiva o frustración evidente que retrasa la adopción.' },
+            { score: 0, desc: 'Rechazo explícito al cambio y negatividad ante la evolución tecnológica.' },
         ],
     },
     C3: {
-        opening: '"Si proyectas tu carrera en tecnología a 1 o 2 años, ¿hacia qué áreas (SRE, observabilidad, cloud, ingeniería de confiabilidad) te gustaría evolucionar y qué pasos estás dando para lograrlo?"',
+        opening: '"Pensando en tu desarrollo profesional a mediano plazo, ¿hacia dónde te gustaría orientar tu carrera técnica (Observabilidad, SRE, Cloud, DevOps)? ¿Por qué te llama la atención esa ruta?"',
         deepening: [
-            '"¿Por qué te llama la atención esa especialidad técnica?"',
-            '"¿Cómo conectas tu experiencia de soporte/NOC con el valor de la observabilidad y confiabilidad?"',
-            '"¿Has dado algún paso concreto (estudio, laboratorios, certificaciones) para acercarte a esa meta?"',
+            '"¿Qué diferencias ves entre la operación tradicional de soporte y la disciplina de Observabilidad/SRE?"',
+            '"¿Qué pasos concretos estás dando o planeas dar para formarte en esa dirección?"',
+            '"¿Qué tipo de problemas técnicos son los que más disfrutas resolver en tu día a día?"',
         ],
         positive: [
-            'Vector profesional claro y alineado a observabilidad, SRE, cloud o automatización',
-            'Argumenta su interés técnico más allá de motivaciones externas',
-            'Conecta el aprendizaje de métricas/incidentes con su proyección',
-            'Ha tomado iniciativa concreta (rutas de formación, prácticas, lecturas)',
+            'Visión clara de evolución desde soporte hacia Observabilidad / SRE',
+            'Entiende la diferencia entre monitoreo reactivo y observabilidad proactiva',
+            'Demuestra motivación intrínseca por la confiabilidad y el análisis de sistemas',
+            'Tiene metas de aprendizaje concretas y alcanzables',
         ],
         alert: [
-            '"No sé" o "donde me pongan" como respuesta principal',
-            'Motivación exclusivamente salarial sin interés por el desarrollo técnico',
-            'No ve conexión entre resolver problemas operativos y la ingeniería de confiabilidad',
-            'Metas sin ningún paso o acción concreta',
+            'No tiene claridad sobre su proyección o busca únicamente un cambio de título',
+            'Ve la observabilidad solo como "ver pantallas con métricas"',
+            'Falta de ambición técnica o conformismo con tareas repetitivas',
+            'Expectativas desconectadas de las realidades operativas de TI',
         ],
         scoring: [
-            { score: 6, desc: 'Visión clara y compatible (SRE, Observabilidad, Cloud). Pasos concretos iniciados y alta motivación.' },
-            { score: 4, desc: 'Dirección clara y bien argumentada, aunque aún está iniciando los pasos prácticos.' },
-            { score: 2, desc: 'Aspiraciones difusas o motivadas principalmente por factores externos.' },
-            { score: 0, desc: 'No le interesa evolucionar técnicamente ni proyectar su crecimiento.' },
+            { score: 6, desc: 'Visión sólida, motivación genuina y comprensión profunda del valor de la observabilidad moderna.' },
+            { score: 4, desc: 'Interés claro y positivo por evolucionar, con nociones correctas sobre el rol de observabilidad.' },
+            { score: 3, desc: 'Interés general por crecer pero sin foco definido en observabilidad o confiabilidad.' },
+            { score: 1, desc: 'Poco interés en proyección técnica; motivado principalmente por aspectos extrínsecos.' },
+            { score: 0, desc: 'Sin ninguna aspiración de desarrollo ni interés por aprender nuevas disciplinas.' },
         ],
     },
 }
 
-const CATEGORIES = [
-    { id: 'C1', name: 'Disposición al Aprendizaje Autónomo & Curiosidad', max: 7 },
-    { id: 'C2', name: 'Adaptabilidad al Cambio & Resiliencia Operativa', max: 7 },
-    { id: 'C3', name: 'Aspiraciones y Proyección hacia SRE/Observabilidad', max: 6 }
-]
+// Evaluator question guides per category (C1-C2) - OTel Expert Track
+const EVALUATOR_GUIDES_OTEL: Record<string, {
+    opening: string
+    deepening: string[]
+    positive: string[]
+    alert: string[]
+    scoring: { score: number; desc: string }[]
+}> = {
+    C1: {
+        opening: '"¿Cómo gestionas una cultura Blameless (sin culpas) durante y después de un incidente grave de producción?"',
+        deepening: [
+            '"¿Cómo diferencias un error humano de una falla sistémica en los post-mortems?"',
+            '"¿Qué acciones tomas para que los aprendizajes de un post-mortem se traduzcan en mejoras arquitectónicas reales?"'
+        ],
+        positive: [
+            'Foco en causas sistémicas y mejora de procesos, no en señalar personas',
+            'Documentación exhaustiva con líneas de tiempo y planes de acción accionables',
+            'Fomenta la seguridad psicológica en el equipo'
+        ],
+        alert: [
+            'Tendencia a buscar culpables o castigar errores individuales',
+            'Post-mortems superficiales que no previenen incidentes futuros'
+        ],
+        scoring: [
+            { score: 5, desc: 'Cultura blameless ejemplar, post-mortems estructurados y orientados a ingeniería de resiliencia.' },
+            { score: 3, desc: 'Entiende el concepto pero en la práctica se enfoca en resolver rápido sin documentar lecciones.' },
+            { score: 1, desc: 'Enfoque reactivo y punitivo ante fallas.' }
+        ]
+    },
+    C2: {
+        opening: '"¿Cómo aplicas el concepto de Error Budget para balancear la velocidad de despliegue con la confiabilidad del servicio?"',
+        deepening: [
+            '"¿Qué decisión tomas si el presupuesto de error se agota a mitad de mes y el equipo de producto quiere lanzar un release crítico?"',
+            '"¿Cómo defines qué es un SLI relevante para el usuario final vs una simple métrica de servidor?"'
+        ],
+        positive: [
+            'Definición de SLIs desde la perspectiva del usuario final',
+            'Aplicación rigurosa y constructiva de políticas ante presupuestos de error agotados',
+            'Alineación entre objetivos de ingeniería y metas de negocio'
+        ],
+        alert: [
+            'Tratar los SLOs como metas inalcanzables del 100% de disponibilidad',
+            'Ignorar el presupuesto de error ante presiones comerciales sin análisis de riesgo'
+        ],
+        scoring: [
+            { score: 5, desc: 'Mentalidad SRE madura; maneja trade-offs entre velocidad y disponibilidad con datos.' },
+            { score: 3, desc: 'Conoce los términos pero no ha participado en la gobernanza de Error Budgets.' },
+            { score: 1, desc: 'Desconoce la metodología o pretende 100% disponibilidad sin balance.' }
+        ]
+    }
+}
 
-export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }: Props) {
+export function DimensionCEvaluation({ evaluationId, existingScores, dynamicTests = [], readOnly, profileTrack }: Props) {
     const router = useRouter()
+    const isOtel = profileTrack === 'otel_expert'
+
+    const CATEGORIES = isOtel ? [
+        { id: 'C1', name: 'Cultura Blameless & Post-mortems', max: 5, normMax: 10 },
+        { id: 'C2', name: 'Mentalidad de SLOs & Error Budgets', max: 5, normMax: 10 },
+    ] : [
+        { id: 'C1', name: 'Aprendizaje Continuo y Curiosidad Técnica', max: 7, normMax: 7 },
+        { id: 'C2', name: 'Adaptabilidad al Cambio y Nuevas Herramientas', max: 7, normMax: 7 },
+        { id: 'C3', name: 'Proyección y Motivación hacia Observabilidad / SRE', max: 6, normMax: 6 },
+    ]
+
+    const [localTests, setLocalTests] = useState(dynamicTests)
+    useEffect(() => {
+        setLocalTests(dynamicTests)
+    }, [dynamicTests])
+
     const [isSaving, setIsSaving] = useState(false)
-    const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isEvaluating, setIsEvaluating] = useState(false)
+    const [isResetting, setIsResetting] = useState(false)
 
     const getInitialScore = (categoryId: string) => {
         const found = existingScores.find(s => s.dimension === 'C' && s.category === categoryId)
@@ -123,12 +193,124 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
         return found?.comments || ''
     }
 
-    const [scores, setScores] = useState<Record<string, number>>({
-        C1: getInitialScore('C1'), C2: getInitialScore('C2'), C3: getInitialScore('C3')
+    const [scores, setScores] = useState<Record<string, number>>(() => {
+        const init: Record<string, number> = {
+            C1: getInitialScore('C1'),
+            C2: getInitialScore('C2')
+        }
+        if (!isOtel) {
+            init.C3 = getInitialScore('C3')
+        }
+        return init
     })
-    const [comments, setComments] = useState<Record<string, string>>({
-        C1: getInitialComment('C1'), C2: getInitialComment('C2'), C3: getInitialComment('C3')
+    const [comments, setComments] = useState<Record<string, string>>(() => {
+        const init: Record<string, string> = {
+            C1: getInitialComment('C1'),
+            C2: getInitialComment('C2')
+        }
+        if (!isOtel) {
+            init.C3 = getInitialComment('C3')
+        }
+        return init
     })
+
+    const applyAiSuggestions = () => {
+        setScores(prev => {
+            const next = { ...prev }
+            CATEGORIES.forEach(cat => {
+                const q = localTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
+                if (q && q.ai_score !== null && q.ai_score !== undefined) {
+                    if (isOtel) {
+                        const mapOtel: Record<number, number> = { 0: 0, 1: 2, 2: 4, 3: 5 }
+                        next[cat.id] = mapOtel[q.ai_score] ?? q.ai_score
+                    } else {
+                        if (cat.id === 'C3') {
+                            const mapC3: Record<number, number> = { 0: 0, 1: 3, 2: 4, 3: 6 }
+                            next[cat.id] = mapC3[q.ai_score] ?? q.ai_score
+                        } else {
+                            const mapC: Record<number, number> = { 0: 0, 1: 3, 2: 5, 3: 7 }
+                            next[cat.id] = mapC[q.ai_score] ?? q.ai_score
+                        }
+                    }
+                }
+            })
+            return next
+        })
+    }
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true)
+        try {
+            const res = await getCResults(evaluationId)
+            if (res) {
+                setLocalTests(prev => {
+                    const withoutC = prev.filter(t => t.test_type !== 'QUESTIONS_C')
+                    const added = res.questions.map(q => ({
+                        test_type: 'QUESTIONS_C',
+                        subcategory: q.subcategory,
+                        prompt_context: q.question,
+                        ai_generated_content: q.label,
+                        candidate_response: res.answers[q.subcategory] || null,
+                        ai_score: res.aiResults?.find(a => a.subcategory === q.subcategory)?.score ?? null,
+                        ai_justification: res.aiResults?.find(a => a.subcategory === q.subcategory)?.justification ?? null,
+                        ai_likelihood: res.aiResults?.find(a => a.subcategory === q.subcategory)?.likelihood ?? null
+                    }))
+                    return [...withoutC, ...added]
+                })
+            }
+            router.refresh()
+        } catch (e) {
+            console.error('Error refreshing C:', e)
+        } finally {
+            setIsRefreshing(false)
+        }
+    }
+
+    const handleTriggerAI = async () => {
+        setIsEvaluating(true)
+        try {
+            const res = await triggerCEvaluation(evaluationId)
+            if (res.success) {
+                await handleRefresh()
+                applyAiSuggestions()
+                alert(`Re-evaluación completada (${res.count || 0} respuestas analizadas con IA).`)
+            } else {
+                alert('Error al reevaluar con IA: ' + (res.error || ''))
+            }
+        } catch (e: any) {
+            console.error('Error in triggerCEvaluation:', e)
+            alert('Error: ' + (e?.message || 'Error desconocido'))
+        } finally {
+            setIsEvaluating(false)
+        }
+    }
+
+    const handleResetC = async () => {
+        if (!confirm('⚠️ ¿Estás seguro de que deseas resetear las respuestas de Dimensión C? Esto eliminará las respuestas del candidato y las evaluaciones.')) return
+        setIsResetting(true)
+        try {
+            const res = await resetCResponses(evaluationId)
+            if (res.success) {
+                setLocalTests(prev => prev.filter(t => t.test_type !== 'QUESTIONS_C'))
+                const resetScores: Record<string, number> = { C1: 0, C2: 0 }
+                const resetComments: Record<string, string> = { C1: '', C2: '' }
+                if (!isOtel) {
+                    resetScores.C3 = 0
+                    resetComments.C3 = ''
+                }
+                setScores(resetScores)
+                setComments(resetComments)
+                router.refresh()
+                alert('Dimensión C reseteada exitosamente.')
+            } else {
+                alert('Error al resetear C: ' + res.error)
+            }
+        } catch (e) {
+            console.error('Error resetting C:', e)
+        } finally {
+            setIsResetting(false)
+        }
+    }
 
     const handleSave = async () => {
         setIsSaving(true)
@@ -141,18 +323,23 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
                     evaluation_id: evaluationId,
                     dimension: 'C',
                     category: cat.id,
-                    raw_score: scores[cat.id],
-                    comments: comments[cat.id]
+                    raw_score: scores[cat.id] || 0,
+                    comments: comments[cat.id] || ''
                 })
                 if (upsertErr) throw upsertErr
             }
 
-            // Actualizar total Dimensión C en tabla evaluations
-            const totalC = (scores['C1'] || 0) + (scores['C2'] || 0) + (scores['C3'] || 0)
-            await supabase.from('evaluations').update({ score_c: totalC }).eq('id', evaluationId)
+            // Normalizar y guardar score_c en evaluations
+            const calculatedC = await calculateDimensionC({
+                c1: scores['C1'] || 0,
+                c2: scores['C2'] || 0,
+                c3: scores['C3'] || 0
+            }, profileTrack)
 
-            router.refresh()
+            await supabase.from('evaluations').update({ score_c: calculatedC }).eq('id', evaluationId)
+
             alert('Dimensión C guardada exitosamente.')
+            router.refresh()
         } catch (error: any) {
             console.error('Error guardando Dimensión C:', error)
             alert('Error al guardar Dimensión C: ' + (error?.message || 'Error desconocido'))
@@ -163,40 +350,87 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Dimensión C: Actitudinal</h2>
-                    <p className="text-muted-foreground text-sm">Aprendizaje Autónomo, Adaptabilidad y Proyección hacia SRE/Observabilidad (20 pts).</p>
+                    <p className="text-muted-foreground text-sm">
+                        {isOtel
+                            ? 'Cultura Blameless, Filosofía SRE, SLOs y Error Budgets (20 pts).'
+                            : 'Aprendizaje Autónomo, Adaptabilidad y Proyección hacia SRE/Observabilidad (20 pts).'}
+                    </p>
                 </div>
                 {!readOnly && (
-                    <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
-                        {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleTriggerAI}
+                            disabled={isEvaluating || isSaving}
+                            className="h-9 px-3 text-xs font-bold text-amber-700 hover:bg-amber-500/10 border-amber-500/30 gap-1.5 cursor-pointer bg-amber-50/50 shadow-sm"
+                            title="Re-evaluar respuestas de Dimensión C con IA"
+                        >
+                            {isEvaluating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-amber-500" />}
+                            <span>Re-evaluar con IA</span>
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={applyAiSuggestions}
+                            disabled={isSaving}
+                            className="h-9 px-3 text-xs font-semibold gap-1.5 cursor-pointer bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100 shadow-sm"
+                            title="Aplicar sugerencias de puntaje recomendadas por la IA"
+                        >
+                            <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                            <span>Aplicar Sugerencias IA</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing || isSaving}
+                            className="h-9 px-3 text-xs font-semibold text-muted-foreground hover:text-primary gap-1.5 cursor-pointer bg-background/80 border border-border/60 shadow-sm"
+                            title="Refrescar respuestas de Dimensión C"
+                        >
+                            <RotateCcw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <span>Refrescar</span>
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleResetC}
+                            disabled={isResetting || isSaving}
+                            className="h-9 px-3 text-xs font-semibold bg-red-600/10 text-red-600 hover:bg-red-600/20 border border-red-600/20 cursor-pointer shadow-sm"
+                            title="Resetear respuestas de Dimensión C"
+                        >
+                            {isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+                            <span>Resetear Respuestas</span>
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 shadow-sm cursor-pointer"
+                        >
+                            {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
+                        </Button>
+                    </div>
                 )}
             </div>
 
             {/* Sticky Sub-navigation */}
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
                 <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
-                    {[
-                        { id: 'section-C1', label: 'C1. Aprendizaje (7 pts)' },
-                        { id: 'section-C2', label: 'C2. Adaptabilidad (7 pts)' },
-                        { id: 'section-C3', label: 'C3. Proyección SRE (6 pts)' }
-                    ].map(link => (
-                        <Button 
-                            key={link.id} 
-                            variant="secondary" 
-                            size="sm" 
-                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                    {CATEGORIES.map(link => (
+                        <Button
+                            key={link.id}
+                            variant="secondary"
+                            size="sm"
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-wider h-8 px-4 rounded-lg bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-200 cursor-pointer"
                             onClick={() => {
-                                const el = document.getElementById(link.id);
-                                if (el) {
+                                const element = document.getElementById(`section-${link.id}`);
+                                if (element) {
+                                    const yCoordinate = element.getBoundingClientRect().top + window.scrollY;
                                     const offset = 120;
-                                    const bodyRect = document.body.getBoundingClientRect().top;
-                                    const elementRect = el.getBoundingClientRect().top;
-                                    const elementPosition = elementRect - bodyRect;
-                                    const offsetPosition = elementPosition - offset;
-
+                                    const offsetPosition = yCoordinate - offset;
                                     window.scrollTo({
                                         top: offsetPosition,
                                         behavior: 'smooth'
@@ -204,26 +438,85 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
                                 }
                             }}
                         >
-                            {link.label}
+                            {link.id}. {link.name} ({link.normMax} pts)
                         </Button>
                     ))}
                 </div>
             </div>
 
-
             {CATEGORIES.map(cat => {
-                const guide = EVALUATOR_GUIDES[cat.id]
+                const guidesMap = isOtel ? EVALUATOR_GUIDES_OTEL : EVALUATOR_GUIDES
+                const guide = guidesMap[cat.id]
 
                 return (
                     <Card key={cat.id} id={`section-${cat.id}`} className="border-border scroll-mt-32">
                         <CardHeader className="bg-muted/30 border-b border-border py-4">
-                            <CardTitle className="text-xl font-bold text-primary flex justify-between items-center">
-                                <span>{cat.id}. {cat.name}</span>
-                                <span className="text-sm font-mono text-muted-foreground">Máx. {cat.max} pts</span>
-                            </CardTitle>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="text-xl font-bold text-primary flex items-center gap-3">
+                                    <span>{cat.id}. {cat.name}</span>
+                                    <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
+                                        {isOtel ? `Máx. ${cat.max} pts (Ponderado: ${cat.normMax} pts)` : `Máx. ${cat.max} pts`}
+                                    </span>
+                                </CardTitle>
+                                {!readOnly && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleRefresh}
+                                        disabled={isRefreshing}
+                                        className="h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-primary gap-1.5 cursor-pointer bg-background/80 border border-border/60 shadow-sm"
+                                        title={`Refrescar respuestas de ${cat.id}`}
+                                    >
+                                        <RotateCcw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                        <span>Refrescar</span>
+                                    </Button>
+                                )}
+                            </div>
                         </CardHeader>
 
                         <CardContent className="p-5 space-y-4">
+                            {/* Candidate Written Response & AI Likelihood Evidence */}
+                            {(() => {
+                                const qData = localTests.find(t => t.test_type === 'QUESTIONS_C' && t.subcategory === cat.id)
+                                if (!qData) return null
+
+                                return (
+                                    <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                                Respuesta Asíncrona del Candidato ({qData.subcategory})
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Pregunta Presentada:</p>
+                                            <p className="text-sm font-semibold text-foreground">{qData.prompt_context}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-muted-foreground">Respuesta Escrita:</p>
+                                            <div className="p-3 bg-background border border-border rounded-lg text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                                {qData.candidate_response || <span className="italic opacity-60">Sin respuesta del candidato aún.</span>}
+                                            </div>
+                                        </div>
+                                        {qData.candidate_response && qData.ai_likelihood !== undefined && qData.ai_likelihood !== null && (
+                                            <AiLikelihoodBadge percentage={qData.ai_likelihood} />
+                                        )}
+                                        {qData.ai_score !== null && (
+                                            <div className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/10 border border-teal-500/20 text-xs">
+                                                <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                                                <div>
+                                                    <span className="font-bold text-teal-700 dark:text-teal-300">
+                                                        IA Sugiere Puntaje: {qData.ai_score}/3
+                                                    </span>
+                                                    {qData.ai_justification && (
+                                                        <p className="text-muted-foreground mt-0.5">{qData.ai_justification}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })()}
+
                             {/* Evaluator Guide Static Header */}
                             <div className="w-full flex items-center gap-2 font-bold text-purple-800 bg-purple-100/50 border border-purple-200 rounded-lg px-4 py-3 mb-4 text-base">
                                 <MessageCircleQuestion className="h-5 w-5" /> Guía del Evaluador — Preguntas, Indicadores y Puntuación
@@ -244,121 +537,130 @@ export function DimensionCEvaluation({ evaluationId, existingScores, readOnly }:
                                         <ul className="space-y-2 bg-white/50 p-3 rounded-md border border-purple-100/30">
                                             {guide.deepening.map((q, i) => (
                                                 <li key={i} className="text-purple-950 flex items-start gap-2">
-                                                    <span className="text-purple-400 mt-0.5">•</span> <span>{q}</span>
+                                                    <span className="text-purple-600 font-bold shrink-0 mt-0.5">•</span>
+                                                    <span>{q}</span>
                                                 </li>
                                             ))}
                                         </ul>
                                     </div>
 
-                                    {/* Positive vs Alert indicators */}
+                                    {/* Positive / Alert Indicators */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-emerald-50/80 border border-emerald-200/60 rounded-xl p-4 shadow-sm">
-                                            <p className="font-bold text-emerald-800 mb-3 text-sm flex items-center gap-1.5">✅ Indicadores Positivos</p>
-                                            <ul className="space-y-2">
+                                        <div className="bg-emerald-50/70 border border-emerald-200/70 rounded-lg p-3.5 space-y-1.5">
+                                            <p className="font-bold text-emerald-800 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                                                <span>✅</span> Indicadores positivos
+                                            </p>
+                                            <ul className="space-y-1 text-emerald-950 text-xs">
                                                 {guide.positive.map((p, i) => (
-                                                    <li key={i} className="text-sm text-emerald-900 leading-snug flex items-start gap-2">
-                                                        <span className="shrink-0 text-emerald-500">•</span> {p}
+                                                    <li key={i} className="flex items-start gap-1.5">
+                                                        <span className="text-emerald-600 shrink-0 mt-0.5">✔</span>
+                                                        <span>{p}</span>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
-                                        <div className="bg-red-50/80 border border-red-200/60 rounded-xl p-4 shadow-sm">
-                                            <p className="font-bold text-red-800 mb-3 text-sm flex items-center gap-1.5">🚨 Indicadores de Alerta</p>
-                                            <ul className="space-y-2">
+                                        <div className="bg-amber-50/70 border border-amber-200/70 rounded-lg p-3.5 space-y-1.5">
+                                            <p className="font-bold text-amber-800 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                                                <span>⚠️</span> Señales de alerta
+                                            </p>
+                                            <ul className="space-y-1 text-amber-950 text-xs">
                                                 {guide.alert.map((a, i) => (
-                                                    <li key={i} className="text-sm text-red-900 leading-snug flex items-start gap-2">
-                                                        <span className="shrink-0 text-red-500">•</span> {a}
+                                                    <li key={i} className="flex items-start gap-1.5">
+                                                        <span className="text-amber-600 shrink-0 mt-0.5">✖</span>
+                                                        <span>{a}</span>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
                                     </div>
 
-                                    {/* Scoring guide list */}
-                                    <div className="pt-2 border-t border-purple-100/50">
-                                        <p className="font-bold text-purple-800 mb-3 uppercase tracking-wide text-xs">📊 Guía de puntuación:</p>
+                                    {/* Scoring rubric */}
+                                    <div>
+                                        <p className="font-bold text-purple-800 mb-2 uppercase tracking-wide text-xs">📊 Escala de puntuación:</p>
                                         <div className="space-y-1.5">
-                                            {guide.scoring.map((s, i) => {
-                                                const isActive = scores[cat.id] === s.score
-                                                let rowColor = 'bg-white text-slate-700 border-transparent border'
-                                                if (s.score >= cat.max * 0.7) rowColor = 'bg-emerald-50 text-emerald-800 border-emerald-100 border'
-                                                else if (s.score <= 1) rowColor = 'bg-red-50 text-red-800 border-red-100 border'
-
-                                                return (
-                                                    <div key={i}
-                                                        onClick={() => !readOnly && setScores(prev => ({ ...prev, [cat.id]: s.score }))}
-                                                        className={`flex gap-3 text-sm items-center p-2.5 rounded-lg transition-all ${!readOnly ? 'cursor-pointer hover:shadow-md' : ''} ${isActive ? 'ring-2 ring-primary ring-offset-1 scale-[1.01] shadow-md z-10 font-medium' : rowColor}`}>
-                                                        <span className={`font-black shrink-0 w-8 h-8 flex items-center justify-center rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'bg-background/80 shadow-sm text-muted-foreground'}`}>
-                                                            {s.score}
-                                                        </span>
-                                                        <span className="leading-snug">{s.desc}</span>
-                                                    </div>
-                                                )
-                                            })}
+                                            {guide.scoring.map(({ score: s, desc }) => (
+                                                <div
+                                                    key={s}
+                                                    onClick={() => !readOnly && setScores(prev => ({ ...prev, [cat.id]: s }))}
+                                                    className={`flex items-start gap-3 p-2.5 rounded-lg text-xs transition-colors ${
+                                                        scores[cat.id] === s
+                                                            ? 'bg-purple-600 text-white font-medium shadow-sm'
+                                                            : 'bg-white text-purple-950 border border-purple-100 hover:bg-purple-50'
+                                                    } ${!readOnly ? 'cursor-pointer' : ''}`}
+                                                >
+                                                    <span className={`font-mono font-bold px-2 py-0.5 rounded shrink-0 ${
+                                                        scores[cat.id] === s
+                                                            ? 'bg-white text-purple-700'
+                                                            : 'bg-purple-100 text-purple-800'
+                                                    }`}>
+                                                        {s} pts
+                                                    </span>
+                                                    <span className="leading-relaxed mt-0.5">{desc}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Interactive Score Progress Bar */}
-                            {(() => {
-                                const score = scores[cat.id] || 0
-                                const max = cat.max
-                                const pct = (score / max) * 100
-                                const color = pct >= 70 ? { bg: 'bg-emerald-600', rng: 'ring-emerald-300', text: 'text-emerald-700' } :
-                                    pct >= 40 ? { bg: 'bg-orange-500', rng: 'ring-orange-300', text: 'text-orange-600' } :
-                                        { bg: 'bg-red-500', rng: 'ring-red-300', text: 'text-red-700' }
+                            {/* Score selector */}
+                            <div className="space-y-2 pt-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    Puntaje Seleccionado (0 a {cat.max})
+                                </label>
+                                <div className="flex gap-2 flex-wrap">
+                                    {Array.from({ length: cat.max + 1 }, (_, i) => i).map((score) => (
+                                        <Button
+                                            key={score}
+                                            type="button"
+                                            variant={scores[cat.id] === score ? 'default' : 'outline'}
+                                            onClick={() => setScores(prev => ({ ...prev, [cat.id]: score }))}
+                                            disabled={readOnly}
+                                            className="w-12 h-10 text-sm font-bold cursor-pointer"
+                                        >
+                                            {score}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
 
-                                const scoreOptions = Array.from({ length: max + 1 }, (_, i) => i)
-
-                                return (
-                                    <div className="mt-6 pt-4 border-t border-border border-dashed space-y-4">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground w-36 shrink-0">Puntuación Final:</span>
-
-                                            <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden shadow-inner hidden md:block">
-                                                <div className={`h-full rounded-full ${color.bg} transition-all duration-300 ease-out`}
-                                                    style={{ width: `${pct}%` }} />
-                                            </div>
-
-                                            <div className="flex gap-1.5 font-mono shrink-0 flex-wrap">
-                                                {scoreOptions.map(v => (
-                                                    <button key={v} disabled={readOnly}
-                                                        onClick={() => setScores(prev => ({ ...prev, [cat.id]: v }))}
-                                                        className={`w-8 h-8 rounded-lg text-center font-black transition-all text-sm ${scores[cat.id] === v
-                                                            ? `${color.bg} text-white ring-4 ${color.rng} shadow-md scale-110 z-10`
-                                                            : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                                                        {v}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })()}
-
-                            {/* Comments */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-foreground">Evidencia / Comentarios</label>
-                                <textarea value={comments[cat.id]} disabled={readOnly}
+                            {/* Observations textarea */}
+                            <div className="space-y-2 pt-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    Evidencia y Justificación ({cat.id})
+                                </label>
+                                <textarea
+                                    value={comments[cat.id] || ''}
                                     onChange={(e) => setComments(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                                    placeholder="Registra lo evidenciado ante este comportamiento..." className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background text-foreground text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary" />
+                                    placeholder={`Registra la respuesta del candidato a la pregunta de ${cat.name}, ejemplos concretos mencionados y la justificación de la puntuación...`}
+                                    disabled={readOnly}
+                                    className="w-full min-h-[100px] p-3 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 leading-relaxed"
+                                />
                             </div>
                         </CardContent>
                     </Card>
                 )
             })}
 
-            {/* Bottom Actions */}
-            <div className="flex justify-between items-center mt-6 pt-6 border-t border-border pb-10">
-                <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="gap-2 shadow-sm">
-                    <ArrowUp className="w-4 h-4" /> Ir al principio
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-border pb-10">
+                <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                    <ArrowUp className="w-4 h-4 mr-2" /> Volver arriba
                 </Button>
-                {!readOnly && (
-                    <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
-                        {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
-                    </Button>
-                )}
+                <div className="flex items-center gap-6">
+                    <div className="text-right">
+                        <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider block">Subtotal Dimensión C</span>
+                        <span className="text-xl font-mono font-black text-primary">
+                            {isOtel
+                                ? parseFloat((((Math.min(5, scores['C1'] || 0) / 5) * 10) + ((Math.min(5, scores['C2'] || 0) / 5) * 10)).toFixed(1))
+                                : ((scores['C1'] || 0) + (scores['C2'] || 0) + (scores['C3'] || 0))} <span className="text-sm font-normal text-muted-foreground">/ 20 pts</span>
+                        </span>
+                    </div>
+                    {!readOnly && (
+                        <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 h-12 rounded-xl shadow-xl cursor-pointer">
+                            {isSaving ? 'Guardando...' : 'Guardar Dimensión C'}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

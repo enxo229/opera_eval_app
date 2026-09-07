@@ -2,6 +2,7 @@ import { TerminalSandbox } from '@/components/candidate/TerminalSandbox'
 import { Button } from '@/components/ui/button'
 import { Terminal, Sparkles, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
 import { A1Question } from '@/app/actions/ai'
+import { useCandidateContext } from '@/context/CandidateContext'
 import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
 
 interface A1TabProps {
@@ -33,21 +34,40 @@ export function A1Tab({
     handleGenerateA1Questions,
     handleSubmitA1
 }: A1TabProps) {
+    const ctx = useCandidateContext()
+
+    const handleBypassAttempt = (e: React.SyntheticEvent) => {
+        e.preventDefault()
+        ctx.incrementBypassCount()
+    }
+
+    const isOtelExpert = ctx.profileTrack === 'otel_expert'
+
     return (
         <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                 <Terminal className="h-5 w-5 text-primary" />
-                A1. Linux & Cloud Computing AWS
+                {isOtelExpert ? 'A1. Fundamentos de Arquitectura OpenTelemetry & OTLP' : 'A1. Fundamentos de Infraestructura y Linux'}
             </h2>
-            <p className="text-muted-foreground text-sm mb-4">
-                Usa la terminal interactiva para demostrar tu manejo de comandos en Linux (archivos, permisos, procesos, logs) y responde las preguntas de Linux y Fundamentos Cloud AWS.
-                Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
-            </p>
-            <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
-            <div className="mt-6">
+            
+            {!isOtelExpert && (
+                <>
+                    <p className="text-muted-foreground text-sm mb-4">
+                        Usa la terminal interactiva para demostrar tu manejo de comandos en Linux (archivos, permisos, procesos, logs) y responde las preguntas de Linux y Fundamentos Cloud AWS.
+                        Escribe <code className="bg-muted px-1 rounded">help</code> para ver los comandos disponibles.
+                    </p>
+                    <TerminalSandbox mode="A1" onCommandsChange={setA1Commands} />
+                </>
+            )}
+
+            <div className={isOtelExpert ? "mt-2" : "mt-6"}>
                 {!a1QuestionsGenerated ? (
-                    <div className="text-center py-4 border border-border rounded-xl mt-4">
-                        <p className="text-muted-foreground mb-4">Cuando termines con la terminal, genera las preguntas para completar la sección A1.</p>
+                    <div className="text-center py-6 border border-border rounded-xl mt-4">
+                        <p className="text-muted-foreground mb-4">
+                            {isOtelExpert 
+                                ? 'Genera las preguntas técnicas para comenzar la sección A1.' 
+                                : 'Cuando termines con la terminal, genera las preguntas para completar la sección A1.'}
+                        </p>
                         <Button onClick={handleGenerateA1Questions} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             Generar Preguntas A1
                         </Button>
@@ -60,12 +80,12 @@ export function A1Tab({
                 ) : (
                     <div className="space-y-5 border border-border rounded-xl p-6 mt-4">
                         <h3 className="font-bold text-foreground flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-primary" /> Preguntas — Infraestructura y Sistemas
+                            <Sparkles className="h-4 w-4 text-primary" /> Preguntas de Respuesta Abierta Justificada
                             {a1Submitted && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                         </h3>
 
-                        {a1Questions.map((q) => (
-                            <div key={q.subcategory} className="bg-secondary/30 border border-border rounded-lg p-4 space-y-2">
+                        {a1Questions.map((q: A1Question) => (
+                            <div key={q.subcategory} className="bg-secondary/30 border border-border rounded-lg p-4 space-y-2 select-none">
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                         {q.subcategory}
@@ -75,13 +95,14 @@ export function A1Tab({
                                 <FormattedQuestion text={q.question} />
                                 <textarea
                                     value={a1Answers[q.subcategory] || ''}
-                                    onChange={(e) => setA1Answers(prev => ({ ...prev, [q.subcategory]: e.target.value }))}
-                                    onPaste={(e) => e.preventDefault()}
-                                    onCopy={(e) => e.preventDefault()}
-                                    onContextMenu={(e) => e.preventDefault()}
+                                    onChange={(e) => setA1Answers((prev: Record<string, string>) => ({ ...prev, [q.subcategory]: e.target.value }))}
+                                    onPaste={handleBypassAttempt}
+                                    onCopy={handleBypassAttempt}
+                                    onCut={handleBypassAttempt}
+                                    onContextMenu={handleBypassAttempt}
                                     disabled={a1Submitted}
-                                    placeholder="Escribe tu respuesta aquí..."
-                                    className="w-full min-h-[80px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                                    placeholder="Escribe tu respuesta justificada aquí..."
+                                    className="w-full min-h-[90px] p-3 rounded-md border border-border bg-card text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 select-text"
                                 />
                             </div>
                         ))}

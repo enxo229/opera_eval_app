@@ -137,3 +137,50 @@ export async function pauseEvaluation(evaluationId: string) {
 export async function resumeEvaluation(evaluationId: string): Promise<{ success: boolean; error?: string }> {
     return { success: true }
 }
+
+/**
+ * Persists security paste-bypass attempt by candidate in dynamic_tests.
+ */
+export async function recordBypassAttempt(evaluationId: string) {
+    const supabase = await createClient()
+    if (!evaluationId) return { success: false }
+
+    const { error } = await supabase.from('dynamic_tests').insert({
+        evaluation_id: evaluationId,
+        test_type: 'SECURITY_AUDIT',
+        subcategory: 'BYPASS_PASTE',
+        candidate_response: 'Intentó pegar texto en el editor (Evento onPaste bloqueado)',
+    })
+
+    try {
+        const { data } = await supabase.from('evaluations').select('bypass_paste_count').eq('id', evaluationId).single()
+        if (data && data.bypass_paste_count !== undefined) {
+            await supabase.from('evaluations').update({ bypass_paste_count: (data.bypass_paste_count || 0) + 1 }).eq('id', evaluationId)
+        }
+    } catch {
+        // Ignorar si no existe columna
+    }
+
+    if (error) {
+        console.error('Error recording bypass attempt:', error)
+        return { success: false, error: error.message }
+    }
+    return { success: true }
+}
+
+/**
+ * Gets total paste bypass attempts for evaluator view.
+ */
+export async function getBypassAttempts(evaluationId: string): Promise<number> {
+    const supabase = await createClient()
+    if (!evaluationId) return 0
+
+    const { count } = await supabase
+        .from('dynamic_tests')
+        .select('id', { count: 'exact', head: true })
+        .eq('evaluation_id', evaluationId)
+        .eq('test_type', 'SECURITY_AUDIT')
+        .eq('subcategory', 'BYPASS_PASTE')
+
+    return count || 0
+}

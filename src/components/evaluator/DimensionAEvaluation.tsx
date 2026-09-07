@@ -12,9 +12,10 @@ import { getA1Results, getA1TerminalCommands, resetA1Responses } from '@/app/act
 import { getA2Results, resetA2Responses } from '@/app/actions/candidate/a2'
 import { getA3Results, resetA3Responses } from '@/app/actions/candidate/a3'
 import { getA4Results, resetA4Responses } from '@/app/actions/candidate/a4'
+import { calculateDimensionA } from '@/app/actions/evaluation'
 
 // Subcomponents & Constants
-import { A1_SUBS, A2_SUBS, A3_SUBS, A4_SUBS } from './dimension-a/constants'
+import { A1_SUBS, A2_SUBS, A3_SUBS, A4_SUBS, A1_SUBS_OTEL, A2_SUBS_OTEL, A3_SUBS_OTEL } from './dimension-a/constants'
 import { A1SubEvaluation } from './dimension-a/A1SubEvaluation'
 import { A2SubEvaluation } from './dimension-a/A2SubEvaluation'
 import { A3SubEvaluation } from './dimension-a/A3SubEvaluation'
@@ -25,12 +26,18 @@ interface Props {
     existingScores: any[]
     dynamicTests: any[]
     readOnly?: boolean
+    profileTrack?: string
 }
 
-export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTests, readOnly }: Props) {
+export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTests, readOnly, profileTrack }: Props) {
     const router = useRouter()
     const [isSaving, setIsSaving] = useState(false)
     const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null)
+
+    const isOtel = profileTrack === 'otel_expert'
+    const a1Subs = isOtel ? A1_SUBS_OTEL : A1_SUBS
+    const a2Subs = isOtel ? A2_SUBS_OTEL : A2_SUBS
+    const a3Subs = isOtel ? A3_SUBS_OTEL : A3_SUBS
 
     // Initial Scoring Helpers
     const getInitialSubScore = (subId: string) => {
@@ -45,12 +52,12 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     // A1 State
     const [a1SubScores, setA1SubScores] = useState<Record<string, number>>(() => {
         const initial: Record<string, number> = {}
-        A1_SUBS.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
+        a1Subs.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
         return initial
     })
     const [a1SubComments, setA1SubComments] = useState<Record<string, string>>(() => {
         const initial: Record<string, string> = {}
-        A1_SUBS.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
+        a1Subs.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
         return initial
     })
     const [a1QData, setA1QData] = useState(dynamicTests.filter(t => t.test_type === 'QUESTIONS_A1'))
@@ -68,12 +75,12 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     // A2 State
     const [a2SubScores, setA2SubScores] = useState<Record<string, number>>(() => {
         const initial: Record<string, number> = {}
-        A2_SUBS.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
+        a2Subs.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
         return initial
     })
     const [a2SubComments, setA2SubComments] = useState<Record<string, string>>(() => {
         const initial: Record<string, string> = {}
-        A2_SUBS.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
+        a2Subs.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
         return initial
     })
     const [a2QData, setA2QData] = useState(dynamicTests.filter(t => t.test_type === 'QUESTIONS_A2'))
@@ -85,19 +92,20 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     // A3 State
     const [a3SubScores, setA3SubScores] = useState<Record<string, number>>(() => {
         const initial: Record<string, number> = {}
-        A3_SUBS.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
+        a3Subs.forEach(s => { initial[s.id] = getInitialSubScore(s.id) })
         return initial
     })
     const [a3SubComments, setA3SubComments] = useState<Record<string, string>>(() => {
         const initial: Record<string, string> = {}
-        A3_SUBS.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
+        a3Subs.forEach(s => { initial[s.id] = getInitialSubComment(s.id) })
         return initial
     })
     const [a3QData, setA3QData] = useState(dynamicTests.filter(t => t.test_type === 'QUESTIONS_A3'))
     const [a3Refreshing, setA3Refreshing] = useState(false)
     const [a3Resetting, setA3Resetting] = useState(false)
     const a3Total = Object.values(a3SubScores).reduce((sum, v) => sum + v, 0)
-    const a3Normalized = (Math.round((a3Total / 9) * 10 * 10) / 10).toString()
+    const a3Max = isOtel ? 6 : 9
+    const a3Normalized = (Math.round((a3Total / a3Max) * 10 * 10) / 10).toString()
 
     // A4 State
     const [a4SubScores, setA4SubScores] = useState<Record<string, number>>(() => {
@@ -133,6 +141,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 candidate_response: r.answer,
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
+                ai_likelihood: r.ai_likelihood,
             })))
             setA1TerminalCommands(termCmds)
         } catch (e) {
@@ -150,7 +159,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 setA1QData([])
                 setA1TerminalCommands([])
                 const resetScores: Record<string, number> = {}
-                A1_SUBS.forEach(s => { resetScores[s.id] = 0 })
+                a1Subs.forEach(s => { resetScores[s.id] = 0 })
                 setA1SubScores(resetScores)
             } else {
                 alert(`Error: ${result.error}`)
@@ -163,7 +172,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     }
     useEffect(() => {
         if (a1QData.length > 0) {
-            const hasExisting = A1_SUBS.some(s => getInitialSubScore(s.id) > 0)
+            const hasExisting = a1Subs.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a1QData.forEach(q => {
@@ -172,7 +181,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 if (Object.keys(aiScores).length > 0) setA1SubScores(prev => ({ ...prev, ...aiScores }))
             }
         }
-    }, [a1QData])
+    }, [a1QData, a1Subs])
 
     // --- A2 Handlers ---
     const handleRefreshA2 = async () => {
@@ -187,6 +196,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
                 ai_generated_content: r.tool,
+                ai_likelihood: r.ai_likelihood,
             })))
         } catch (e) {
             console.error('Error refreshing A2:', e)
@@ -202,7 +212,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             if (result.success) {
                 setA2QData([])
                 const resetScores: Record<string, number> = {}
-                A2_SUBS.forEach(s => { resetScores[s.id] = 0 })
+                a2Subs.forEach(s => { resetScores[s.id] = 0 })
                 setA2SubScores(resetScores)
             } else {
                 alert(`Error: ${result.error}`)
@@ -216,7 +226,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const hasAppliedA2AutoFill = useRef(false)
     useEffect(() => {
         if (a2QData.length > 0 && !hasAppliedA2AutoFill.current) {
-            const hasExisting = A2_SUBS.some(s => getInitialSubScore(s.id) > 0)
+            const hasExisting = a2Subs.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a2QData.forEach(q => {
@@ -228,7 +238,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 }
             }
         }
-    }, [a2QData, A2_SUBS])
+    }, [a2QData, a2Subs])
 
     // --- A3 Handlers ---
     const handleRefreshA3 = async () => {
@@ -242,6 +252,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 candidate_response: r.answer,
                 ai_score: r.ai_score,
                 ai_justification: r.ai_justification,
+                ai_likelihood: r.ai_likelihood,
             })))
         } catch (e) {
             console.error('Error refreshing A3:', e)
@@ -257,7 +268,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             if (result.success) {
                 setA3QData([])
                 const resetScores: Record<string, number> = {}
-                A3_SUBS.forEach(s => { resetScores[s.id] = 0 })
+                a3Subs.forEach(s => { resetScores[s.id] = 0 })
                 setA3SubScores(resetScores)
             } else {
                 alert(`Error: ${result.error}`)
@@ -271,7 +282,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
     const hasAppliedA3AutoFill = useRef(false)
     useEffect(() => {
         if (a3QData.length > 0 && !hasAppliedA3AutoFill.current) {
-            const hasExisting = A3_SUBS.some(s => getInitialSubScore(s.id) > 0)
+            const hasExisting = a3Subs.some(s => getInitialSubScore(s.id) > 0)
             if (!hasExisting) {
                 const aiScores: Record<string, number> = {}
                 a3QData.forEach(q => {
@@ -283,7 +294,7 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 }
             }
         }
-    }, [a3QData, A3_SUBS])
+    }, [a3QData, a3Subs])
 
     // --- A4 Handlers ---
     const handleRefreshA4 = async () => {
@@ -352,10 +363,10 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
         const supabase = createClient()
         try {
             const subScoresData = [
-                ...A1_SUBS.map(s => ({ category: s.id, score: a1SubScores[s.id], comment: a1SubComments[s.id] })),
-                ...A2_SUBS.map(s => ({ category: s.id, score: a2SubScores[s.id], comment: a2SubComments[s.id] })),
-                ...A3_SUBS.map(s => ({ category: s.id, score: a3SubScores[s.id], comment: a3SubComments[s.id] })),
-                ...A4_SUBS.map(s => ({ category: s.id, score: a4SubScores[s.id], comment: a4SubComments[s.id] })),
+                ...a1Subs.map(s => ({ category: s.id, score: a1SubScores[s.id] || 0, comment: a1SubComments[s.id] || '' })),
+                ...a2Subs.map(s => ({ category: s.id, score: a2SubScores[s.id] || 0, comment: a2SubComments[s.id] || '' })),
+                ...a3Subs.map(s => ({ category: s.id, score: a3SubScores[s.id] || 0, comment: a3SubComments[s.id] || '' })),
+                ...A4_SUBS.map(s => ({ category: s.id, score: a4SubScores[s.id] || 0, comment: a4SubComments[s.id] || '' })),
             ]
 
             for (const item of subScoresData) {
@@ -390,10 +401,13 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                 if (totalErr) throw totalErr
             }
 
-            // Actualizar total Dimensión A en tabla evaluations
-            const normA3 = Math.min(10, Math.round((a3Total / 9) * 10 * 100) / 100)
-            const normA4 = Math.min(10, Math.round((a4Total / 9) * 10 * 100) / 100)
-            const totalA = parseFloat((a1Total + a2Total + normA3 + normA4).toFixed(2))
+            // Actualizar total Dimensión A en tabla evaluations usando la normalización oficial por track
+            const totalA = await calculateDimensionA({
+                a1: a1Total,
+                a2: a2Total,
+                a3: a3Total,
+                a4: a4Total
+            }, profileTrack)
             await supabase.from('evaluations').update({ score_a: totalA }).eq('id', evaluationId)
 
             router.refresh()
@@ -411,7 +425,11 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Dimensión A: Habilidades Técnicas</h2>
-                    <p className="text-muted-foreground text-sm">Competencias base de Sistemas, Observabilidad y Analítica (50 pts).</p>
+                    <p className="text-muted-foreground text-sm">
+                        {isOtel 
+                            ? 'Dominio OTel, Grafana Cloud, Pipelines y Prácticas SRE (50 pts).' 
+                            : 'Competencias base de Sistemas, Observabilidad y Analítica (50 pts).'}
+                    </p>
                 </div>
                 {!readOnly && (
                     <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
@@ -424,10 +442,10 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
             <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-sm pb-4 pt-2 -mt-2 border-b border-border/50 mb-6">
                 <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-xl border border-border/40">
                     {[
-                        { id: 'section-A1', label: 'A1. Sistemas' },
-                        { id: 'section-A2', label: 'A2. Observabilidad' },
-                        { id: 'section-A3', label: 'A3. Analítica' },
-                        { id: 'section-A4', label: 'A4. Escenarios' }
+                        { id: 'section-A1', label: isOtel ? 'A1. Arquitectura OTel' : 'A1. Sistemas' },
+                        { id: 'section-A2', label: isOtel ? 'A2. Grafana Stack' : 'A2. Observabilidad' },
+                        { id: 'section-A3', label: isOtel ? 'A3. Pipelines & OTTL' : 'A3. Analítica' },
+                        { id: 'section-A4', label: isOtel ? 'A4. Escenarios SRE' : 'A4. Escenarios' }
                     ].map(link => (
                         <Button 
                             key={link.id} 
@@ -466,6 +484,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     a1Refreshing={a1Refreshing} a1Resetting={a1Resetting}
                     onRefresh={handleRefreshA1} onReset={handleResetA1}
                     readOnly={readOnly}
+                    a1Subs={a1Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 
@@ -479,6 +499,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     a2Refreshing={a2Refreshing} a2Resetting={a2Resetting}
                     onRefresh={handleRefreshA2} onReset={handleResetA2}
                     readOnly={readOnly}
+                    a2Subs={a2Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 
@@ -491,6 +513,8 @@ export function DimensionAEvaluation({ evaluationId, existingScores, dynamicTest
                     a3Refreshing={a3Refreshing} a3Resetting={a3Resetting}
                     onRefresh={handleRefreshA3} onReset={handleResetA3}
                     readOnly={readOnly}
+                    a3Subs={a3Subs}
+                    profileTrack={profileTrack}
                 />
             </div>
 

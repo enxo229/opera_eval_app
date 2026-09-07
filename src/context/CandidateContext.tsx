@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getA1Results } from '@/app/actions/candidate/a1'
 import { getA2Results } from '@/app/actions/candidate/a2'
@@ -35,6 +35,7 @@ interface CandidateContextType {
     educationLevel: string
     setEducationLevel: (val: string) => void
     evaluationId: string | null
+    profileTrack: 'general' | 'otel_expert'
     contextLoaded: boolean
     candidateName: string
     candidateEmail: string
@@ -60,6 +61,10 @@ interface CandidateContextType {
     pauseCount: number
     setPauseCount: React.Dispatch<React.SetStateAction<number>>
     isPaused: boolean
+    // Security Bypass Audit Counter
+    bypassPasteCount: number
+    incrementBypassCount: () => void
+    reloadContext: () => void
 }
 
 const CandidateContext = createContext<CandidateContextType | undefined>(undefined)
@@ -67,6 +72,7 @@ const CandidateContext = createContext<CandidateContextType | undefined>(undefin
 export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [educationLevel, setEducationLevel] = useState<string>('')
     const [evaluationId, setEvaluationId] = useState<string | null>(null)
+    const [profileTrack, setProfileTrack] = useState<'general' | 'otel_expert'>('general')
     const [contextLoaded, setContextLoaded] = useState(false)
     const [candidateName, setCandidateName] = useState<string>('')
     const [candidateEmail, setCandidateEmail] = useState<string>('')
@@ -87,6 +93,22 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
     const [totalPausedMs, setTotalPausedMs] = useState<number>(0)
     const [pauseCount, setPauseCount] = useState<number>(0)
 
+    // Security Bypass Audit Counter
+    const [bypassPasteCount, setBypassPasteCount] = useState<number>(0)
+    const incrementBypassCount = useCallback(() => {
+        setBypassPasteCount(prev => prev + 1)
+        if (evaluationId) {
+            import('@/app/actions/candidate/evaluation').then(({ recordBypassAttempt }) => {
+                recordBypassAttempt(evaluationId)
+            }).catch(e => console.error('Error in recordBypassAttempt:', e))
+        }
+    }, [evaluationId])
+
+    const [reloadCounter, setReloadCounter] = useState(0)
+    const reloadContext = useCallback(() => {
+        setReloadCounter(prev => prev + 1)
+    }, [])
+
     useEffect(() => {
         async function loadContext() {
             try {
@@ -103,13 +125,16 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                 // Get active evaluation
                 const { data: activeProcess, error: procError } = await supabase
                     .from('selection_processes')
-                    .select('id')
+                    .select('id, profile_track')
                     .eq('candidate_email', user.email)
                     .eq('status', 'active')
                     .limit(1)
                     .maybeSingle()
                 
                 if (procError) console.error('Selection process error:', procError)
+                if (activeProcess?.profile_track) {
+                    setProfileTrack((activeProcess.profile_track as 'general' | 'otel_expert') || 'general')
+                }
 
                 let evaluation: { id: string } | undefined
                 if (activeProcess) {
@@ -142,13 +167,22 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                         getA3Results(evaluation.id)
                     ])
 
+                    const track = activeProcess?.profile_track || 'general'
+
                     if (rA1 && rA1.length > 0) {
                         const questions: A1Question[] = rA1.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A1.1' ? 'Linux Filesystem' :
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A1.1' ? 'Arquitectura OTel & Contexto' :
+                                r.subcategory === 'A1.2' ? 'Collector & OTTL Pipelines' :
+                                r.subcategory === 'A1.3' ? 'Protocolo OTLP & Transportes' :
+                                r.subcategory === 'A1.4' ? 'Profiling & eBPF Telemetry' : 'Cloud'
+                            ) : (
+                                r.subcategory === 'A1.1' ? 'Linux Filesystem' :
                                 r.subcategory === 'A1.2' ? 'Linux Procesos' :
                                 r.subcategory === 'A1.3' ? 'Linux Logs' :
-                                r.subcategory === 'A1.4' ? 'Cloud Computing' : 'Cloud AWS',
+                                r.subcategory === 'A1.4' ? 'Cloud Computing' : 'Cloud AWS'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA1.forEach(r => answers[r.subcategory] = r.answer)
@@ -159,10 +193,17 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                     if (rA2 && rA2.length > 0) {
                         const questions: A2Question[] = rA2.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A2.1' ? 'Monitoreo vs Observabilidad' :
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A2.1' ? 'Grafana Alloy Flow Mode' :
+                                r.subcategory === 'A2.2' ? 'Mimir & Loki (PromQL/LogQL)' :
+                                r.subcategory === 'A2.3' ? 'Tempo & Pyroscope (TraceQL/Profiling)' :
+                                r.subcategory === 'A2.4' ? 'Búsqueda de Logs' : 'Interpretación de Alertas'
+                            ) : (
+                                r.subcategory === 'A2.1' ? 'Monitoreo vs Observabilidad' :
                                 r.subcategory === 'A2.2' ? 'Tres Pilares' :
                                 r.subcategory === 'A2.3' ? `Dashboards` :
-                                r.subcategory === 'A2.4' ? 'APM & Tracing' : 'Alertas & SLOs',
+                                r.subcategory === 'A2.4' ? 'APM & Tracing' : 'Alertas & SLOs'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA2.forEach(r => answers[r.subcategory] = r.answer)
@@ -173,8 +214,12 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
                     if (rA3 && rA3.length > 0) {
                         const questions: A3Question[] = rA3.map(r => ({
                             subcategory: r.subcategory,
-                            label: r.subcategory === 'A3.1' ? 'Git: Ramas y Flujo' :
-                                r.subcategory === 'A3.2' ? 'Pandas: Carga y Filtrado' : 'Pandas: Agregaciones y Detección',
+                            label: track === 'otel_expert' ? (
+                                r.subcategory === 'A3.1' ? 'Análisis de Pipeline & Muestreo' : 'Reglas OTTL & Procesamiento'
+                            ) : (
+                                r.subcategory === 'A3.1' ? 'Git: Ramas y Flujo' :
+                                r.subcategory === 'A3.2' ? 'Pandas: Carga y Filtrado' : 'Pandas: Agregaciones y Detección'
+                            ),
                             question: r.question,
                         }))
                         const answers: Record<string, string> = {}; rA3.forEach(r => answers[r.subcategory] = r.answer)
@@ -197,7 +242,7 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
             }
         }
         loadContext()
-    }, [])
+    }, [reloadCounter])
 
     // Timer countdown — strictly continuous, never freezes
     useEffect(() => {
@@ -232,14 +277,15 @@ export const CandidateProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <CandidateContext.Provider value={{
-            educationLevel, setEducationLevel, evaluationId, contextLoaded, candidateName, candidateEmail, legalAccepted, setLegalAccepted,
+            educationLevel, setEducationLevel, evaluationId, profileTrack, contextLoaded, candidateName, candidateEmail, legalAccepted, setLegalAccepted,
             restoredA1, restoredA2, restoredA3,
             startedAt, setStartedAt: (val: string) => setStartedAt(val), testDuration, remainingSeconds, isTimeUp, 
             tabSwitchCount, setTabSwitchCount,
             showTabSwitchWarning, setShowTabSwitchWarning,
             pausedAt, setPausedAt, totalPausedMs, setTotalPausedMs, 
             pauseCount: tabSwitchCount, setPauseCount: setTabSwitchCount,
-            isPaused: false
+            isPaused: false,
+            bypassPasteCount, incrementBypassCount, reloadContext
         }}>
             {children}
         </CandidateContext.Provider>

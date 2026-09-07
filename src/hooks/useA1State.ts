@@ -3,7 +3,7 @@ import { A1Question, generateQuestionsA1 } from '@/app/actions/ai'
 import { saveA1QuestionsOnly, saveA1Responses } from '@/app/actions/candidate/a1'
 import { useCandidateContext, RestoredA1 } from '@/context/CandidateContext'
 
-export function useA1State(educationLevel: string, evaluationId: string | null, restored: RestoredA1 | null) {
+export function useA1State(educationLevel: string, evaluationId: string | null, restored: RestoredA1 | null, profileTrack?: string) {
     const [a1Commands, setA1Commands] = useState<string[]>([])
     const [a1Questions, setA1Questions] = useState<A1Question[]>([])
     const [a1Answers, setA1Answers] = useState<Record<string, string>>({})
@@ -28,7 +28,7 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
         setA1QuestionsLoading(true)
         setA1QuestionsGenerated(true)
         try {
-            const questions = await generateQuestionsA1(educationLevel)
+            const questions = await generateQuestionsA1(educationLevel, profileTrack)
             setA1Questions(questions)
             
             const initialAnswers: Record<string, string> = {}
@@ -44,7 +44,14 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
         } finally {
             setA1QuestionsLoading(false)
         }
-    }, [educationLevel, evaluationId])
+    }, [educationLevel, evaluationId, profileTrack])
+
+    // Auto-trigger question generation if not restored
+    useEffect(() => {
+        if (!restored && !a1QuestionsGenerated && !a1QuestionsLoading && (educationLevel || profileTrack)) {
+            handleGenerateA1Questions()
+        }
+    }, [restored, a1QuestionsGenerated, a1QuestionsLoading, educationLevel, profileTrack, handleGenerateA1Questions])
 
     const handleSubmitA1 = useCallback(async () => {
         if (!evaluationId) return
@@ -60,9 +67,12 @@ export function useA1State(educationLevel: string, evaluationId: string | null, 
             if (result.success) {
                 setA1Submitted(true)
                 if (result.evaluations) setA1AIResults(result.evaluations)
+            } else if (result.error) {
+                alert('Error al guardar A1: ' + result.error)
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error submitting A1:', e)
+            alert('Error al guardar A1: ' + (e?.message || 'Error desconocido'))
         } finally {
             setA1Submitting(false)
         }

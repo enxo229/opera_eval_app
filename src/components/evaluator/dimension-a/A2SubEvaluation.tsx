@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Wrench, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
+import { Wrench, RefreshCw, RotateCcw, Sparkles, BookOpen } from 'lucide-react'
 import { A2_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { A2_EVALUATOR_GUIDANCE, A2_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A2SubEvaluationProps {
     a2QData: any[]
@@ -16,6 +18,8 @@ interface A2SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a2Subs?: any[]
+    profileTrack?: string
 }
 
 export function A2SubEvaluation({
@@ -30,14 +34,18 @@ export function A2SubEvaluation({
     a2Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a2Subs,
+    profileTrack
 }: A2SubEvaluationProps) {
+    const isOtel = profileTrack === 'otel_expert'
+    const guidanceMap = isOtel ? A2_EVALUATOR_GUIDANCE_OTEL : A2_EVALUATOR_GUIDANCE
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
                     <span className="flex items-center gap-2">
-                        A2. Observabilidad y Monitoreo
+                        {isOtel ? 'A2. Plataforma Grafana Cloud & Stack de Datos' : 'A2. Observabilidad y Monitoreo'}
                         {a2SelectedTool && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-xs font-semibold">
                                 <Wrench className="h-3 w-3" /> {a2SelectedTool}
@@ -57,6 +65,9 @@ export function A2SubEvaluation({
                                 </Button>
                             </>
                         )}
+                        <span className="font-mono bg-background px-3 py-1 rounded-md border text-foreground text-base">
+                            {a2Total} / {isOtel ? '9' : '15'} {isOtel && <span className="text-xs text-muted-foreground ml-1 font-sans font-normal">({((a2Total / 9) * 15).toFixed(1)} / 15 pts)</span>}
+                        </span>
                     </div>
                 </CardTitle>
             </CardHeader>
@@ -68,8 +79,11 @@ export function A2SubEvaluation({
                     </div>
                 ) : null}
 
-                {A2_SUBS.map(sub => {
+                {(a2Subs || A2_SUBS).map(sub => {
                     const qData = a2QData.find(q => q.subcategory === sub.id)
+                    const guidance = guidanceMap[sub.id]
+                    const hasAIScore = qData?.ai_score !== null && qData?.ai_score !== undefined
+
                     return (
                         <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
@@ -78,7 +92,25 @@ export function A2SubEvaluation({
                                     <span className="ml-2 font-semibold text-foreground text-sm">{sub.name}</span>
                                     <p className="text-xs text-muted-foreground">{sub.desc}</p>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    {hasAIScore && (
+                                        <span className="text-xs flex items-center gap-1 bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full font-semibold border border-violet-200">
+                                            <Sparkles className="h-3 w-3 text-violet-600" /> IA sugiere: {qData.ai_score}/3
+                                        </span>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Evaluator Guidance Panel */}
+                            {guidance && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                                    <div className="flex items-center gap-2 text-amber-800">
+                                        <BookOpen className="h-4 w-4 shrink-0" />
+                                        <span className="text-xs font-bold">{guidance.title}</span>
+                                    </div>
+                                    <pre className="text-xs text-amber-700 whitespace-pre-wrap font-sans leading-relaxed">{guidance.content}</pre>
+                                </div>
+                            )}
 
                             {qData && (
                                 <div className="space-y-2 bg-secondary/20 rounded-md p-3">
@@ -86,6 +118,11 @@ export function A2SubEvaluation({
                                     <p className="text-sm text-foreground">{qData.prompt_context}</p>
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
+                                    <AiLikelihoodBadge
+                                        percentage={qData.ai_likelihood_score ?? qData.ai_likelihood}
+                                        riskLevel={qData.ai_likelihood_risk}
+                                        indicators={qData.ai_likelihood_indicators}
+                                    />
                                     {qData.ai_score !== null && (
                                         <div className="flex items-center gap-3 mt-2 p-2 rounded bg-violet-50 border border-violet-200">
                                             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
@@ -144,8 +181,9 @@ export function A2SubEvaluation({
 
                 {/* A2 Summary */}
                 {(() => {
-                    const pct = a2Total / 15
-                    const level = a2Total <= 3 ? 0 : a2Total <= 7 ? 1 : a2Total <= 11 ? 2 : 3
+                    const a2Max = isOtel ? 9 : 15
+                    const pct = a2Total / a2Max
+                    const level = pct <= 0.25 ? 0 : pct <= 0.5 ? 1 : pct <= 0.75 ? 2 : 3
                     const c = TOTAL_COLORS[level]
                     return (
                         <div className={`${c.fill} border ${c.border} rounded-lg p-4 space-y-2`}>
@@ -153,7 +191,9 @@ export function A2SubEvaluation({
                                 <span className="text-sm font-bold text-foreground">Total A2:</span>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs font-bold ${c.text}`}>{c.label}</span>
-                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a2Total} / 15</span>
+                                    <span className={`text-lg font-mono font-bold ${c.text}`}>
+                                        {a2Total} / {a2Max} {isOtel && <span className="text-xs font-normal text-muted-foreground font-sans">(Pond: {((a2Total / 9) * 15).toFixed(1)} / 15 pts)</span>}
+                                    </span>
                                 </div>
                             </div>
                             <div className="w-full h-2.5 bg-white/60 rounded-full overflow-hidden">

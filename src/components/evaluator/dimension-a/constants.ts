@@ -27,6 +27,13 @@ export const A1_SUBS = [
     { id: 'A1.5', name: 'AWS Core Services & Seguridad' },
 ]
 
+export const A1_SUBS_OTEL = [
+    { id: 'A1.1', name: 'Arquitectura OTel & Contexto' },
+    { id: 'A1.2', name: 'Collector & OTTL Pipelines' },
+    { id: 'A1.3', name: 'Protocolo OTLP & Transportes' },
+    { id: 'A1.4', name: 'Profiling & eBPF Telemetry' },
+]
+
 export const A2_SUBS = [
     { id: 'A2.1', name: 'Pilares de Observabilidad', desc: 'Métricas, Logs y Trazas; monitoreo proactivo' },
     { id: 'A2.2', name: 'SRE Fundamentals', desc: 'SLI, SLO, SLA y Error Budgets' },
@@ -35,10 +42,21 @@ export const A2_SUBS = [
     { id: 'A2.5', name: 'Interpretación de Alertas', desc: 'Análisis de severidad y primeros pasos de diagnóstico' },
 ]
 
+export const A2_SUBS_OTEL = [
+    { id: 'A2.1', name: 'Grafana Alloy Flow Mode', desc: 'Arquitectura por componentes y pipelines declarativos' },
+    { id: 'A2.2', name: 'Mimir & Loki (PromQL/LogQL)', desc: 'Agregaciones PromQL y parseo de logs con LogQL' },
+    { id: 'A2.3', name: 'Tempo & Pyroscope (TraceQL/Profiling)', desc: 'Búsqueda TraceQL y visualización de Flamegraphs en Pyroscope' },
+]
+
 export const A3_SUBS = [
     { id: 'A3.1', name: 'Control de Versiones Git', desc: 'Branches, commits estructurados, push y colaboración' },
     { id: 'A3.2', name: 'Pandas: Carga y Filtrado', desc: 'Lectura de datasets y filtrado condicional de series de tiempo' },
     { id: 'A3.3', name: 'Pandas: Agregaciones & Anomalías', desc: 'Groupby, percentiles y detección de degradaciones/errores' },
+]
+
+export const A3_SUBS_OTEL = [
+    { id: 'A3.1', name: 'Análisis de Pipeline & Muestreo', desc: 'Análisis de la lógica de tail_sampling y políticas de decisión' },
+    { id: 'A3.2', name: 'Reglas OTTL & Procesamiento', desc: 'Renombrado y transformación de atributos con reglas OTTL en transform processor' },
 ]
 
 export const A4_SUBS = [

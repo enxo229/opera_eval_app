@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import NextImage from 'next/image'
-import { RefreshCw, RotateCcw, Loader2, Sparkles, Terminal, ChevronDown, ChevronUp, HelpCircle, Activity, Info } from 'lucide-react'
+import { RefreshCw, RotateCcw, Loader2, Sparkles, Terminal, ChevronDown, ChevronUp, HelpCircle, Activity, Info, BookOpen } from 'lucide-react'
 import { A1_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
+import { A1_EVALUATOR_GUIDANCE, A1_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A1SubEvaluationProps {
     a1QuestionsData: any[]
@@ -18,6 +19,8 @@ interface A1SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a1Subs?: any[]
+    profileTrack?: string
 }
 
 export function A1SubEvaluation({
@@ -32,8 +35,12 @@ export function A1SubEvaluation({
     a1Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a1Subs,
+    profileTrack
 }: A1SubEvaluationProps) {
+    const isOtel = profileTrack === 'otel_expert'
+    const guidanceMap = isOtel ? A1_EVALUATOR_GUIDANCE_OTEL : A1_EVALUATOR_GUIDANCE
     const [isTerminalExpanded, setIsTerminalExpanded] = useState(a1TerminalCommands.length > 0)
 
     // Telemetry calculations
@@ -42,12 +49,11 @@ export function A1SubEvaluation({
     const logCount = a1TerminalCommands.filter(c => /cat|tail|grep|awk|less|more|journalctl/i.test(c)).length
     const procCount = a1TerminalCommands.filter(c => /ps|top|htop|kill|systemctl|service/i.test(c)).length
     const fileCount = a1TerminalCommands.filter(c => /ls|cd|pwd|find|stat|head/i.test(c)).length
-
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>A1. Fundamentos de Infraestructura y Sistemas</span>
+                    <span>{isOtel ? 'A1. Estándar OpenTelemetry & Arquitectura' : 'A1. Fundamentos de Infraestructura y Sistemas'}</span>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={onRefresh}
                             disabled={a1Refreshing} className="h-8 px-3 text-xs">
@@ -63,7 +69,7 @@ export function A1SubEvaluation({
                             </Button>
                         )}
                         <span className="font-mono bg-background px-3 py-1 rounded-md border text-foreground text-base">
-                            {a1Total} / 15
+                            {a1Total} / {isOtel ? '12' : '15'} {isOtel && <span className="text-xs text-muted-foreground ml-1 font-sans font-normal">({((a1Total / 12) * 15).toFixed(1)} / 15 pts)</span>}
                         </span>
                     </div>
                 </CardTitle>
@@ -194,9 +200,10 @@ export function A1SubEvaluation({
                 </div>
 
                 {/* Per-subcategory scoring */}
-                {A1_SUBS.map(sub => {
+                {(a1Subs || A1_SUBS).map(sub => {
                     const questionData = a1QuestionsData.find(q => q.subcategory === sub.id)
                     const hasAIScore = questionData?.ai_score !== null && questionData?.ai_score !== undefined
+                    const guidance = guidanceMap[sub.id]
 
                     return (
                         <div key={sub.id} className="border border-border rounded-lg overflow-hidden">
@@ -207,8 +214,8 @@ export function A1SubEvaluation({
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {hasAIScore && (
-                                        <span className="text-xs flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
-                                            <Sparkles className="h-3 w-3" /> IA: {questionData.ai_score}/3
+                                        <span className="text-xs flex items-center gap-1 bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full font-semibold border border-violet-200">
+                                            <Sparkles className="h-3 w-3 text-violet-600" /> IA sugiere: {questionData.ai_score}/3
                                         </span>
                                     )}
                                     <span className="font-mono text-sm font-bold text-foreground bg-background px-2 py-0.5 rounded border">
@@ -218,22 +225,43 @@ export function A1SubEvaluation({
                             </div>
 
                             <div className="px-4 py-3 space-y-3">
+                                {/* Evaluator Guidance Panel */}
+                                {guidance && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                                        <div className="flex items-center gap-2 text-amber-800">
+                                            <BookOpen className="h-4 w-4 shrink-0" />
+                                            <span className="text-xs font-bold">{guidance.title}</span>
+                                        </div>
+                                        <pre className="text-xs text-amber-700 whitespace-pre-wrap font-sans leading-relaxed">{guidance.content}</pre>
+                                    </div>
+                                )}
+
                                 {/* Show candidate Q&A if exists */}
                                 {questionData && (
                                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                                         <p className="text-xs text-slate-500 font-semibold uppercase">Pregunta:</p>
                                         <p className="text-xs text-slate-700">{questionData.prompt_context}</p>
+
                                         {questionData.candidate_response && (
                                             <>
                                                 <p className="text-xs text-slate-500 font-semibold uppercase mt-2">Respuesta del candidato:</p>
                                                 <p className="text-xs text-slate-800 font-mono bg-white/50 p-2 rounded">{questionData.candidate_response}</p>
+                                                <AiLikelihoodBadge
+                                                    percentage={questionData.ai_likelihood_score ?? questionData.ai_likelihood}
+                                                    riskLevel={questionData.ai_likelihood_risk}
+                                                    indicators={questionData.ai_likelihood_indicators}
+                                                />
                                             </>
                                         )}
-                                        {questionData.ai_justification && (
-                                            <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-2">
-                                                <p className="text-xs text-amber-800 flex items-center gap-1">
-                                                    <NextImage src="/icons/AIAgent.png" alt="IA" width={28} height={28} className="inline mr-1" /> <strong>IA ({questionData.ai_score}/3):</strong> {questionData.ai_justification}
-                                                </p>
+                                        {hasAIScore && (
+                                            <div className="flex items-center gap-3 mt-2 p-2 rounded bg-violet-50 border border-violet-200">
+                                                <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
+                                                <div className="text-xs">
+                                                    <span className="font-bold text-violet-700">IA sugiere: {questionData.ai_score}/3</span>
+                                                    {questionData.ai_justification && (
+                                                        <p className="text-violet-600 mt-0.5">{questionData.ai_justification}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -287,8 +315,9 @@ export function A1SubEvaluation({
 
                 {/* A1 Summary */}
                 {(() => {
-                    const pct = a1Total / 15
-                    const level = a1Total <= 3 ? 0 : a1Total <= 7 ? 1 : a1Total <= 11 ? 2 : 3
+                    const a1Max = isOtel ? 12 : 15
+                    const pct = a1Total / a1Max
+                    const level = pct <= 0.25 ? 0 : pct <= 0.5 ? 1 : pct <= 0.75 ? 2 : 3
                     const c = TOTAL_COLORS[level]
                     return (
                         <div className={`${c.fill} border ${c.border} rounded-lg p-4 space-y-2`}>
@@ -296,7 +325,9 @@ export function A1SubEvaluation({
                                 <span className="text-sm font-bold text-foreground">Total A1:</span>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs font-bold ${c.text}`}>{c.label}</span>
-                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a1Total} / 15</span>
+                                    <span className={`text-lg font-mono font-bold ${c.text}`}>
+                                        {a1Total} / {a1Max} {isOtel && <span className="text-xs font-normal text-muted-foreground font-sans">(Pond: {((a1Total / 12) * 15).toFixed(1)} / 15 pts)</span>}
+                                    </span>
                                 </div>
                             </div>
                             <div className="w-full h-2.5 bg-white/60 rounded-full overflow-hidden">

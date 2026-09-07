@@ -11,8 +11,9 @@ export function RealtimeSync({ evaluationId }: { evaluationId: string }) {
         if (!evaluationId) return
 
         const supabase = createClient()
+        let pollingInterval: NodeJS.Timeout | null = null
 
-        console.log(`📡 [RealtimeSync] Conectando a Supabase para evaluation_id: ${evaluationId}`)
+        console.log(`📡 [RealtimeSync] Conectando a Supabase Realtime para evaluation_id: ${evaluationId}`)
 
         const channel = supabase
             .channel(`realtime_eval_${evaluationId}`)
@@ -25,13 +26,12 @@ export function RealtimeSync({ evaluationId }: { evaluationId: string }) {
                     filter: `evaluation_id=eq.${evaluationId}`
                 },
                 (payload) => {
-                    console.log('🔄 [RealtimeSync] DB cambio detectado en dynamic_tests:', payload)
+                    console.log('🔄 [RealtimeSync] Cambio detectado en DB (dynamic_tests):', payload)
                     
-                    // 1. Refresh Server Components (Re-fetches dynamicTests for B, D, and page totals)
+                    // 1. Refresh Server Components
                     router.refresh()
 
-                    // 2. Dispatch global client event for Dimension components that manage their own Client State (like Dimension A)
-                    // The internal handling guarantees that if there are manual overrides, the hook logic skips destructive overwrites.
+                    // 2. Dispatch global client event for Dimension components
                     window.dispatchEvent(new CustomEvent('evaluator_db_updated', { 
                         detail: { evaluationId, trigger: payload.eventType } 
                     }))
@@ -40,15 +40,30 @@ export function RealtimeSync({ evaluationId }: { evaluationId: string }) {
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ [RealtimeSync] Suscrito a WebSockets exitosamente')
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval)
+                        pollingInterval = null
+                    }
                 } else if (status === 'CLOSED') {
-                    console.log('❌ [RealtimeSync] Desconectado')
+                    console.log('ℹ️ [RealtimeSync] Canal cerrado')
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error('❌ [RealtimeSync] Error en el canal')
+                    console.warn('⚠️ [RealtimeSync] Canal en tiempo real no disponible (posible falta de publicación Realtime en la tabla "dynamic_tests"). Activando polling de respaldo (cada 12s).')
+                    
+                    // Fallback polling if Realtime CDC fails/is disabled in Supabase publication
+                    if (!pollingInterval) {
+                        pollingInterval = setInterval(() => {
+                            router.refresh()
+                            window.dispatchEvent(new CustomEvent('evaluator_db_updated', { 
+                                detail: { evaluationId, trigger: 'POLLING_FALLBACK' } 
+                            }))
+                        }, 12000)
+                    }
                 }
             })
 
         return () => {
-            console.log('🔌 [RealtimeSync] Limpiando suscripción')
+            console.log('🔌 [RealtimeSync] Limpiando suscripción y polling')
+            if (pollingInterval) clearInterval(pollingInterval)
             supabase.removeChannel(channel)
         }
     }, [evaluationId, router])

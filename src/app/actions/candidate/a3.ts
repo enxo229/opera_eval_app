@@ -63,13 +63,17 @@ export async function saveA3Responses(
         .eq('evaluation_id', evaluationId)
         .eq('test_type', 'QUESTIONS_A3')
 
+    const { analyzeAiLikelihood } = await import('@/app/actions/ai-detector')
+
     for (const qa of questionsAndAnswers) {
+        const aiDetection = await analyzeAiLikelihood(qa.answer, qa.question)
         const { error } = await supabase.from('dynamic_tests').insert({
             evaluation_id: evaluationId,
             test_type: 'QUESTIONS_A3',
             subcategory: qa.subcategory,
             prompt_context: qa.question,
             candidate_response: qa.answer,
+            ai_likelihood: aiDetection.likelihoodPercentage
         })
         if (error) {
             console.error('Error saving A3 response:', error)
@@ -77,9 +81,17 @@ export async function saveA3Responses(
         }
     }
 
+    // Fetch profile_track to evaluate with proper track criteria (e.g. otel_expert vs general)
+    const { data: evalDoc } = await supabase
+        .from('evaluations')
+        .select('profile_track, selection_processes(profile_track)')
+        .eq('id', evaluationId)
+        .maybeSingle()
+    const profileTrack = (evalDoc?.selection_processes as any)?.profile_track || evalDoc?.profile_track || 'general'
+
     let aiResults: A3EvaluationResult[]
     try {
-        aiResults = await evaluateAnswersA3(questionsAndAnswers)
+        aiResults = await evaluateAnswersA3(questionsAndAnswers, profileTrack)
     } catch (e: any) {
         console.error('AI evaluation error:', e)
         return { success: true, evaluations: undefined, error: 'Las respuestas se guardaron pero la evaluación IA falló.' }
@@ -109,11 +121,12 @@ export async function getA3Results(evaluationId: string): Promise<{
     answer: string
     ai_score: number | null
     ai_justification: string | null
+    ai_likelihood: number | null
 }[]> {
     const supabase = await createClient()
     const { data } = await supabase
         .from('dynamic_tests')
-        .select('subcategory, prompt_context, candidate_response, ai_score, ai_justification')
+        .select('subcategory, prompt_context, candidate_response, ai_score, ai_justification, ai_likelihood')
         .eq('evaluation_id', evaluationId)
         .eq('test_type', 'QUESTIONS_A3')
         .order('subcategory')
@@ -124,6 +137,7 @@ export async function getA3Results(evaluationId: string): Promise<{
         answer: d.candidate_response || '',
         ai_score: d.ai_score,
         ai_justification: d.ai_justification,
+        ai_likelihood: d.ai_likelihood ?? null,
     }))
 }
 

@@ -3,7 +3,7 @@ import { A3Question, generateQuestionsA3 } from '@/app/actions/ai'
 import { saveA3QuestionsOnly, saveA3Responses } from '@/app/actions/candidate/a3'
 import { useCandidateContext, RestoredA3 } from '@/context/CandidateContext'
 
-export function useA3State(educationLevel: string, evaluationId: string | null, restored: RestoredA3 | null) {
+export function useA3State(educationLevel: string, evaluationId: string | null, restored: RestoredA3 | null, profileTrack?: string) {
     const [a3Commands, setA3Commands] = useState<string[]>([])
     const [a3Questions, setA3Questions] = useState<A3Question[]>([])
     const [a3Answers, setA3Answers] = useState<Record<string, string>>({})
@@ -28,7 +28,7 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
     const handleGenerateA3Questions = useCallback(async () => {
         setA3QuestionsLoading(true)
         try {
-            const questions = await generateQuestionsA3(educationLevel)
+            const questions = await generateQuestionsA3(educationLevel, profileTrack)
             setA3Questions(questions)
             setA3QuestionsGenerated(true)
             
@@ -48,7 +48,14 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
         } finally {
             setA3QuestionsLoading(false)
         }
-    }, [educationLevel, evaluationId])
+    }, [educationLevel, evaluationId, profileTrack])
+
+    // Auto-trigger question generation if not restored
+    useEffect(() => {
+        if (!restored && !a3QuestionsGenerated && !a3QuestionsLoading && (educationLevel || profileTrack)) {
+            handleGenerateA3Questions()
+        }
+    }, [restored, a3QuestionsGenerated, a3QuestionsLoading, educationLevel, profileTrack, handleGenerateA3Questions])
 
     const handleSubmitA3 = useCallback(async () => {
         if (!evaluationId) return
@@ -64,9 +71,12 @@ export function useA3State(educationLevel: string, evaluationId: string | null, 
             if (result.success) {
                 setA3Submitted(true)
                 if (result.evaluations) setA3AIResults(result.evaluations)
+            } else if (result.error) {
+                alert('Error al guardar A3: ' + result.error)
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error submitting A3:', e)
+            alert('Error al guardar A3: ' + (e?.message || 'Error desconocido'))
         } finally {
             setA3Submitting(false)
         }

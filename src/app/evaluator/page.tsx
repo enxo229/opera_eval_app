@@ -48,10 +48,10 @@ export default async function EvaluatorDashboard() {
     .select('id', { count: 'exact', head: true })
     .eq('role', 'evaluator')
 
-  // 4. Fetch Selection Processes to retrieve Squads and Processes
+  // 4. Fetch Selection Processes to retrieve Squads, Tracks and Processes
   const { data: selectionProcesses } = await supabase
     .from('selection_processes')
-    .select('id, candidate_email, candidate_national_id, team, status, created_at')
+    .select('id, candidate_email, candidate_national_id, team, status, profile_track, created_at')
     .order('created_at', { ascending: false })
 
   // 5. Fetch official teams catalog from database
@@ -117,7 +117,7 @@ export default async function EvaluatorDashboard() {
     // Track KPI counters
     if (evalStatus === 'completed' || processStatus === 'completed') {
       completedCount++
-      if (classification && classification.toLowerCase().includes('listo')) {
+      if (classification && (classification.toLowerCase().includes('listo') || classification.toLowerCase().includes('experto'))) {
         readyCount++
       }
     } else {
@@ -131,6 +131,7 @@ export default async function EvaluatorDashboard() {
       nationalId: c.national_id || linkedProcess?.candidate_national_id || null,
       nationalIdType: c.national_id_type || 'CC',
       team: team,
+      trackId: linkedProcess?.profile_track || 'general',
       processId: linkedProcess?.id || null,
       processStatus: processStatus,
       evaluationId: latestEval?.id || null,

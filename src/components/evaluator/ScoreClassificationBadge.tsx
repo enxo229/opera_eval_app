@@ -26,7 +26,7 @@ export function ScoreClassificationBadge({
   const text = classification.trim()
   const lower = text.toLowerCase()
 
-  if (lower.includes('listo')) {
+  if (lower.includes('listo') || lower.includes('experto')) {
     return (
       <Badge
         className={cn('bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs border-transparent', className)}
@@ -36,7 +36,7 @@ export function ScoreClassificationBadge({
     )
   }
 
-  if (lower.includes('nivelación') || lower.includes('nivelacion')) {
+  if (lower.includes('nivelación') || lower.includes('nivelacion') || lower.includes('avanzado')) {
     return (
       <Badge
         className={cn('bg-amber-500 hover:bg-amber-600 text-white font-medium shadow-xs border-transparent', className)}
@@ -46,7 +46,7 @@ export function ScoreClassificationBadge({
     )
   }
 
-  if (lower.includes('preparación') || lower.includes('preparacion')) {
+  if (lower.includes('preparación') || lower.includes('preparacion') || lower.includes('intermedio') || lower.includes('desarrollo')) {
     return (
       <Badge
         className={cn('bg-orange-500 hover:bg-orange-600 text-white font-medium shadow-xs border-transparent', className)}
@@ -56,7 +56,7 @@ export function ScoreClassificationBadge({
     )
   }
 
-  // Default: Continúa en rol actual / Rojo
+  // Default: Continúa en rol actual / No Cumple Perfil Experto / Rojo
   return (
     <Badge
       className={cn('bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-xs border-transparent', className)}

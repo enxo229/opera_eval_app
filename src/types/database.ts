@@ -19,7 +19,12 @@ export type DynamicTestType =
   | 'QUESTIONS_A3'
   | 'QUESTIONS_A4'
   | 'QUESTIONS_B1'
+  | 'QUESTIONS_B2'
+  | 'QUESTIONS_C'
   | 'PROMPT_IA2'
+  | 'TAB_SWITCH_EVENT'
+  | 'SECURITY_AUDIT'
+
 
 export interface Database {
   public: {
@@ -61,6 +66,7 @@ export interface Database {
           evaluator_id: string | null
           team: string | null
           observations: string | null
+          profile_track: 'general' | 'otel_expert'
           status: 'active' | 'completed' | 'archived'
           created_at: string
         }
@@ -71,6 +77,7 @@ export interface Database {
           evaluator_id?: string | null
           team?: string | null
           observations?: string | null
+          profile_track?: 'general' | 'otel_expert'
           status?: 'active' | 'completed' | 'archived'
           created_at?: string
         }
@@ -81,6 +88,7 @@ export interface Database {
           evaluator_id?: string | null
           team?: string | null
           observations?: string | null
+          profile_track?: 'general' | 'otel_expert'
           status?: 'active' | 'completed' | 'archived'
           created_at?: string
         }
@@ -99,6 +107,7 @@ export interface Database {
           final_score: number | null
           classification: string | null
           ai_insights: Json | null
+          bypass_paste_count?: number | null
         }
         Insert: {
           id?: string
@@ -113,6 +122,7 @@ export interface Database {
           final_score?: number | null
           classification?: string | null
           ai_insights?: Json | null
+          bypass_paste_count?: number | null
         }
         Update: {
           id?: string
@@ -127,6 +137,7 @@ export interface Database {
           final_score?: number | null
           classification?: string | null
           ai_insights?: Json | null
+          bypass_paste_count?: number | null
         }
       }
       dimension_scores: {
@@ -166,6 +177,7 @@ export interface Database {
           candidate_response: string | null
           ai_score: number | null
           ai_justification: string | null
+          ai_likelihood: number | null
         }
         Insert: {
           id?: string
@@ -177,6 +189,7 @@ export interface Database {
           candidate_response?: string | null
           ai_score?: number | null
           ai_justification?: string | null
+          ai_likelihood?: number | null
         }
         Update: {
           id?: string
@@ -188,6 +201,7 @@ export interface Database {
           candidate_response?: string | null
           ai_score?: number | null
           ai_justification?: string | null
+          ai_likelihood?: number | null
         }
       }
       teams: {

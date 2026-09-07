@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, RotateCcw, Loader2, Sparkles, BookOpen } from 'lucide-react'
 import { A3_SUBS, RUBRIC_SCALE, SCORE_COLORS, TOTAL_COLORS } from './constants'
-import { A3_EVALUATOR_GUIDANCE } from '@/lib/evaluator-guidance'
+import { A3_EVALUATOR_GUIDANCE, A3_EVALUATOR_GUIDANCE_OTEL } from '@/lib/evaluator-guidance'
 import { FormattedQuestion } from '@/components/candidate/FormattedQuestion'
+import { AiLikelihoodBadge } from '../AiLikelihoodBadge'
 
 interface A3SubEvaluationProps {
     a3QData: any[]
@@ -18,6 +19,8 @@ interface A3SubEvaluationProps {
     onRefresh: () => void
     onReset: () => void
     readOnly?: boolean
+    a3Subs: { id: string; name: string; desc?: string }[]
+    profileTrack?: string
 }
 
 export function A3SubEvaluation({
@@ -32,13 +35,18 @@ export function A3SubEvaluation({
     a3Resetting,
     onRefresh,
     onReset,
-    readOnly
+    readOnly,
+    a3Subs,
+    profileTrack
 }: A3SubEvaluationProps) {
+    const isOtelExpert = profileTrack === 'otel_expert'
+    const guidanceMap = isOtelExpert ? A3_EVALUATOR_GUIDANCE_OTEL : A3_EVALUATOR_GUIDANCE
+
     return (
         <Card className="border-border border-2 border-primary/20">
             <CardHeader className="bg-muted/30 border-b border-border py-4">
                 <CardTitle className="text-lg flex justify-between items-center text-primary">
-                    <span>A3. Git & Análisis de Datos con Pandas</span>
+                    <span>{isOtelExpert ? 'A3. Configuración, OTTL & Pipelines' : 'A3. Git & Análisis de Datos con Pandas'}</span>
                     <div className="flex items-center gap-2">
                         {!readOnly && (
                             <>
@@ -63,9 +71,10 @@ export function A3SubEvaluation({
                     </div>
                 ) : null}
 
-                {A3_SUBS.map(sub => {
+                {a3Subs.map(sub => {
                     const qData = a3QData.find(q => q.subcategory === sub.id)
-                    const guidance = A3_EVALUATOR_GUIDANCE[sub.id]
+                    const guidance = guidanceMap[sub.id]
+                    const hasAIScore = qData?.ai_score !== null && qData?.ai_score !== undefined
                     return (
                         <div key={sub.id} className="border border-border rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
@@ -73,6 +82,13 @@ export function A3SubEvaluation({
                                     <span className="font-bold text-primary text-sm">{sub.id}</span>
                                     <span className="ml-2 font-semibold text-foreground text-sm">{sub.name}</span>
                                     <p className="text-xs text-muted-foreground">{sub.desc}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {hasAIScore && (
+                                        <span className="text-xs flex items-center gap-1 bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full font-semibold border border-violet-200">
+                                            <Sparkles className="h-3 w-3 text-violet-600" /> IA sugiere: {qData.ai_score}/3
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -93,6 +109,13 @@ export function A3SubEvaluation({
                                     <FormattedQuestion text={qData.prompt_context || ''} />
                                     <p className="text-xs font-bold text-muted-foreground uppercase mt-2">Respuesta del candidato:</p>
                                     <p className="text-sm text-foreground bg-white/50 p-2 rounded">{qData.candidate_response || 'Sin respuesta'}</p>
+                                    {qData.candidate_response && (
+                                        <AiLikelihoodBadge
+                                            percentage={qData.ai_likelihood_score ?? qData.ai_likelihood}
+                                            riskLevel={qData.ai_likelihood_risk}
+                                            indicators={qData.ai_likelihood_indicators}
+                                        />
+                                    )}
                                     {qData.ai_score !== null && (
                                         <div className="flex items-center gap-3 mt-2 p-2 rounded bg-violet-50 border border-violet-200">
                                             <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
@@ -150,8 +173,9 @@ export function A3SubEvaluation({
 
                 {/* A3 Summary (Normalized) */}
                 {(() => {
-                    const pct = a3Total / 9
-                    const level = a3Total <= 2 ? 0 : a3Total <= 4 ? 1 : a3Total <= 7 ? 2 : 3
+                    const maxScore = a3Subs && a3Subs.length > 0 ? a3Subs.length * 3 : 9
+                    const pct = maxScore > 0 ? a3Total / maxScore : 0
+                    const level = a3Total <= (maxScore * 0.25) ? 0 : a3Total <= (maxScore * 0.5) ? 1 : a3Total <= (maxScore * 0.75) ? 2 : 3
                     const c = TOTAL_COLORS[level]
                     return (
                         <div className={`${c.fill} border ${c.border} rounded-lg p-4 space-y-2`}>
@@ -159,7 +183,7 @@ export function A3SubEvaluation({
                                 <span className="text-sm font-bold text-foreground">Total A3:</span>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs font-bold ${c.text}`}>{c.label}</span>
-                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / 9</span>
+                                    <span className={`text-lg font-mono font-bold ${c.text}`}>{a3Total} / {maxScore}</span>
                                     <span className="text-xs text-muted-foreground">(normalizado: {a3Normalized} / 10)</span>
                                 </div>
                             </div>
